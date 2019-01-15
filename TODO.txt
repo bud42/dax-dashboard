@@ -1,0 +1,32 @@
+TODO: keep cache of data files so we can go back through time
+
+TODO: eventually have dax keep track of queue status on XNAT
+so we don't have to get directly from cluster
+
+TODO: per project counts of each type of assessor, or can this be on per session page?
+
+TODO: prearchive, auto-archive counts
+
+TODO: per session page with columns for scans and assessors with filters
+for project, scan type (passed), assr type (passed)
+
+TODO: get custom statuses for orphaned jobs, more specific accre statuses
+
+TODO: make sure all tasks appear somewhere
+
+TODO: at bottom of jobs report, show list of warnings about jobs that have
+been running for a long time, etc.
+
+TODO: show when data was updated, later have button to update data
+
+TODO: selecting rows in table affect graphs
+
+TODO: scans/assessors: if any are questionable count usable and questionable and yellow,
+if no questionable and any are usable, count the usable and green,
+else if all are unusable count the unusable and red
+if questcount > 0, usecount+questcount,yellow
+elif usecount > 0, usecount,green
+else: totcount,red
+
+update_data.py updates data files, could write file with on dax build/update - 
+since we are accessing the same data we can just save it to a file (and upload to xnat?)

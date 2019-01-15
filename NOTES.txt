@@ -1,0 +1,19 @@
+# More Dash stuff
+# https://alysivji.github.io/reactive-dashboards-with-dash.html
+# https://github.com/plotly/dash-recipes
+
+# Dash Docker:
+# https://github.com/TahaSolutions/dash/tree/master/Dash2
+# https://github.com/JoaoCarabetta/viz-parallel
+
+# Deplying Dash Apps:
+# https://dash.plot.ly/deployment
+# https://community.plot.ly/t/how-to-run-dash-on-a-public-ip/4796
+
+# Link in chart
+# https://community.plot.ly/t/open-url-in-new-tab-when-chart-is-clicked-on/3576/5
+
+# Purposes
+# 1. easily find problems that need manual intervention
+# 2. overview of what data we have across projects
+# 3. overview of what data needs to be inspected (QA'd)
