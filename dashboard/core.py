@@ -16,7 +16,7 @@ import tempfile
 from zipfile import BadZipfile
 import fileinput
 import json
-
+import urllib
 
 # TODO: update buttons or buttons
 # TODO: each tab has button and file that are handled separately BUT assessor
@@ -25,6 +25,9 @@ import json
 # when app starts it uses cached data or None, then each tab can be updated
 # need to make tabs "independent" so they can be included as customized
 
+# TODO: use last_modified to determine what actually needs to be updated
+# maybe we should be creating a single json file with all the data and a
+# timestamp
 
 class DaxDashboard:
     DFORMAT = '%Y-%m-%d %H:%M:%S'
@@ -34,7 +37,7 @@ class DaxDashboard:
         'procstatus', 'proctype', 'datetime', 'timeused(min)']
     FAV_URI = '/data/archive/projects?favorite=True'
 
-    def __init__(self, config_file, server=None):
+    def __init__(self, config_file, server=None, url_base_pathname=None):
         self.config = None
 
         with open(config_file, 'r') as f:
@@ -48,6 +51,7 @@ class DaxDashboard:
         self.reset_curtime()
         self.load_data()
         self.server = server
+        self.url_base_pathname=url_base_pathname
         self.build_app()
 
     def reset_curtime(self):
@@ -427,11 +431,16 @@ class DaxDashboard:
 
         # Make the main dash app
         if self.server:
-            app = dash.Dash('DAX Dashboard', server=self.server)
+            app = dash.Dash('dashboard', server=self.server)
         else:
-            app = dash.Dash('DAX Dashboard')
+            app = dash.Dash('dashboard')
 
         app.title = 'DAX Dashboard'
+        app.config.update({
+            'url_base_pathname': self.url_base_pathname,
+            'routes_pathname_prefix': self.url_base_pathname,
+            'requests_pathname_prefix': self.url_base_pathname
+        })
         self.app = app
 
         # If you are assigning callbacks to components
@@ -585,7 +594,13 @@ class DaxDashboard:
                         sortable=True,
                         editable=False,
                         selected_row_indices=[],
-                        id='datatable-both')
+                        id='datatable-both'),
+                    html.A(
+                        'CSV',
+                        id='download-link',
+                        download="assrdata.csv",
+                        href="",
+                        target="_blank")
                 ], className="container")
 
         @app.callback(
@@ -938,6 +953,16 @@ class DaxDashboard:
 
             return dff.to_dict('records')
 
+        @app.callback(
+            Output('download-link', 'href'),
+            [Input('datatable-both', 'rows')])
+        def update_download_link(rows):
+            dff = pd.DataFrame(rows)
+            _csv = dff.to_csv(index=False, encoding='utf-8')
+            _csv = urllib.parse.quote(_csv)
+            _csv = "data:text/csv;charset=utf-8,%EF%BB%BF" + _csv
+            return _csv
+ 
     def get_app(self):
         return self.app
 
