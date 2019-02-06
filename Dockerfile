@@ -26,7 +26,7 @@ RUN pip install pandas==0.23.4
 RUN pip install nibabel==2.3.0
 RUN pip install matplotlib==2.2.2
 RUN pip install dax
-RUN pip install https://github.com/VUIIS/dax/archive/baxter.zip
+RUN pip install https://github.com/VUIIS/dax/archive/master.zip
 
 # Install DASH stuff
 RUN pip install dash dash-core-components==0.21.0rc1 dash-html-components \
