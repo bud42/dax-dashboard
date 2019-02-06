@@ -377,6 +377,9 @@ xsiType=proc:genprocdata&columns=ID,xsiType,project,proc:genprocdata/proctype'
         self.datadir = self.config['data_dir']
         self.updatetime = ''
         self.datafile = None
+        self.assr_df = None
+        self.task_df = None
+        self.scan_df = None
         if 'use_squeue' in self.config and self.config['use_squeue']:
             self.use_squeue = True
         else:
@@ -594,15 +597,24 @@ xsiType=proc:genprocdata&columns=ID,xsiType,project,proc:genprocdata/proctype'
             self.task_df = self.task_df[self.TASK_COLS]
 
     def selected_projects(self):
-        return sorted(set(
-            list(self.assr_df.project.unique()) +
-            list(self.scan_df.project.unique())))
+        if not self.assr_df or not self.scan_df:
+            return self.all_proj_list
+        else:
+            return sorted(set(
+                list(self.assr_df.project.unique()) +
+                list(self.scan_df.project.unique())))
 
     def selected_assr_types(self):
-        return sorted(list(self.assr_df.proctype.unique()))
+        if not self.assr_df:
+            return self.all_atype_list
+        else:
+            return sorted(list(self.assr_df.proctype.unique()))
 
     def selected_scan_types(self):
-        return sorted(list(self.scan_df.type.unique()))
+        if not self.scan_df:
+            return self.all_stype_list
+        else:
+            return sorted(list(self.scan_df.type.unique()))
 
     def updated_datetime(self):
         return datetime.strptime(self.updatetime, self.DFORMAT)
@@ -1002,7 +1014,7 @@ write_report(projects, atypes, stypes, datafile)
                         n_intervals=0
                     ),
                     dcc.Link(
-                        'Generate New Report', href='/generate',
+                        html.Button('Generate New Report'), href='/generate',
                         style={'margin-left': '25px', 'margin-right': '25px'})
                 ], style={'float': 'right', 'display': 'inline-block'}),
             ], style={'display': 'inline-block'}),
