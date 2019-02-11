@@ -109,7 +109,7 @@ proc:genprocdata/meta/last_modified'
     }
     SCAN_URI = '/data/archive/experiments?project={}&\
 xsiType=xnat:imageSessionData&\
-columns=ID,URI,label,subject_label,project\
+columns=ID,URI,label,subject_label,project,\
 xnat:imagescandata/id,xnat:imagescandata/type,xnat:imagescandata/quality,\
 xnat:imagescandata/series_description,xnat:imageScanData/meta/last_modified'
     SCAN_RENAME = {
@@ -368,9 +368,7 @@ xsiType=proc:genprocdata&columns=ID,xsiType,project,proc:genprocdata/proctype'
             proj_list = self.config['xnat_projects']
 
         self.all_atype_list = self.get_assr_types(proj_list)
-        print(self.all_atype_list)
         self.all_stype_list = self.get_scan_types(proj_list)
-        print(self.all_stype_list)
         self.all_proj_list = proj_list
         self.datadir = self.config['data_dir']
         self.updatetime = ''
@@ -478,7 +476,6 @@ xsiType=proc:genprocdata&columns=ID,xsiType,project,proc:genprocdata/proctype'
 
             assr_list.extend(data['projects'][proj]['assr'])
             scan_list.extend(data['projects'][proj]['scan'])
-            print(scan_list)
             if 'fmri' in data['projects'][proj]:
                 fmri_list.extend(data['projects'][proj]['fmri'])
             if 'lst' in data['projects'][proj]:
@@ -1147,9 +1144,8 @@ write_report(projects, atypes, stypes, datafile)
                 f.writelines(script_text)
 
             # Write report in background
-            cmd = 'python -u ' + script_file + ' > ' + log_file
+            cmd = 'python -u {} > {} 2>&1'.format(script_file, log_file)
             print(cmd)
-            # subprocess.Popen(['python', script_file], stdout=log_file)
             subprocess.Popen(cmd, shell=True)
 
             # Display message to user
