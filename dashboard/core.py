@@ -23,6 +23,8 @@ from dax import XnatUtils
 
 # TODO: save state in tabs
 
+# TODO: use sqlite instead of a json file
+
 # TODO: job running should fall under NeedsQA,DoNoRun should be ignored
 
 # TODO: display settings.xml stuff
@@ -109,8 +111,7 @@ proc:genprocdata/meta/last_modified'
 xsiType=xnat:imageSessionData&\
 columns=ID,URI,label,subject_label,project\
 xnat:imagescandata/id,xnat:imagescandata/type,xnat:imagescandata/quality,\
-xnat:imagescandata/series_description,xnat:imagescandata/file/label,\
-xnat:imageScanData/meta/last_modified'
+xnat:imagescandata/series_description,xnat:imageScanData/meta/last_modified'
     SCAN_RENAME = {
         'ID': 'ID',
         'URI': 'URI',
@@ -121,7 +122,6 @@ xnat:imageScanData/meta/last_modified'
         'xnat:imagescandata/type': 'type',
         'xnat:imagescandata/quality': 'quality',
         'xnat:imagescandata/series_description': 'scan_description',
-        'xnat:imagescandata/file/label': 'resources',
         'xnat:imageScanData/meta/last_modified': 'last_modified'
     }
 
@@ -330,8 +330,7 @@ proc:genprocdata/meta/last_modified'
 xsiType=xnat:imageSessionData&\
 columns=ID,URI,label,subject_label,project\
 xnat:imagescandata/id,xnat:imagescandata/type,xnat:imagescandata/quality,\
-xnat:imagescandata/series_description,xnat:imagescandata/file/label,\
-xnat:imageScanData/meta/last_modified'
+xnat:imagescandata/series_description,xnat:imageScanData/meta/last_modified'
     SCAN_RENAME = {
         'ID': 'ID',
         'URI': 'URI',
@@ -342,7 +341,6 @@ xnat:imageScanData/meta/last_modified'
         'xnat:imagescandata/type': 'type',
         'xnat:imagescandata/quality': 'quality',
         'xnat:imagescandata/series_description': 'scan_description',
-        'xnat:imagescandata/file/label': 'resources',
         'xnat:imageScanData/meta/last_modified': 'last_modified'
     }
     RES_URI = '/projects/{}/subjects/{}/experiments/{}/assessors/{}/\
@@ -480,6 +478,7 @@ xsiType=proc:genprocdata&columns=ID,xsiType,project,proc:genprocdata/proctype'
 
             assr_list.extend(data['projects'][proj]['assr'])
             scan_list.extend(data['projects'][proj]['scan'])
+            print(scan_list)
             if 'fmri' in data['projects'][proj]:
                 fmri_list.extend(data['projects'][proj]['fmri'])
             if 'lst' in data['projects'][proj]:
@@ -597,7 +596,7 @@ xsiType=proc:genprocdata&columns=ID,xsiType,project,proc:genprocdata/proctype'
             self.task_df = self.task_df[self.TASK_COLS]
 
     def selected_projects(self):
-        if not self.assr_df or not self.scan_df:
+        if self.assr_df is None:
             return self.all_proj_list
         else:
             return sorted(set(
@@ -605,13 +604,13 @@ xsiType=proc:genprocdata&columns=ID,xsiType,project,proc:genprocdata/proctype'
                 list(self.scan_df.project.unique())))
 
     def selected_assr_types(self):
-        if not self.assr_df:
+        if self.assr_df is None:
             return self.all_atype_list
         else:
             return sorted(list(self.assr_df.proctype.unique()))
 
     def selected_scan_types(self):
-        if not self.scan_df:
+        if self.scan_df is None:
             return self.all_stype_list
         else:
             return sorted(list(self.scan_df.type.unique()))
@@ -640,8 +639,6 @@ xsiType=proc:genprocdata&columns=ID,xsiType,project,proc:genprocdata/proctype'
         newdata['updatetime'] = self.formatted_time(nowtime)
         datafile = None
         dirty = False
-
-        # TODO: use sqlite instead of a json file
 
         try:
             # Load latest data from file
