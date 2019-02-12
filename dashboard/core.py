@@ -207,14 +207,17 @@ out/resources/{}'
 
     # Try to match each assr with a scan and append the scantype
     labels = assr['label'].split('-x-')
-    scan_obj = xnat.select(
-        '/projects/' + labels[0] +
-        '/subjects/' + labels[1] +
-        '/experiments/' + labels[2] +
-        '/scans/' + labels[3]
-    )
-
-    if not scan_obj.exists() and assr['inputs']:
+    if len(labels) == 5:
+        scan_obj = xnat.select(
+            '/projects/' + labels[0] +
+            '/subjects/' + labels[1] +
+            '/experiments/' + labels[2] +
+            '/scans/' + labels[3]
+        )
+        if scan_obj.exists():
+            assr['scan_type'] = scan_obj.attrs.get('type')
+            assr['scan_descrip'] = scan_obj.attrs.get('series_description')
+    elif len(labels) == 4 and assr['inputs']:
         # Try to interpret scan from inputs field
         assr_inputs = json.loads(assr['inputs'].replace('&quot;', '"'))
         _key, _val = assr_inputs.popitem()
@@ -226,10 +229,9 @@ out/resources/{}'
             '/experiments/' + labels[2] +
             '/scans/' + scan_id
         )
-
-    if scan_obj.exists():
-        assr['scan_type'] = scan_obj.attrs.get('type')
-        assr['scan_descrip'] = scan_obj.attrs.get('series_description')
+        if scan_obj.exists():
+            assr['scan_type'] = scan_obj.attrs.get('type')
+            assr['scan_descrip'] = scan_obj.attrs.get('series_description')
 
     return assr
 
