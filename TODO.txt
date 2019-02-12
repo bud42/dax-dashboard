@@ -30,3 +30,60 @@ else: totcount,red
 
 update_data.py updates data files, could write file with on dax build/update - 
 since we are accessing the same data we can just save it to a file (and upload to xnat?)
+
+# TODO: save state in tabs
+
+# TODO: use sqlite instead of a json file
+
+# TODO: job running should fall under NeedsQA,DoNoRun should be ignored
+
+# TODO: display settings.xml stuff
+
+# TODO: structural tab where you can pick rows and
+# they are highlighted in boxplots: wml, ICV, etc. thickness?
+
+# TODO: TRACULA tab
+
+# TODO: PET data
+
+# TODO: site column on processing screen
+
+# TODO: session date column on processing screen
+
+# TODO: help button on each tab that explains how it operates
+
+# TODO: info button that explains the purpose of this report and how it works
+
+# TODO: group by site instead of project,
+# also group by assessor type instead of project,
+# so we can see across multiple projects at once or just see all the types for
+# a single project.
+# also do the same for scan types!!!! we be really useful for MIND
+# and for folks who have a single project
+
+# TODO: group by baseline/followup
+
+# TODO: when selecting a project, filter out columns that don't apply
+
+# TODO: use a logger
+
+# TODO: transition from data_table_experiments to data_table, requires a lot
+# of keyword changes (rows as recrods to data as rows, sortable to soring,
+# filterable to filtering,
+# selected_row_indices to selected_rows, columms is list of dicts instead of
+# just list) and probably some formatting
+
+# TODO: graph of sessions by time, similar to jobs
+
+# _user = self.config['squeue_user']
+# _file = self.datadir + '/squeue-' + self.curtime + '.txt
+# cmd = 'squeue -u ' + _user + ' --format="%all" > ' + _file
+# os.system(cmd)
+# _cols = ['NAME', 'USER', 'TIME', 'ST', 'START_TIME', 'JOBID']
+# self.squeue_df = pd.read_csv(_file, delimiter='|', usecols=_cols)
+# self.squeue_df.rename(
+#    columns={
+#        'NAME': 'name', 'USER': 'user', 'ST': 'state',
+#        'TIME': 'elapsed_time', 'START_TIME': 'start_time',
+#        'JOBID': 'jobid'
+#    }, inplace=True)
