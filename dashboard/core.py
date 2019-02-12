@@ -90,7 +90,7 @@ xnat:imagescandata/series_description,xnat:imageScanData/meta/last_modified'
         # Rename columns
         _df.rename(columns=SCAN_RENAME, inplace=True)
 
-        if scan_types:
+        if not _df.empty and scan_types:
             # Filter scan types to include
             _df = _df[_df['type'].isin(scan_types)]
 
@@ -104,8 +104,7 @@ xnat:imagescandata/series_description,xnat:imageScanData/meta/last_modified'
 
         # Rename columns
         _df.rename(columns=ASSR_RENAME, inplace=True)
-
-        if assr_types:
+        if not _df.empty and assr_types:
             # Filter scan types to include
             _df = _df[_df['proctype'].isin(assr_types)]
 
@@ -1062,13 +1061,6 @@ write_report(projects, atypes, stypes, datafile)
         def handle_submit(n_clicks, pvalue, avalue, svalue, prefix):
             if not n_clicks:
                 raise dash.exceptions.PreventUpdate("No data changed!")
-
-            print('handle_submit')
-            print('submit_n_clicks=', n_clicks)
-            print('proj_value=', pvalue)
-            print('assr_value=', avalue)
-            print('scan_value=', svalue)
-            print('prefix_value=', prefix)
 
             # Write script
             nowtime = datetime.now()
