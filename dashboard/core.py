@@ -536,6 +536,9 @@ xsiType=proc:genprocdata&columns=ID,xsiType,project,proc:genprocdata/proctype'
             # Minimize columns
             self.task_df = self.task_df[self.TASK_COLS]
 
+        self.test_df = self.assr_df.copy()
+        self.test_dfp = self.assr_dfp.copy()
+
     def selected_projects(self):
         if self.assr_df is None:
             return self.all_proj_list
@@ -956,7 +959,7 @@ write_report(projects, atypes, stypes, datafile)
                         style={'margin-left': '25px', 'margin-right': '25px'})
                 ], style={'float': 'right', 'display': 'inline-block'}),
             ], style={'display': 'inline-block'}),
-            html.Div(children=['Just a sec...'], id='report-content')
+            html.Div(children=['Just a moment...'], id='report-content')
         ])
 
         @app.callback(
@@ -978,6 +981,12 @@ write_report(projects, atypes, stypes, datafile)
 
         def get_generate_layout():
             print('DEBUG:get_generate_layout')
+
+            # Check for currently generating report,
+            # python file exists but json file does not
+            cur_script = self.script_running()
+            if cur_script:
+                return self.script_running_content()
 
             _list = self.all_projects()
             all_proj_options = [{'label': x, 'value': x} for x in _list]
@@ -1067,7 +1076,7 @@ write_report(projects, atypes, stypes, datafile)
             # Write script
             nowtime = datetime.now()
             ftime = datetime.strftime(nowtime, '%Y%m%d-%H%M%S')
-            filebase = prefix + ftime
+            filebase = '{}_{}'.format(prefix, ftime)
             newdata_file = os.path.join(self.datadir, filebase + '.json')
             script_file = os.path.join(self.datadir, filebase + '.py')
             log_file = os.path.join(self.datadir, filebase + '.log')
@@ -1144,6 +1153,7 @@ write_report(projects, atypes, stypes, datafile)
                             dcc.Tab(label='EDATQA', value=4),
                             dcc.Tab(label='Scans', value=5),
                             dcc.Tab(label='LST', value=6),
+                            dcc.Tab(label='test', value=7),
                         ],
                         vertical=False
                     ),
@@ -1353,6 +1363,38 @@ write_report(projects, atypes, stypes, datafile)
                         html.Button('CSV'),
                         id='download-link',
                         download="assrdata.csv",
+                        href="",
+                        target="_blank")
+                ], className="container", style={"max-width": "none"})
+
+            elif value == 7:
+                _df = self.dashdata.test_df
+                test_proj_options = self.make_options(_df.project.unique())
+                test_type_options = self.make_options(_df.proctype.unique())
+                tcols = ['session', 'project'] + list(_df.proctype.unique())
+
+                return html.Div([
+                    dcc.Graph(
+                        id='graph-test'),
+                    dcc.Dropdown(
+                        id='dropdown-test-proj', multi=True,
+                        options=test_proj_options,
+                        placeholder='Select project(s)'),
+                    dcc.Dropdown(
+                        id='dropdown-test-type', multi=True,
+                        options=test_type_options,
+                        placeholder='Select type(s)'),
+                    dt.DataTable(
+                        rows=self.dashdata.test_dfp.to_dict('records'),
+                        columns=tcols,  # specifies order of columns
+                        filterable=False,
+                        sortable=True,
+                        editable=False,
+                        id='datatable-test'),
+                    html.A(
+                        html.Button('CSV'),
+                        id='download-link',
+                        download="testdata.csv",
                         href="",
                         target="_blank")
                 ], className="container", style={"max-width": "none"})
@@ -1799,6 +1841,98 @@ write_report(projects, atypes, stypes, datafile)
                 dff = dff[dff['qcstatus'].isin(selected_stat)]
 
             return dff.to_dict('records')
+
+        @app.callback(
+            Output('datatable-test', 'rows'),
+            [Input('dropdown-test-proj', 'value'),
+             Input('dropdown-test-type', 'value')])
+        def update_rows_test(selected_proj, selected_type):
+            dff = self.dashdata.test_dfp
+
+            # Filter by project
+            if selected_proj:
+                dff = dff[dff['project'].isin(selected_proj)]
+
+            return dff.to_dict('records')
+
+        @app.callback(
+            Output('graph-test', 'figure'),
+            [Input('datatable-test', 'rows'),
+             Input('dropdown-test-proj', 'value'),
+             Input('dropdown-test-type', 'value')])
+        def update_figure_test(rows, selected_proj, selected_type):
+            _dfp = pd.DataFrame(rows)
+            _df = self.dashdata.task_df
+
+            if not selected_type:
+                xall = list(_df.proctype.unique())
+            else:
+                xall = selected_type
+
+            proctype_options = [{'label': x, 'value': x} for x in xall]
+            yred = [0] * len(proctype_options)
+            ygreen = [0] * len(proctype_options)
+            ygrey = [0] * len(proctype_options)
+            yyell = [0] * len(proctype_options)
+            yblue = [0] * len(proctype_options)
+
+            # Make a 1x1 figure
+            fig = plotly.tools.make_subplots(rows=1, cols=1)
+            for i, t in enumerate(xall):
+                # Iterate by session
+                for s, sess in _dfp.iterrows():
+                    if not sess[t]:
+                        ygrey[i] += 1
+                    elif 'P' in sess[t]:
+                        ygreen[i] += 1
+                    elif 'Q' in sess[t]:
+                        yyell[i] += 1
+                    elif 'J' in sess[t]:
+                        yblue[i] += 1
+                    elif 'F' in sess[t]:
+                        yred[i] += 1
+                    else:
+                        ygrey[i] += 1
+
+            # Draw bar for each status
+            fig.append_trace(go.Bar(
+                x=xall, y=ygreen, name='Passed',
+                marker=dict(color='rgb(27,157,5)'),
+                opacity=0.9), 1, 1)
+
+            fig.append_trace(go.Bar(
+                x=xall, y=yyell, name='Needs QA',
+                marker=dict(color='rgb(240,240,30)'),
+                opacity=0.9), 1, 1)
+
+            fig.append_trace(go.Bar(
+                x=xall, y=yred, name='Failed',
+                marker=dict(color='rgb(200,0,0)'),
+                opacity=0.9), 1, 1)
+
+            fig.append_trace(go.Bar(
+                x=xall, y=yblue, name='In Progress',
+                marker=dict(color='rgb(65,105,225)'),
+                opacity=0.9), 1, 1)
+
+            fig.append_trace(go.Bar(
+                x=xall, y=ygrey, name='None',
+                marker=dict(color='rgb(200,200,200)'),
+                opacity=0.9), 1, 1)
+
+            # Customize figure
+            fig['layout'].update(barmode='stack', showlegend=True)
+
+            return fig
+
+    def script_running(self):
+        script_list = glob(self.datadir + '/*.py')
+        for script in script_list:
+            data_file = os.path.basename(script) + '.json'
+            if not os.path.exists(data_file):
+                return script
+
+        return None
 
     def get_app(self):
         return self.app
