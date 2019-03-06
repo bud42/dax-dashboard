@@ -307,7 +307,8 @@ xsiType=proc:genprocdata&columns=ID,xsiType,project,proc:genprocdata/proctype'
             print('INFO:Loading project list from XNAT')
             proj_list = [x['id'] for x in self.xnat._get_json(self.FAV_URI)]
         elif isinstance(self.config['xnat_projects'], basestring):
-            proj_list = [self.config['xnat_projects']]
+            _str = self.config['xnat_projects']
+            proj_list = [x.strip() for x in _str.split(',')]
         else:
             proj_list = self.config['xnat_projects']
 
@@ -948,7 +949,10 @@ write_report(projects, atypes, stypes, datafile)
                         id='dropdown-report-list',
                         options=report_options,
                         value=cur_report, clearable=False,
-                        style={'display': 'inline-block', 'width': '400px'}),
+                        style={
+                            'display': 'inline-block',
+                            'width': '400px',
+                            'vertical-align': 'bottom'}),
                     dcc.Interval(
                         id='interval-component',
                         interval=10000,
@@ -986,7 +990,7 @@ write_report(projects, atypes, stypes, datafile)
             # python file exists but json file does not
             cur_script = self.script_running()
             if cur_script:
-                return self.script_running_content()
+                return self.script_running_content(cur_script)
 
             _list = self.all_projects()
             all_proj_options = [{'label': x, 'value': x} for x in _list]
@@ -996,6 +1000,12 @@ write_report(projects, atypes, stypes, datafile)
 
             _list = self.all_assr_types()
             all_assr_options = [{'label': x, 'value': x} for x in _list]
+
+            if self.dashdata.datafile:
+                cur_report = os.path.basename(
+                    self.dashdata.datafile).split('_')[0]
+            else:
+                cur_report = ''
 
             # Build it
             return html.Div([
@@ -1047,8 +1057,18 @@ write_report(projects, atypes, stypes, datafile)
                             dcc.Input(
                                 id='dropdown-generate-prefix',
                                 placeholder='Enter prefix for the new report',
-                                value='',
+                                value=cur_report,
                                 style={'font-size': 'large', 'width': '33%'}),
+                            dcc.RadioItems(
+                                options=[
+                                    {'label': 'Update existing',
+                                     'value': 'update'},
+                                    {'label': 'Requery existing',
+                                     'value': 'requery'}
+                                ],
+                                value='update',
+                                id='radio-generate-update',
+                                labelStyle={'display': 'inline-block'}),
                             html.Br(), html.Br()]),
                         html.Div(id='output-provider'),
                         html.Button(
@@ -1068,10 +1088,13 @@ write_report(projects, atypes, stypes, datafile)
             [State('dropdown-generate-proj', 'value'),
              State('dropdown-generate-assr-types', 'value'),
              State('dropdown-generate-scan-types', 'value'),
-             State('dropdown-generate-prefix', 'value')])
-        def handle_submit(n_clicks, pvalue, avalue, svalue, prefix):
+             State('dropdown-generate-prefix', 'value'),
+             State('radio-generate-update', 'value')])
+        def handle_submit(n_clicks, pvalue, avalue, svalue, prefix, update):
             if not n_clicks:
                 raise dash.exceptions.PreventUpdate("No data changed!")
+
+            print('update', update)
 
             # Write script
             nowtime = datetime.now()
@@ -1137,7 +1160,6 @@ write_report(projects, atypes, stypes, datafile)
             if selected_rpt is None:
                 return 'No existing reports'
 
-            print('DEBUG:load_report_layout')
             if self.dashdata.datafile != selected_rpt:
                 print('DEBUG:load_report_layout:loading:' + selected_rpt)
                 self.dashdata.load_data(selected_rpt)
@@ -1396,7 +1418,15 @@ write_report(projects, atypes, stypes, datafile)
                         id='download-link',
                         download="testdata.csv",
                         href="",
-                        target="_blank")
+                        target="_blank"),
+                    html.P(
+                        children=[
+'Each session represented 1 time in graph. If at least one assessor is Passed,\
+then the whole session is passed. Then if at least one assessor is Needs QA,\
+then the session is Needs QA. Then if at least one assessor is Failed, then\
+the session is Failed. Then if at least one assessor is In Progress, then\
+the session is In Progress. If no assessors are found, then the session is None'],
+                        style={'white-space': 'pre-wrap'})
                 ], className="container", style={"max-width": "none"})
 
         @app.callback(
@@ -1927,12 +1957,50 @@ write_report(projects, atypes, stypes, datafile)
 
     def script_running(self):
         script_list = glob(self.datadir + '/*.py')
+        script_list.sort(key=os.path.getmtime, reverse=True)
         for script in script_list:
-            data_file = os.path.basename(script) + '.json'
+            data_file = os.path.splitext(script)[0] + '.json'
             if not os.path.exists(data_file):
                 return script
 
         return None
+
+    def script_running_content(self, script_file):
+        _rpt = os.path.splitext(os.path.basename(script_file))[0]
+        msg = 'A report is already being generated: {}'.format(_rpt)
+
+        return html.Div([
+            html.Div(id='generate-content'),
+            html.Br(), html.Br(),
+            html.Div([
+                # generate report header
+                html.Div([
+                    html.Span(
+                        html.H1("Generate New Report"),
+                        style={"fontWeight": "bold", "fontSize": "20"})],
+                    className="row",
+                    style={"borderBottom": "1px solid"},
+                ),
+                # generate report form
+                html.Div(children=[
+                    html.Br(),
+                    html.H3(msg),
+                    dcc.Link(html.Button('Go Back to Reports'), href='/'),
+                    dcc.Interval(
+                        id='interval-log',
+                        interval=5000,
+                        n_intervals=0
+                    ),
+                    html.Br(),
+                    html.P(
+                        children=['Loading log...'],
+                        id='content-log',
+                        style={'white-space': 'pre-wrap'}),
+                    html.Br(), html.Br()],
+                    id='generate-content',
+                    className="container")
+            ])
+        ])
 
     def get_app(self):
         return self.app
