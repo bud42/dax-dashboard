@@ -7,6 +7,7 @@ import tempfile
 from zipfile import BadZipfile
 import fileinput
 import subprocess
+import pytz
 
 import yaml
 import json
@@ -22,7 +23,11 @@ from dash.dependencies import Input, Output, State
 from dax import XnatUtils
 
 
-def write_report(proj_list, assr_types, scan_types, datafile):
+# TODO: include session date and session type (BL, FU)
+
+
+def write_report(projects, assr_types, scan_types, datafile, tz, requery=True):
+    MOD_URI = '/data/archive/experiments?project={}&columns=last_modified'
     ASSR_URI = '/REST/experiments?project={}&xsiType=proc:genprocdata&\
 columns=ID,label,URI,xsiType,project,\
 xnat:imagesessiondata/subject_id,\
@@ -71,13 +76,52 @@ xnat:imagescandata/series_description,xnat:imageScanData/meta/last_modified'
     name = os.path.splitext(os.path.basename(datafile))[0]
     data = {}
     data['projects'] = {}
-    data['updatetime'] = datetime.strftime(datetime.now(), '%Y-%m-%d %H:%M:%S')
+    data['updatetime'] = datetime.strftime(
+        datetime.now(pytz.timezone(tz)), '%Y-%m-%d %H:%M:%S')
+
+    if not requery:
+        # Look for existing report with same name and only load anything that
+        # has changed
+        try:
+            # Load latest data from file
+            oldfile = sorted(glob(
+                datafile.rsplit('_', 1)[0] + '*.json'), reverse=True)[0]
+
+            print('INFO:oldfile=' + oldfile)
+            with open(oldfile) as f:
+                olddata = json.load(f)
+
+            prevtime = olddata['updatetime']
+
+        except IndexError:
+            print('INFO:existing data file not found, will requery')
+            requery = True
 
     print('INFO:{}:connecting to XNAT'.format(name))
     xnat = XnatUtils.get_interface()
 
-    for proj in proj_list:
+    for proj in projects:
         print('INFO:{}:handling project:{}'.format(name, proj))
+
+        if not requery:
+            _uri = MOD_URI.format(proj)
+
+            # Get latest modified date from project sessions
+            _df = pd.DataFrame(xnat._get_json(_uri))
+
+            lastmod = _df['last_modified'].max()
+            print('prevtime=', prevtime, 'lastmod=', lastmod)
+
+            # Skip if not modified
+            if lastmod < prevtime and proj in olddata['projects']:
+                print('INFO:skipping project, not modified:{}:{}'.format(
+                    proj, lastmod))
+                # Copy old data to new data
+                data['projects'][proj] = olddata['projects'][proj]
+                continue
+            else:
+                print('INFO:project modified, will requery:{}:{}'.format(
+                    proj, lastmod))
 
         # Create project in new data
         data['projects'][proj] = {}
@@ -115,22 +159,40 @@ xnat:imagescandata/series_description,xnat:imageScanData/meta/last_modified'
         # LST
         if 'LST_v1' in assr_types:
             print('INFO:{}:extracting LST data:{}'.format(name, proj))
+            try:
+                old_stats = olddata['projects'][proj]['lst']
+            except KeyError:
+                old_stats = list()
+
             _list = [a for a in assr_list if a['proctype'] == 'LST_v1']
-            _stats = init_stats(_list, xnat)
+            # _stats = init_stats(_list, xnat)
+            _stats = update_stats(xnat, old_stats, _list, prevtime)
             data['projects'][proj]['lst'] = _stats
 
         # fMRI
         if 'fMRIQA_v3' in assr_types:
             print('INFO:{}:extracting fMRI data:{}'.format(name, proj))
+            try:
+                old_stats = olddata['projects'][proj]['fmri']
+            except KeyError:
+                old_stats = list()
+
             _list = [a for a in assr_list if a['proctype'] == 'fMRIQA_v3']
-            _stats = init_stats(_list, xnat)
+            # _stats = init_stats(_list, xnat)
+            _stats = update_stats(xnat, old_stats, _list, prevtime)
             data['projects'][proj]['fmri'] = _stats
 
         # EDAT
         if 'EDATQA_v1' in assr_types:
             print('INFO:{}:extracting EDAT data:{}'.format(name, proj))
+            try:
+                old_stats = olddata['projects'][proj]['edat']
+            except KeyError:
+                old_stats = list()
+
             _list = [a for a in assr_list if a['proctype'] == 'EDATQA_v1']
-            _stats = init_stats(_list, xnat)
+            # _stats = init_stats(_list, xnat)
+            _stats = update_stats(xnat, old_stats, _list, prevtime)
             data['projects'][proj]['edat'] = _stats
 
     # Write updated data file
@@ -139,6 +201,31 @@ xnat:imagescandata/series_description,xnat:imageScanData/meta/last_modified'
         json.dump(data, outfile)
 
     print('INFO:{}:DONE!'.format(name))
+
+
+def update_stats(xnat, old_stats, assr_list, prevtime):
+        new_stats = []
+
+        # Check each assr
+        for assr in assr_list:
+            news = None
+            if assr['last_modified'] < prevtime:
+                # Find it in old stats
+                for olds in old_stats:
+                    if olds['label'] == assr['label']:
+                        # Copy old to new
+                        news = olds
+                        break
+
+            if not news:
+                # Load from xnat
+                print('DEBUG:loading stat from XNAT:' + assr['label'])
+                news = load_stat(assr)
+
+            # Save to list
+            new_stats.append(news)
+
+        return new_stats
 
 
 def init_stats(assr_list, xnat):
@@ -326,6 +413,11 @@ xsiType=proc:genprocdata&columns=ID,xsiType,project,proc:genprocdata/proctype'
         else:
             self.use_squeue = False
 
+        if 'timezone' in self.config:
+            self.timezone = self.config['timezone']
+        else:
+            self.timezone = 'US/Central'
+
     def get_projects(self):
         ROLE_LIST = ['Owners', 'Members', 'Collaborators']
         _uri = '/data/projects?accessible=True'
@@ -350,7 +442,7 @@ xsiType=proc:genprocdata&columns=ID,xsiType,project,proc:genprocdata/proctype'
             json.dump(data, outfile)
 
     def init_data(self):
-        nowtime = datetime.now()
+        nowtime = datetime.now(pytz.timezone(self.timezone))
         newdata = {}
         newdata['projects'] = {}
         newdata['updatetime'] = self.formatted_time(nowtime)
@@ -564,7 +656,8 @@ xsiType=proc:genprocdata&columns=ID,xsiType,project,proc:genprocdata/proctype'
         return datetime.strptime(self.updatetime, self.DFORMAT)
 
     def now_formatted(self):
-        return datetime.strftime(datetime.now(), self.DFORMAT)
+        return datetime.strftime(
+            datetime.now(pytz.timezone(self.timezone), self.DFORMAT))
 
     def data_filename(self, curtime):
         ftime = datetime.strftime(curtime, '%Y%m%d-%H%M%S')
@@ -578,7 +671,7 @@ xsiType=proc:genprocdata&columns=ID,xsiType,project,proc:genprocdata/proctype'
 
     def update_data(self, fullupdate=False):
         print('DEBUG:update_data():start=' + self.now_formatted())
-        nowtime = datetime.now()
+        nowtime = datetime.now(pytz.timezone(self.timezone))
         newdata = {}
         newdata['projects'] = {}
         newdata['updatetime'] = self.formatted_time(nowtime)
@@ -853,7 +946,11 @@ stypes = {}
 
 datafile = '{}'
 
-write_report(projects, atypes, stypes, datafile)
+timezone = '{}'
+
+requery = {}
+
+write_report(projects, atypes, stypes, datafile, timezone, requery)
 '''
     DFORMAT = '%Y-%m-%d %H:%M:%S'
     TASK_COLS = [
@@ -874,6 +971,11 @@ write_report(projects, atypes, stypes, datafile)
 
         self.dashdata = DashboardData(self.config, self.xnat)
         self.datadir = self.config['data_dir']
+        if 'timezone' in self.config:
+            self.timezone = self.config['timezone']
+        else:
+            self.timezone = 'US/Central'
+
         self.app = None
         self.url_base_pathname = url_base_pathname
         self.build_app()
@@ -1003,7 +1105,7 @@ write_report(projects, atypes, stypes, datafile)
 
             if self.dashdata.datafile:
                 cur_report = os.path.basename(
-                    self.dashdata.datafile).split('_')[0]
+                    self.dashdata.datafile).rsplit('_', 1)[0]
             else:
                 cur_report = ''
 
@@ -1097,18 +1199,23 @@ write_report(projects, atypes, stypes, datafile)
             print('update', update)
 
             # Write script
-            nowtime = datetime.now()
+            nowtime = datetime.now(pytz.timezone(self.timezone))
             ftime = datetime.strftime(nowtime, '%Y%m%d-%H%M%S')
             filebase = '{}_{}'.format(prefix, ftime)
             newdata_file = os.path.join(self.datadir, filebase + '.json')
             script_file = os.path.join(self.datadir, filebase + '.py')
             log_file = os.path.join(self.datadir, filebase + '.log')
+            if update == 'update':
+                requery = False
+            else:
+                requery = True
 
             print('DEBUG:newdata_file=' + newdata_file)
             module_dir = os.path.abspath(os.path.join(
                 os.path.dirname(__file__), '..'))
             script_text = self.GEN_TEMPLATE.format(
-                module_dir, pvalue, avalue, svalue, newdata_file)
+                module_dir, pvalue, avalue, svalue,
+                newdata_file, self.timezone, requery)
             with open(script_file, 'w') as f:
                 f.writelines(script_text)
 
