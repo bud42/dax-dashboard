@@ -22,9 +22,22 @@ import dash_table_experiments as dt
 from dash.dependencies import Input, Output, State
 from dax import XnatUtils
 
+# TODO:
+# Radio buttons for Per Session, Per Assessor
+
+# Scan Tab
+# Radio buttons for By Project, By Proc Type
+# Radio buttons for Per Session, Per Assessor
+
+# QA Boxplots Tab
+# Dropdown to choose from Proc Type (EDATQA, fMRIQA, LST, etc) but fMRIQA and EDATQA
+# allow one to choose by scan type
 
 # TODO: include session date and session type (BL, FU)
 
+
+# Generate Form - radio button to show all scan types or common scan types, or 
+# narrow down by chosen projects
 
 def write_report(projects, assr_types, scan_types, datafile, tz, requery=True):
     MOD_URI = '/data/archive/experiments?project={}&columns=last_modified'
@@ -75,6 +88,7 @@ xnat:imagescandata/series_description,xnat:imageScanData/meta/last_modified'
 
     name = os.path.splitext(os.path.basename(datafile))[0]
     data = {}
+    olddata = None
     data['projects'] = {}
     data['updatetime'] = datetime.strftime(
         datetime.now(pytz.timezone(tz)), '%Y-%m-%d %H:%M:%S')
@@ -161,21 +175,22 @@ xnat:imagescandata/series_description,xnat:imageScanData/meta/last_modified'
             print('INFO:{}:extracting LST data:{}'.format(name, proj))
             try:
                 old_stats = olddata['projects'][proj]['lst']
-            except KeyError:
-                old_stats = list()
-
-            _list = [a for a in assr_list if a['proctype'] == 'LST_v1']
-            # _stats = init_stats(_list, xnat)
-            _stats = update_stats(xnat, old_stats, _list, prevtime)
-            data['projects'][proj]['lst'] = _stats
+                _list = [a for a in assr_list if a['proctype'] == 'LST_v1']
+                _stats = update_stats(xnat, old_stats, _list, prevtime)
+                data['projects'][proj]['lst'] = _stats
+            except (KeyError, TypeError):
+                _list = [a for a in assr_list if a['proctype'] == 'LST_v1']
+                _stats = init_stats(_list, xnat)
+                data['projects'][proj]['lst'] = _stats
 
         # fMRI
         if 'fMRIQA_v3' in assr_types:
             print('INFO:{}:extracting fMRI data:{}'.format(name, proj))
-            try:
-                old_stats = olddata['projects'][proj]['fmri']
-            except KeyError:
-                old_stats = list()
+            if olddata:
+                try:
+                    old_stats = olddata['projects'][proj]['fmri']
+                except KeyError:
+                    old_stats = list()
 
             _list = [a for a in assr_list if a['proctype'] == 'fMRIQA_v3']
             # _stats = init_stats(_list, xnat)
@@ -185,15 +200,16 @@ xnat:imagescandata/series_description,xnat:imageScanData/meta/last_modified'
         # EDAT
         if 'EDATQA_v1' in assr_types:
             print('INFO:{}:extracting EDAT data:{}'.format(name, proj))
-            try:
-                old_stats = olddata['projects'][proj]['edat']
-            except KeyError:
-                old_stats = list()
+            if olddata:
+                try:
+                    old_stats = olddata['projects'][proj]['edat']
+                except KeyError:
+                    old_stats = list()
 
-            _list = [a for a in assr_list if a['proctype'] == 'EDATQA_v1']
-            # _stats = init_stats(_list, xnat)
-            _stats = update_stats(xnat, old_stats, _list, prevtime)
-            data['projects'][proj]['edat'] = _stats
+                _list = [a for a in assr_list if a['proctype'] == 'EDATQA_v1']
+                # _stats = init_stats(_list, xnat)
+                _stats = update_stats(xnat, old_stats, _list, prevtime)
+                data['projects'][proj]['edat'] = _stats
 
     # Write updated data file
     print('INFO:{}:finished extracting, saving'.format(name))
@@ -218,7 +234,6 @@ def update_stats(xnat, old_stats, assr_list, prevtime):
                         break
 
             if not news:
-                # Load from xnat
                 print('DEBUG:loading stat from XNAT:' + assr['label'])
                 news = load_stat(assr)
 
@@ -722,6 +737,7 @@ xsiType=proc:genprocdata&columns=ID,xsiType,project,proc:genprocdata/proctype'
                 old_stats = olddata['projects'][proj]['lst']
             except KeyError:
                 old_stats = list()
+                prevtime = 0
 
             _list = [a for a in assr_list if a['proctype'] == 'LST_v1']
             _stats = self.update_stats(old_stats, _list, prevtime)
@@ -1225,8 +1241,7 @@ write_report(projects, atypes, stypes, datafile, timezone, requery)
             subprocess.Popen(cmd, shell=True)
 
             # Display message to user
-            msg = 'Your report is being generated'
-            msg += ' and will be available ASAP!'
+            msg = 'Your report is being generated!'
 
             return [
                 html.H3(msg),
@@ -1282,7 +1297,6 @@ write_report(projects, atypes, stypes, datafile, timezone, requery)
                             dcc.Tab(label='EDATQA', value=4),
                             dcc.Tab(label='Scans', value=5),
                             dcc.Tab(label='LST', value=6),
-                            dcc.Tab(label='test', value=7),
                         ],
                         vertical=False
                     ),
@@ -1473,6 +1487,16 @@ write_report(projects, atypes, stypes, datafile, timezone, requery)
                 return html.Div([
                     dcc.Graph(
                         id='graph-both'),
+                    dcc.RadioItems(
+                        options=[
+                        {'label': 'By Project',
+                        'value': 'project'},
+                        {'label': 'By Proc Type',
+                        'value': 'proctype'}
+                        ],
+                        value='project',
+                        id='radio-both-groupby',
+                        labelStyle={'display': 'inline-block'}),
                     dcc.Dropdown(
                         id='dropdown-both-proj', multi=True,
                         options=assr_proj_options,
@@ -1753,8 +1777,9 @@ the session is In Progress. If no assessors are found, then the session is None'
         @app.callback(
             Output('datatable-both', 'rows'),
             [Input('dropdown-both-proj', 'value'),
-             Input('dropdown-both-type', 'value')])
-        def update_rows_both(selected_proj, selected_type):
+             Input('dropdown-both-type', 'value'),
+             Input('radio-both-groupby', 'value')])
+        def update_rows_both(selected_proj, selected_type, selected_groupby):
             dff = self.dashdata.assr_dfp
 
             # Filter by project
@@ -1767,57 +1792,120 @@ the session is In Progress. If no assessors are found, then the session is None'
             Output('graph-both', 'figure'),
             [Input('datatable-both', 'rows'),
              Input('dropdown-both-proj', 'value'),
-             Input('dropdown-both-type', 'value')])
-        def update_figure_both(rows, selected_proj, selected_type):
-            dfp = pd.DataFrame(rows)
-            xall = sorted(dfp.project.unique())
-            yall = dfp.sort_values(
-                'project').groupby('project')['session'].count()
+             Input('dropdown-both-type', 'value'),
+             Input('radio-both-groupby', 'value')])
+        def update_figure_both(rows, selected_proj, selected_type, selected_groupby):
+            print('selected_groupby=', selected_groupby)
 
-            assr_proj_options = [{'label': x, 'value': x} for x in xall]
+            if selected_groupby == 'project':
+                dfp = pd.DataFrame(rows)
+                xall = sorted(dfp.project.unique())
+                yall = dfp.sort_values(
+                    'project').groupby('project')['session'].count()
 
-            yred = [0] * len(assr_proj_options)
-            ygreen = [0] * len(assr_proj_options)
-            ygrey = [0] * len(assr_proj_options)
-            yyell = [0] * len(assr_proj_options)
+                assr_proj_options = [{'label': x, 'value': x} for x in xall]
 
-            # Make a 1x1 figured
-            fig = plotly.tools.make_subplots(rows=1, cols=1)
+                yred = [0] * len(assr_proj_options)
+                ygreen = [0] * len(assr_proj_options)
+                ygrey = [0] * len(assr_proj_options)
+                yyell = [0] * len(assr_proj_options)
 
-            if not selected_type:
-                # Draw bar
-                fig.append_trace(go.Bar(
-                    x=xall, y=yall, name='All',
-                    marker=dict(color='rgb(59,89,152)')
-                ), 1, 1)
+                # Make a 1x1 figured
+                fig = plotly.tools.make_subplots(rows=1, cols=1)
 
+                if not selected_type:
+                    # Draw bar
+                    fig.append_trace(go.Bar(
+                        x=xall, y=yall, name='All',
+                        marker=dict(color='rgb(59,89,152)')
+                    ), 1, 1)
+
+                else:
+                    # TODO: optimize this cause it's ugly
+                    for i, proj in enumerate(xall):
+                        # Subset for this project
+                        dfpp = dfp.loc[dfp['project'] == proj]
+                        # Iterate by session
+                        for s, sess in dfpp.iterrows():
+                            cur = 0
+                            for t in selected_type:
+                                if not sess[t]:
+                                    cur = 3
+                                    break
+                                elif 'F' in sess[t] and cur <= 2:
+                                    cur = 2
+                                elif (('Q' in sess[t] or 'J' in sess[t]) and
+                                        cur < 1):
+                                    cur = 1
+
+                            # Record final value across all types
+                            if cur == 3:
+                                ygrey[i] += 1
+                            elif cur == 2:
+                                yred[i] += 1
+                            elif cur == 1:
+                                yyell[i] += 1
+                            else:
+                                ygreen[i] += 1
+
+                    # Draw bar for each status
+                    fig.append_trace(go.Bar(
+                        x=xall, y=ygreen, name='Passed',
+                        marker=dict(color='rgb(27,157,5)'),
+                        opacity=0.9), 1, 1)
+
+                    fig.append_trace(go.Bar(
+                        x=xall, y=yyell, name='Needs QA',
+                        marker=dict(color='rgb(240,240,30)'),
+                        opacity=0.9), 1, 1)
+
+                    fig.append_trace(go.Bar(
+                        x=xall, y=yred, name='Failed',
+                        marker=dict(color='rgb(200,0,0)'),
+                        opacity=0.9), 1, 1)
+
+                    fig.append_trace(go.Bar(
+                        x=xall, y=ygrey, name='None',
+                        marker=dict(color='rgb(200,200,200)'),
+                        opacity=0.9), 1, 1)
+
+                    # Customize figure
+                    fig['layout'].update(barmode='stack', showlegend=True)
+
+                return fig
             else:
-                # TODO: optimize this cause it's ugly
-                for i, proj in enumerate(xall):
-                    # Subset for this project
-                    dfpp = dfp.loc[dfp['project'] == proj]
-                    # Iterate by session
-                    for s, sess in dfpp.iterrows():
-                        cur = 0
-                        for t in selected_type:
-                            if not sess[t]:
-                                cur = 3
-                                break
-                            elif 'F' in sess[t] and cur <= 2:
-                                cur = 2
-                            elif (('Q' in sess[t] or 'J' in sess[t]) and
-                                    cur < 1):
-                                cur = 1
+                _dfp = pd.DataFrame(rows)
+                _df = self.dashdata.task_df
 
-                        # Record final value across all types
-                        if cur == 3:
+                if not selected_type:
+                    xall = list(_df.proctype.unique())
+                else:
+                    xall = selected_type
+
+                proctype_options = [{'label': x, 'value': x} for x in xall]
+                yred = [0] * len(proctype_options)
+                ygreen = [0] * len(proctype_options)
+                ygrey = [0] * len(proctype_options)
+                yyell = [0] * len(proctype_options)
+                yblue = [0] * len(proctype_options)
+
+                # Make a 1x1 figure
+                fig = plotly.tools.make_subplots(rows=1, cols=1)
+                for i, t in enumerate(xall):
+                    # Iterate by session
+                    for s, sess in _dfp.iterrows():
+                        if not sess[t]:
                             ygrey[i] += 1
-                        elif cur == 2:
-                            yred[i] += 1
-                        elif cur == 1:
-                            yyell[i] += 1
-                        else:
+                        elif 'P' in sess[t]:
                             ygreen[i] += 1
+                        elif 'Q' in sess[t]:
+                            yyell[i] += 1
+                        elif 'J' in sess[t]:
+                            yblue[i] += 1
+                        elif 'F' in sess[t]:
+                            yred[i] += 1
+                        else:
+                            ygrey[i] += 1
 
                 # Draw bar for each status
                 fig.append_trace(go.Bar(
@@ -1836,6 +1924,11 @@ the session is In Progress. If no assessors are found, then the session is None'
                     opacity=0.9), 1, 1)
 
                 fig.append_trace(go.Bar(
+                    x=xall, y=yblue, name='In Progress',
+                    marker=dict(color='rgb(65,105,225)'),
+                    opacity=0.9), 1, 1)
+
+                fig.append_trace(go.Bar(
                     x=xall, y=ygrey, name='None',
                     marker=dict(color='rgb(200,200,200)'),
                     opacity=0.9), 1, 1)
@@ -1843,7 +1936,7 @@ the session is In Progress. If no assessors are found, then the session is None'
                 # Customize figure
                 fig['layout'].update(barmode='stack', showlegend=True)
 
-            return fig
+                return fig
 
         @app.callback(
             Output('graph-lst', 'figure'),
@@ -1978,89 +2071,6 @@ the session is In Progress. If no assessors are found, then the session is None'
                 dff = dff[dff['qcstatus'].isin(selected_stat)]
 
             return dff.to_dict('records')
-
-        @app.callback(
-            Output('datatable-test', 'rows'),
-            [Input('dropdown-test-proj', 'value'),
-             Input('dropdown-test-type', 'value')])
-        def update_rows_test(selected_proj, selected_type):
-            dff = self.dashdata.test_dfp
-
-            # Filter by project
-            if selected_proj:
-                dff = dff[dff['project'].isin(selected_proj)]
-
-            return dff.to_dict('records')
-
-        @app.callback(
-            Output('graph-test', 'figure'),
-            [Input('datatable-test', 'rows'),
-             Input('dropdown-test-proj', 'value'),
-             Input('dropdown-test-type', 'value')])
-        def update_figure_test(rows, selected_proj, selected_type):
-            _dfp = pd.DataFrame(rows)
-            _df = self.dashdata.task_df
-
-            if not selected_type:
-                xall = list(_df.proctype.unique())
-            else:
-                xall = selected_type
-
-            proctype_options = [{'label': x, 'value': x} for x in xall]
-            yred = [0] * len(proctype_options)
-            ygreen = [0] * len(proctype_options)
-            ygrey = [0] * len(proctype_options)
-            yyell = [0] * len(proctype_options)
-            yblue = [0] * len(proctype_options)
-
-            # Make a 1x1 figure
-            fig = plotly.tools.make_subplots(rows=1, cols=1)
-            for i, t in enumerate(xall):
-                # Iterate by session
-                for s, sess in _dfp.iterrows():
-                    if not sess[t]:
-                        ygrey[i] += 1
-                    elif 'P' in sess[t]:
-                        ygreen[i] += 1
-                    elif 'Q' in sess[t]:
-                        yyell[i] += 1
-                    elif 'J' in sess[t]:
-                        yblue[i] += 1
-                    elif 'F' in sess[t]:
-                        yred[i] += 1
-                    else:
-                        ygrey[i] += 1
-
-            # Draw bar for each status
-            fig.append_trace(go.Bar(
-                x=xall, y=ygreen, name='Passed',
-                marker=dict(color='rgb(27,157,5)'),
-                opacity=0.9), 1, 1)
-
-            fig.append_trace(go.Bar(
-                x=xall, y=yyell, name='Needs QA',
-                marker=dict(color='rgb(240,240,30)'),
-                opacity=0.9), 1, 1)
-
-            fig.append_trace(go.Bar(
-                x=xall, y=yred, name='Failed',
-                marker=dict(color='rgb(200,0,0)'),
-                opacity=0.9), 1, 1)
-
-            fig.append_trace(go.Bar(
-                x=xall, y=yblue, name='In Progress',
-                marker=dict(color='rgb(65,105,225)'),
-                opacity=0.9), 1, 1)
-
-            fig.append_trace(go.Bar(
-                x=xall, y=ygrey, name='None',
-                marker=dict(color='rgb(200,200,200)'),
-                opacity=0.9), 1, 1)
-
-            # Customize figure
-            fig['layout'].update(barmode='stack', showlegend=True)
-
-            return fig
 
     def script_running(self):
         script_list = glob(self.datadir + '/*.py')
