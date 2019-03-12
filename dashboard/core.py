@@ -220,7 +220,7 @@ def init_stats(assr_list, xnat):
     _stats = []
 
     # Load each
-    for assr in sorted(assr_list, key='label'):
+    for assr in sorted(assr_list, key=lambda a: a['label']):
         # Load from xnat
         print('INFO:loading stats:' + assr['label'])
         _stats.append(load_stat(assr, xnat))
@@ -744,7 +744,7 @@ xsiType=proc:genprocdata&columns=ID,xsiType,project,proc:genprocdata/proctype'
         new_stats = []
 
         # Check each assr
-        for assr in sorted(assr_list, key='label'):
+        for assr in sorted(assr_list, key=lambda a: a['label']):
             news = None
             if assr['last_modified'] < prevtime:
                 # Find it in old stats
