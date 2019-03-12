@@ -8,5 +8,7 @@ setup(
     author_email='bdboyd42@gmail.com',
     description='Dashboard for DAX using ploty DASH',
     license='MIT',
-    packages=find_packages()
-)
+    packages=find_packages(),
+    install_requires=[
+        'plotly', 'dash', 'dash-core-components',
+        'dash-html-components', 'dash-renderer', 'dash-table-experiments'])
