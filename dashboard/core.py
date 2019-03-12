@@ -292,7 +292,7 @@ out/resources/{}'
         if scan_obj.exists():
             assr['scan_type'] = scan_obj.attrs.get('type')
             assr['scan_descrip'] = scan_obj.attrs.get('series_description')
-    elif len(labels) == 4 and assr['inputs']:
+    elif assr['inputs']:
         # Try to interpret scan from inputs field
         assr_inputs = json.loads(assr['inputs'].replace('&quot;', '"'))
         _key, _val = assr_inputs.popitem()
