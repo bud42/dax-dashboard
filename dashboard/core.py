@@ -1838,7 +1838,7 @@ write_report(projects, atypes, stypes, datafile, timezone, requery)
                 return fig
 
             # Filter by scan type
-            if selected_scantype:
+            if selected_scantype and ('scan_type' in dff):
                 dff = dff[dff['scan_type'].isin(selected_scantype)]
 
             if selected_proctype == 'LST_v1':
