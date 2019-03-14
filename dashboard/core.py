@@ -208,7 +208,7 @@ def update_stats(xnat, old_stats, assr_list, prevtime):
 
             if not news:
                 print('DEBUG:loading stat from XNAT:' + assr['label'])
-                news = load_stat(assr)
+                news = load_stat(assr, xnat)
 
             # Save to list
             new_stats.append(news)
