@@ -34,8 +34,15 @@ from dax import XnatUtils
 # the session is Failed. Then if at least one assessor is In Progress, then\
 #the session is In Progress. If no assessors are found, then the session is None'],
 
+#fd_mean
+#dvars_mean
+#tsnr_robust_median
+#global_temporal_stddev
+#voxel_displacement_mm_95prctile
+#maxtrans_firstvol_mm_deprecated
+#maxrot_firstvol_deg_deprecated
 
-STATS_TYPES = ['LST_v1', 'fMRIQA_v3', 'EDATQA_v1']
+STATS_TYPES = ['LST_v1', 'fMRIQA_v3', 'EDATQA_v1', 'fMRIQA_v4']
 
 
 def write_report(projects, assr_types, scan_types, datafile, tz, requery=True):
@@ -531,6 +538,38 @@ xsiType=proc:genprocdata&columns=ID,xsiType,project,proc:genprocdata/proctype'
             'session',
             'scan_type',
             'qcstatus',
+            'fmriqa_v3_voxel_displacement_median',
+            'fmriqa_v3_voxel_displacement_95prctile',
+            'fmriqa_v3_voxel_displacement_99prctile',
+            'fmriqa_v3_signal_delta_95prctile',
+            'fmriqa_v3_global_timeseries_stddev',
+            'fmriqa_v3_tsnr_95prctile',
+            'fmriqa_v3_tsnr_median']
+        _list = stat_list['fMRIQA_v3']
+        self.fmri_df = pd.DataFrame(_list, columns=_cols)
+        self.fmri_df.rename(
+            columns={
+                'fmriqa_v3_voxel_displacement_median': 'displace_median',
+                'fmriqa_v3_voxel_displacement_95prctile': 'displace_95',
+                'fmriqa_v3_voxel_displacement_99prctile': 'displace_99',
+                'fmriqa_v3_signal_delta_95prctile': 'sig_delta_95',
+                'fmriqa_v3_global_timeseries_stddev': 'glob_ts_stddev',
+                'fmriqa_v3_tsnr_95prctile': 'tsnr_95',
+                'fmriqa_v3_tsnr_median': 'tsnr_median'
+            }, inplace=True)
+
+        # Load fmri_v4
+        _cols = [
+            'label',
+            'project',
+            'session',
+            'scan_type',
+            'qcstatus',
+            fd_mean
+dvars_mean
+tsnr_robust_median
+global_temporal_stddev
+voxel_displacement_mm_95prctile
             'fmriqa_v3_voxel_displacement_median',
             'fmriqa_v3_voxel_displacement_95prctile',
             'fmriqa_v3_voxel_displacement_99prctile',
