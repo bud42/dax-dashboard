@@ -28,19 +28,12 @@ from dax import XnatUtils
 # Radio buttons for Per Session, Per Assessor
 # Radio buttons for Per Session, Per Scan
 
-#'Each session represented 1 time in graph. If at least one assessor is Passed,\
+# Each session represented 1 time in graph. If at least one assessor is Passed,\
 # then the whole session is passed. Then if at least one assessor is Needs QA,\
 # then the session is Needs QA. Then if at least one assessor is Failed, then\
 # the session is Failed. Then if at least one assessor is In Progress, then\
-#the session is In Progress. If no assessors are found, then the session is None'],
+# the session is In Progress. If no assessors are found, then the session is None'],
 
-#fd_mean
-#dvars_mean
-#tsnr_robust_median
-#global_temporal_stddev
-#voxel_displacement_mm_95prctile
-#maxtrans_firstvol_mm_deprecated
-#maxrot_firstvol_deg_deprecated
 
 STATS_TYPES = ['LST_v1', 'fMRIQA_v3', 'EDATQA_v1', 'fMRIQA_v4']
 
@@ -531,7 +524,7 @@ xsiType=proc:genprocdata&columns=ID,xsiType,project,proc:genprocdata/proctype'
             aggfunc=lambda q: ''.join(q))
         self.assr_dfp.reset_index(inplace=True)
 
-        # Load fmri
+        # Load fmri_v3
         _cols = [
             'label',
             'project',
@@ -546,8 +539,8 @@ xsiType=proc:genprocdata&columns=ID,xsiType,project,proc:genprocdata/proctype'
             'fmriqa_v3_tsnr_95prctile',
             'fmriqa_v3_tsnr_median']
         _list = stat_list['fMRIQA_v3']
-        self.fmri_df = pd.DataFrame(_list, columns=_cols)
-        self.fmri_df.rename(
+        self.fmri3_df = pd.DataFrame(_list, columns=_cols)
+        self.fmri3_df.rename(
             columns={
                 'fmriqa_v3_voxel_displacement_median': 'displace_median',
                 'fmriqa_v3_voxel_displacement_95prctile': 'displace_95',
@@ -565,30 +558,13 @@ xsiType=proc:genprocdata&columns=ID,xsiType,project,proc:genprocdata/proctype'
             'session',
             'scan_type',
             'qcstatus',
-            fd_mean
-dvars_mean
-tsnr_robust_median
-global_temporal_stddev
-voxel_displacement_mm_95prctile
-            'fmriqa_v3_voxel_displacement_median',
-            'fmriqa_v3_voxel_displacement_95prctile',
-            'fmriqa_v3_voxel_displacement_99prctile',
-            'fmriqa_v3_signal_delta_95prctile',
-            'fmriqa_v3_global_timeseries_stddev',
-            'fmriqa_v3_tsnr_95prctile',
-            'fmriqa_v3_tsnr_median']
-        _list = stat_list['fMRIQA_v3']
-        self.fmri_df = pd.DataFrame(_list, columns=_cols)
-        self.fmri_df.rename(
-            columns={
-                'fmriqa_v3_voxel_displacement_median': 'displace_median',
-                'fmriqa_v3_voxel_displacement_95prctile': 'displace_95',
-                'fmriqa_v3_voxel_displacement_99prctile': 'displace_99',
-                'fmriqa_v3_signal_delta_95prctile': 'sig_delta_95',
-                'fmriqa_v3_global_timeseries_stddev': 'glob_ts_stddev',
-                'fmriqa_v3_tsnr_95prctile': 'tsnr_95',
-                'fmriqa_v3_tsnr_median': 'tsnr_median'
-            }, inplace=True)
+            'fd_mean',
+            'dvars_mean',
+            'tsnr_robust_median',
+            'global_temporal_stddev',
+            'voxel_displacement_mm_95prctile']
+        _list = stat_list['fMRIQA_v4']
+        self.fmri4_df = pd.DataFrame(_list, columns=_cols)
 
         # Load LST
         _cols = ['label', 'project', 'session', 'qcstatus', 'wml_volume']
@@ -1411,17 +1387,17 @@ write_report(projects, atypes, stypes, datafile, timezone, requery)
                 _df = self.dashdata.lst_df
                 _proj_options = self.make_options(_df.project.unique())
                 _status_options = self.make_options(_df.qcstatus.unique())
-                _proctype_options =  self.make_options(STATS_TYPES)
-                _cols = ['label', 'project', 'session', 'qcstatus']
+                _proctype_options = self.make_options(STATS_TYPES)
+                # _cols = ['label', 'project', 'session', 'qcstatus']
                 try:
-                    _scantype_options = self.make_options(_df.scan_type.unique())
+                    _scantype_opts = self.make_options(_df.scan_type.unique())
                 except AttributeError:
-                    _scantype_options = {}
+                    _scantype_opts = {}
 
                 return html.Div([
                     dcc.Graph(
                         id='graph-stats'),
-                     dcc.Dropdown(
+                    dcc.Dropdown(
                         id='dropdown-stats-proctype', multi=False,
                         options=_proctype_options,
                         placeholder='Select Processing Type',
@@ -1436,7 +1412,7 @@ write_report(projects, atypes, stypes, datafile, timezone, requery)
                         placeholder='Select QC Status'),
                     dcc.Dropdown(
                         id='dropdown-stats-scantype', multi=True,
-                        options=_scantype_options,
+                        options=_scantype_opts,
                         placeholder='Select Scan Type(s)'),
                     html.Div(id='stats-content', children=[]),
                     html.Div(id='selected-indexes-stats'),
@@ -1838,7 +1814,7 @@ write_report(projects, atypes, stypes, datafile, timezone, requery)
                 fig['layout'].update(barmode='stack', showlegend=True)
 
                 return fig
- 
+
         @app.callback(
             Output('download-link', 'href'),
             [Input('datatable-both', 'rows')])
@@ -1963,6 +1939,47 @@ write_report(projects, atypes, stypes, datafile, timezone, requery)
                         text=dff.label,
                     ), 1, 4)
 
+            elif selected_proctype == 'fMRIQA_v4':
+                # Make a 1x4 figure
+                fig = plotly.tools.make_subplots(rows=1, cols=4)
+
+                # Check for empty data
+                if len(dff) == 0:
+                    return fig
+
+                # Add traces to figure
+                fig.append_trace(
+                    go.Box(
+                        y=dff.displace_95,
+                        name='displace_95',
+                        boxpoints='all',
+                        text=dff.label,
+                    ), 1, 1)
+
+                fig.append_trace(
+                    go.Box(
+                        y=dff.displace_median,
+                        name='displace_median',
+                        boxpoints='all',
+                        text=dff.label,
+                    ), 1, 2)
+
+                fig.append_trace(
+                    go.Box(
+                        y=dff.displace_99,
+                        name='displace_99',
+                        boxpoints='all',
+                        text=dff.label,
+                    ), 1, 3)
+
+                fig.append_trace(
+                    go.Box(
+                        y=dff.sig_delta_95,
+                        name='sig_95',
+                        boxpoints='all',
+                        text=dff.label,
+                    ), 1, 4)
+
             # Customize figure
             fig['layout'].update(hovermode='closest', showlegend=True)
 
@@ -1975,6 +1992,7 @@ write_report(projects, atypes, stypes, datafile, timezone, requery)
              Input('dropdown-stats-scantype', 'value')],
             [State('datatable-stats', 'rows')])
         def update_rows_stats(selected_proj, selected_stat, selected_scantype, rows):
+
             dff = pd.DataFrame(rows)
 
             # Check for empty data
@@ -2004,8 +2022,10 @@ write_report(projects, atypes, stypes, datafile, timezone, requery)
             elif selected_proctype == 'EDATQA_v1':
                 dff = self.dashdata.edat_df
             elif selected_proctype == 'fMRIQA_v3':
-                dff = self.dashdata.fmri_df
- 
+                dff = self.dashdata.fmri3_df
+            elif selected_proctype == 'fMRIQA_v4':
+                dff = self.dashdata.fmri4_df
+
             try:
                 return self.make_options(dff.scan_type.unique())
             except AttributeError:
@@ -2020,7 +2040,9 @@ write_report(projects, atypes, stypes, datafile, timezone, requery)
             elif selected_proctype == 'EDATQA_v1':
                 dff = self.dashdata.edat_df
             elif selected_proctype == 'fMRIQA_v3':
-                dff = self.dashdata.fmri_df
+                dff = self.dashdata.fmri3_df
+            elif selected_proctype == 'fMRIQA_v4':
+                dff = self.dashdata.fmri4_df
 
             return [dt.DataTable(
                 rows=dff.to_dict('records'),
