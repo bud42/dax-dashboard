@@ -2036,6 +2036,24 @@ write_report(projects, atypes, stypes, datafile, timezone, requery)
                 return {}
 
         @app.callback(
+            Output('dropdown-stats-status', 'options'),
+            [Input('dropdown-stats-proctype', 'value')])
+        def update_dropdown_stats_status(selected_proctype):
+            if selected_proctype == 'LST_v1':
+                dff = self.dashdata.lst_df
+            elif selected_proctype == 'EDATQA_v1':
+                dff = self.dashdata.edat_df
+            elif selected_proctype == 'fMRIQA_v3':
+                dff = self.dashdata.fmri3_df
+            elif selected_proctype == 'fMRIQA_v4':
+                dff = self.dashdata.fmri4_df
+
+            try:
+                return self.make_options(dff.qcstatus.unique())
+            except AttributeError:
+                return {}
+
+        @app.callback(
             Output('stats-content', 'children'),
             [Input('dropdown-stats-proctype', 'value')])
         def update_stats_content(selected_proctype):
