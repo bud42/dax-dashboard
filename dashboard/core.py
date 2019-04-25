@@ -560,9 +560,7 @@ xsiType=proc:genprocdata&columns=ID,xsiType,project,proc:genprocdata/proctype'
             'qcstatus',
             'fd_mean',
             'dvars_mean',
-            'tsnr_robust_median',
-            'global_temporal_stddev',
-            'voxel_displacement_mm_95prctile']
+            'tsnr_robust_median']
         _list = stat_list['fMRIQA_v4']
         self.fmri4_df = pd.DataFrame(_list, columns=_cols)
 
@@ -1943,11 +1941,9 @@ write_report(projects, atypes, stypes, datafile, timezone, requery)
             # fd_mean
             # dvars_mean
             # tsnr_robust_median
-            # global_temporal_stddev
-            # voxel_displacement_mm_95prctile
 
                 # Make a 1x4 figure
-                fig = plotly.tools.make_subplots(rows=1, cols=5)
+                fig = plotly.tools.make_subplots(rows=1, cols=3)
 
                 # Check for empty data
                 if len(dff) == 0:
@@ -1977,22 +1973,6 @@ write_report(projects, atypes, stypes, datafile, timezone, requery)
                         boxpoints='all',
                         text=dff.label,
                     ), 1, 3)
-
-                fig.append_trace(
-                    go.Box(
-                        y=dff.global_temporal_stddev,
-                        name='global_temporal_stddev',
-                        boxpoints='all',
-                        text=dff.label,
-                    ), 1, 4)
-
-                fig.append_trace(
-                    go.Box(
-                        y=dff.voxel_displacement_mm_95prctile,
-                        name='voxel_displacement_mm_95prctile',
-                        boxpoints='all',
-                        text=dff.label,
-                    ), 1, 5)
 
             # Customize figure
             fig['layout'].update(hovermode='closest', showlegend=True)
