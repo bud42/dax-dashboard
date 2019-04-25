@@ -1983,15 +1983,22 @@ write_report(projects, atypes, stypes, datafile, timezone, requery)
             Output('datatable-stats', 'rows'),
             [Input('dropdown-stats-proj', 'value'),
              Input('dropdown-stats-status', 'value'),
-             Input('dropdown-stats-scantype', 'value')],
-            [State('datatable-stats', 'rows')])
-        def update_rows_stats(selected_proj, selected_stat, selected_scantype, rows):
+             Input('dropdown-stats-scantype', 'value')])
+        def update_rows_stats(selected_proj, selected_stat, selected_scantype):
+        #    [State('datatable-stats', 'rows')])
+        #def update_rows_stats(selected_proj, selected_stat, selected_scantype, rows):
+            #dff = pd.DataFrame(rows)
 
-            dff = pd.DataFrame(rows)
-
-            # Check for empty data
-            if len(dff) == 0:
-                return []
+            if selected_proctype == 'LST_v1':
+                dff = self.dashdata.lst_df
+            elif selected_proctype == 'EDATQA_v1':
+                dff = self.dashdata.edat_df
+            elif selected_proctype == 'fMRIQA_v3':
+                dff = self.dashdata.fmri3_df
+            elif selected_proctype == 'fMRIQA_v4':
+                dff = self.dashdata.fmri4_df
+            else:
+            	dff = DataFrame()
 
             # Filter by project
             if selected_proj:
@@ -1999,10 +2006,12 @@ write_report(projects, atypes, stypes, datafile, timezone, requery)
 
             # Filter by status
             if selected_stat:
+            	print('selected_stat=', selected_stat)
                 dff = dff[dff['qcstatus'].isin(selected_stat)]
 
             # Filter by scan type
             if selected_scantype:
+            	print('selected_scantype=', selected_scantype)
                 dff = dff[dff['scan_type'].isin(selected_scantype)]
 
             return dff.to_dict('records')
