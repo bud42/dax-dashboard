@@ -1981,10 +1981,11 @@ write_report(projects, atypes, stypes, datafile, timezone, requery)
 
         @app.callback(
             Output('datatable-stats', 'rows'),
-            [Input('dropdown-stats-proj', 'value'),
+            [Input('dropdown-stats-proctype', 'value'),
+             Input('dropdown-stats-proj', 'value'),
              Input('dropdown-stats-status', 'value'),
              Input('dropdown-stats-scantype', 'value')])
-        def update_rows_stats(selected_proj, selected_stat, selected_scantype):
+        def update_rows_stats(selected_proctype, selected_proj, selected_stat, selected_scantype):
         #    [State('datatable-stats', 'rows')])
         #def update_rows_stats(selected_proj, selected_stat, selected_scantype, rows):
             #dff = pd.DataFrame(rows)
