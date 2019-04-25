@@ -1940,8 +1940,14 @@ write_report(projects, atypes, stypes, datafile, timezone, requery)
                     ), 1, 4)
 
             elif selected_proctype == 'fMRIQA_v4':
+            # fd_mean
+            # dvars_mean
+            # tsnr_robust_median
+            # global_temporal_stddev
+            # voxel_displacement_mm_95prctile
+
                 # Make a 1x4 figure
-                fig = plotly.tools.make_subplots(rows=1, cols=4)
+                fig = plotly.tools.make_subplots(rows=1, cols=5)
 
                 # Check for empty data
                 if len(dff) == 0:
@@ -1950,35 +1956,43 @@ write_report(projects, atypes, stypes, datafile, timezone, requery)
                 # Add traces to figure
                 fig.append_trace(
                     go.Box(
-                        y=dff.displace_95,
-                        name='displace_95',
+                        y=dff.fd_mean,
+                        name='fd_mean',
                         boxpoints='all',
                         text=dff.label,
                     ), 1, 1)
 
                 fig.append_trace(
                     go.Box(
-                        y=dff.displace_median,
-                        name='displace_median',
+                        y=dff.dvars_mean,
+                        name='dvars_mean',
                         boxpoints='all',
                         text=dff.label,
                     ), 1, 2)
 
                 fig.append_trace(
                     go.Box(
-                        y=dff.displace_99,
-                        name='displace_99',
+                        y=dff.tsnr_robust_median,
+                        name='tsnr_robust_median',
                         boxpoints='all',
                         text=dff.label,
                     ), 1, 3)
 
                 fig.append_trace(
                     go.Box(
-                        y=dff.sig_delta_95,
-                        name='sig_95',
+                        y=dff.global_temporal_stddev,
+                        name='global_temporal_stddev',
                         boxpoints='all',
                         text=dff.label,
                     ), 1, 4)
+
+                fig.append_trace(
+                    go.Box(
+                        y=dff.voxel_displacement_mm_95prctile,
+                        name='voxel_displacement_mm_95prctile',
+                        boxpoints='all',
+                        text=dff.label,
+                    ), 1, 5)
 
             # Customize figure
             fig['layout'].update(hovermode='closest', showlegend=True)
