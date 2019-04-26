@@ -513,9 +513,9 @@ xsiType=proc:genprocdata&columns=ID,xsiType,project,proc:genprocdata/proctype'
             'walltimeused']
         self.assr_df = pd.DataFrame(assr_list, columns=_cols)
         self.assr_df['qcstatus'].replace({
-            'Passed': 'P', 'passed': 'P',
+            'Passed': 'P', 'passed': 'P', 'Good': 'P',
             'Questionable': 'P',
-            'Failed': 'F',
+            'Failed': 'F', 'Bad': 'F',
             'Needs QA': 'Q'},
             inplace=True)
         self.assr_df.loc[
