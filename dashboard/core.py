@@ -1,5 +1,6 @@
 # coding=utf-8
 import os
+import shutil
 import math
 from datetime import datetime, timedelta
 from glob import glob
@@ -259,6 +260,8 @@ def load_stats_data(res):
             _stats.update(load_keyvalue_data(f))
     except BadZipfile:
         print('DEBUG:bad zip file')
+    finally:
+    	shutil.rmtree(_dir)
 
     return _stats
 
@@ -1999,7 +2002,7 @@ write_report(projects, atypes, stypes, datafile, timezone, requery)
             elif selected_proctype == 'fMRIQA_v4':
                 dff = self.dashdata.fmri4_df
             else:
-            	dff = DataFrame()
+                dff = pd.DataFrame()
 
             # Filter by project
             if selected_proj:
@@ -2007,12 +2010,12 @@ write_report(projects, atypes, stypes, datafile, timezone, requery)
 
             # Filter by status
             if selected_stat:
-            	print('selected_stat=', selected_stat)
+                print('selected_stat=', selected_stat)
                 dff = dff[dff['qcstatus'].isin(selected_stat)]
 
             # Filter by scan type
             if selected_scantype:
-            	print('selected_scantype=', selected_scantype)
+                print('selected_scantype=', selected_scantype)
                 dff = dff[dff['scan_type'].isin(selected_scantype)]
 
             return dff.to_dict('records')
