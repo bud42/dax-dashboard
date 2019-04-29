@@ -932,7 +932,7 @@ write_report(projects, atypes, stypes, datafile, timezone, requery)
         self.config = None
 
         with open(config_file, 'r') as f:
-            self.config = yaml.load(f)
+            self.config = yaml.load(f, Loader=yaml.FullLoader)
 
         if not os.path.exists(self.config['data_dir']):
             raise IOError('Dir does not exist:' + self.config['data_dir'])
