@@ -982,6 +982,7 @@ write_report(projects, atypes, stypes, datafile, timezone, requery)
         else:
             cur_report = None
 
+        print('DEBUG:cur_report='+cur_report)
         # Make the main dash app
         app = dash.Dash(__name__)
 
@@ -1078,6 +1079,8 @@ write_report(projects, atypes, stypes, datafile, timezone, requery)
                     self.dashdata.datafile).rsplit('_', 1)[0]
             else:
                 cur_report = ''
+
+            print('DEBUG:cur_report='+cur_report)
 
             # Build it
             return html.Div([
