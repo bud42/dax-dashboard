@@ -1804,6 +1804,7 @@ write_report(projects, atypes, stypes, datafile, timezone, requery)
                             ygrey[i] += 1
 
                 # Exclude proctypes that are all grey
+                sess_count = len(dfp)
                 xall_new = list()
                 yred_new = list()
                 ygreen_new = list()
@@ -1811,8 +1812,8 @@ write_report(projects, atypes, stypes, datafile, timezone, requery)
                 yblue_new = list()
                 ygrey_new = list()
                 for i, t in enumerate(xall):
-                    print(i, t, len(t), ygrey[i])
-                    if len(t) > ygrey[i]:
+                    print(i, t, sess_count, ygrey[i])
+                    if sess_count > ygrey[i]:
                         xall_new.append(t)
                         yred_new.append(yred[i])
                         ygreen_new.append(ygreen[i])
