@@ -1811,7 +1811,7 @@ write_report(projects, atypes, stypes, datafile, timezone, requery)
                 yblue_new = list()
                 ygrey_new = list()
                 for i, t in enumerate(xall):
-                    print(i, t, len(t))
+                    print(i, t, len(t), ygrey[i])
                     if len(t) > ygrey[i]:
                         xall_new.append(t)
                         yred_new.append(yred[i])
@@ -1823,7 +1823,7 @@ write_report(projects, atypes, stypes, datafile, timezone, requery)
                 xall = xall_new
                 yred = yred_new
                 ygreen = ygreen_new
-                yyell = yyell_new 
+                yyell = yyell_new
                 yblue = yblue_new
                 ygrey = ygrey_new
 
