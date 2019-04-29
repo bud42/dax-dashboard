@@ -33,7 +33,7 @@ from dax import XnatUtils
 # then the whole session is passed. Then if at least one assessor is Needs QA,\
 # then the session is Needs QA. Then if at least one assessor is Failed, then\
 # the session is Failed. Then if at least one assessor is In Progress, then\
-# the session is In Progress. If no assessors are found, then the session is None'],
+# the session is In Progress. If no assessors are found, then session is None'],
 
 
 STATS_TYPES = ['LST_v1', 'fMRIQA_v3', 'EDATQA_v1', 'fMRIQA_v4']
@@ -1232,6 +1232,7 @@ write_report(projects, atypes, stypes, datafile, timezone, requery)
             Output('report-content', 'children'),
             [Input('dropdown-report-list', 'value')])
         def load_report_layout(selected_rpt):
+            print('DEBUG:load_report_layout:' + selected_rpt)
             if selected_rpt is None:
                 return 'No existing reports'
 
@@ -1524,7 +1525,10 @@ write_report(projects, atypes, stypes, datafile, timezone, requery)
              Input('datatable-scan', 'selected_row_indices'),
              Input('radio-scan-groupby', 'value'),
              Input('radio-scan-sesstype', 'value')])
-        def update_figure_scan(rows, selected_row_indices, selected_groupby, selected_sesstype):
+        def update_figure_scan(
+                rows,
+                selected_row_indices, selected_groupby, selected_sesstype):
+
             # Load data from input
             dfp = pd.DataFrame(rows)
 
@@ -1620,7 +1624,10 @@ write_report(projects, atypes, stypes, datafile, timezone, requery)
              Input('dropdown-scan-type', 'value'),
              Input('dropdown-scan-stat', 'value'),
              Input('radio-scan-sesstype', 'value')])
-        def update_rows_scan(selected_proj, selected_type, selected_stat, selected_sesstype):
+        def update_rows_scan(
+                selected_proj, selected_type,
+                selected_stat, selected_sesstype):
+
             dff = self.dashdata.scan_dfp
 
             # Filter by project
@@ -1668,7 +1675,11 @@ write_report(projects, atypes, stypes, datafile, timezone, requery)
              Input('dropdown-both-type', 'value'),
              Input('radio-both-groupby', 'value'),
              Input('radio-both-sesstype', 'value')])
-        def update_figure_both(rows, selected_proj, selected_type, selected_groupby, selected_sesstype):
+        def update_figure_both(
+                rows,
+                selected_proj, selected_type,
+                selected_groupby, selected_sesstype):
+
             if selected_groupby == 'project':
                 dfp = pd.DataFrame(rows)
 
@@ -1792,6 +1803,29 @@ write_report(projects, atypes, stypes, datafile, timezone, requery)
                         else:
                             ygrey[i] += 1
 
+                # Exclude proctypes that are all grey
+                xall_new = list()
+                yred_new = list()
+                ygreen_new = list()
+                yyell_new = list()
+                yblue_new = list()
+                ygrey_new = list()
+                for i, t in enumerate(xall):
+                    if len(t) > ygrey[i]
+                        xall_new.append(t)
+                        yred_new.append(yred[i])
+                        ygreen_new.append(ygreen[i])
+                        yyell_new.append(yyell[i])
+                        yblue_new.append(yblue[i])
+                        ygrey_new.append(ygrey[i])
+
+                xall = xall_new
+                yred = yred_new
+                ygreen = ygreen_new
+                yyell = yyell_new 
+                yblue = yblue_new
+                ygrey = ygrey_new
+
                 # Draw bar for each status
                 fig.append_trace(go.Bar(
                     x=xall, y=ygreen, name='Passed',
@@ -1849,7 +1883,10 @@ write_report(projects, atypes, stypes, datafile, timezone, requery)
              Input('datatable-stats', 'selected_row_indices'),
              Input('dropdown-stats-scantype', 'value')],
             [State('dropdown-stats-proctype', 'value')])
-        def update_figure_stats(rows, selected_row_indices, selected_scantype, selected_proctype):
+        def update_figure_stats(
+                rows,
+                selected_row_indices, selected_scantype, selected_proctype):
+
             # Load data from input
             dff = pd.DataFrame(rows)
 
@@ -1948,10 +1985,6 @@ write_report(projects, atypes, stypes, datafile, timezone, requery)
                     ), 1, 4)
 
             elif selected_proctype == 'fMRIQA_v4':
-            # fd_mean
-            # dvars_mean
-            # tsnr_robust_median
-
                 # Make a 1x4 figure
                 fig = plotly.tools.make_subplots(rows=1, cols=3)
 
@@ -1995,10 +2028,9 @@ write_report(projects, atypes, stypes, datafile, timezone, requery)
              Input('dropdown-stats-proj', 'value'),
              Input('dropdown-stats-status', 'value'),
              Input('dropdown-stats-scantype', 'value')])
-        def update_rows_stats(selected_proctype, selected_proj, selected_stat, selected_scantype):
-        #    [State('datatable-stats', 'rows')])
-        #def update_rows_stats(selected_proj, selected_stat, selected_scantype, rows):
-            #dff = pd.DataFrame(rows)
+        def update_rows_stats(
+                selected_proctype, selected_proj,
+                selected_stat, selected_scantype):
 
             if selected_proctype == 'LST_v1':
                 dff = self.dashdata.lst_df
