@@ -973,7 +973,11 @@ write_report(projects, atypes, stypes, datafile, timezone, requery)
         report_options = [{
             'label': os.path.splitext(os.path.basename(x))[0],
             'value': x} for x in report_list]
-        if report_list:
+
+        if self.dashdata.datafile:
+            cur_report = os.path.basename(
+                self.dashdata.datafile).rsplit('_', 1)[0]
+        elif report_list:
             cur_report = report_list[0]
         else:
             cur_report = None
