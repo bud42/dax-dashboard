@@ -35,6 +35,18 @@ from dax import XnatUtils
 # the session is Failed. Then if at least one assessor is In Progress, then\
 # the session is In Progress. If no assessors are found, then session is None'],
 
+#RGB_GREEN='rgb(27,157,5)'
+#RGB_YELLOW='rgb(240,240,30)'
+#RGB_RED='rgb(200,0,0)'
+#RGB_GREY='rgb(200,200,200)'
+#RGB_BLUE=rgb(65,105,225)'
+
+RGB_DKBLUE = 'rgb(59,89,152)'
+RGB_BLUE = 'rgb(66,133,244)'
+RGB_GREEN = 'rgb(15,157,88)'
+RGB_YELLOW = 'rgb(244,160,0)'
+RGB_RED = 'rgb(219,68,55)'
+RGB_GREY = 'rgb(200,200,200)'
 
 STATS_TYPES = ['LST_v1', 'fMRIQA_v3', 'EDATQA_v1', 'fMRIQA_v4']
 
@@ -1707,7 +1719,7 @@ write_report(projects, atypes, stypes, datafile, timezone, requery)
                     # Draw bar
                     fig.append_trace(go.Bar(
                         x=xall, y=yall, name='All',
-                        marker=dict(color='rgb(59,89,152)')
+                        marker=dict(color=RGB_DKBLUE)
                     ), 1, 1)
 
                 else:
@@ -1741,22 +1753,22 @@ write_report(projects, atypes, stypes, datafile, timezone, requery)
                     # Draw bar for each status
                     fig.append_trace(go.Bar(
                         x=xall, y=ygreen, name='Passed',
-                        marker=dict(color='rgb(27,157,5)'),
+                        marker=dict(color=RGB_GREEN),
                         opacity=0.9), 1, 1)
 
                     fig.append_trace(go.Bar(
                         x=xall, y=yyell, name='Needs QA',
-                        marker=dict(color='rgb(240,240,30)'),
+                        marker=dict(color=RGB_YELLOW),
                         opacity=0.9), 1, 1)
 
                     fig.append_trace(go.Bar(
                         x=xall, y=yred, name='Failed',
-                        marker=dict(color='rgb(200,0,0)'),
+                        marker=dict(color=RGB_RED),
                         opacity=0.9), 1, 1)
 
                     fig.append_trace(go.Bar(
                         x=xall, y=ygrey, name='None',
-                        marker=dict(color='rgb(200,200,200)'),
+                        marker=dict(color=RGB_GREY),
                         opacity=0.9), 1, 1)
 
                     # Customize figure
@@ -1812,7 +1824,6 @@ write_report(projects, atypes, stypes, datafile, timezone, requery)
                 yblue_new = list()
                 ygrey_new = list()
                 for i, t in enumerate(xall):
-                    print(i, t, sess_count, ygrey[i])
                     if sess_count > ygrey[i]:
                         xall_new.append(t)
                         yred_new.append(yred[i])
@@ -1831,27 +1842,27 @@ write_report(projects, atypes, stypes, datafile, timezone, requery)
                 # Draw bar for each status
                 fig.append_trace(go.Bar(
                     x=xall, y=ygreen, name='Passed',
-                    marker=dict(color='rgb(27,157,5)'),
+                    marker=dict(color=RGB_GREEN),
                     opacity=0.9), 1, 1)
 
                 fig.append_trace(go.Bar(
                     x=xall, y=yyell, name='Needs QA',
-                    marker=dict(color='rgb(240,240,30)'),
+                    marker=dict(color=RGB_YELLOW),
                     opacity=0.9), 1, 1)
 
                 fig.append_trace(go.Bar(
                     x=xall, y=yred, name='Failed',
-                    marker=dict(color='rgb(200,0,0)'),
+                    marker=dict(color=RGB_RED),
                     opacity=0.9), 1, 1)
 
                 fig.append_trace(go.Bar(
                     x=xall, y=yblue, name='In Progress',
-                    marker=dict(color='rgb(65,105,225)'),
+                    marker=dict(color=RGB_BLUE),
                     opacity=0.9), 1, 1)
 
                 fig.append_trace(go.Bar(
                     x=xall, y=ygrey, name='None',
-                    marker=dict(color='rgb(200,200,200)'),
+                    marker=dict(color=RGB_GREY),
                     opacity=0.9), 1, 1)
 
                 # Customize figure
