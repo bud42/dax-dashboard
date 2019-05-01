@@ -1699,7 +1699,7 @@ write_report(projects, atypes, stypes, datafile, timezone, requery)
                 dfp = pd.DataFrame(rows)
 
                  # Filter by session type
-                dff = self.filter_bysesstype(dff, selected_sesstype)
+                dfp = self.filter_bysesstype(dfp, selected_sesstype)
                 #if selected_sesstype == 'baseline':
                 #    dfp = dfp[dfp['session'].str.endswith('a')]
                 #elif selected_sesstype == 'followup':
@@ -1784,7 +1784,7 @@ write_report(projects, atypes, stypes, datafile, timezone, requery)
                 df = self.dashdata.task_df
 
                  # Filter by session type
-                dff = self.filter_bysesstype(dff, selected_sesstype)
+                dfp = self.filter_bysesstype(dfp, selected_sesstype)
                 #if selected_sesstype == 'baseline':
                 #    dfp = dfp[dfp['session'].str.endswith('a')]
                 #elif selected_sesstype == 'followup':
