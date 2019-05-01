@@ -592,6 +592,9 @@ xsiType=proc:genprocdata&columns=ID,xsiType,project,proc:genprocdata/proctype'
             'lib_rem_time', 'med_rem_time', 'con_rem_time']
         _list = stat_list['RSFC_CONN_v1']
         self.rsfc_df = pd.DataFrame(_list, columns=_cols)
+        self.rsfc_df['lib_rem_min'] = (
+            self.rsfc_df['lib_rem_time'].str.split(':')[0] +
+            self.rsfc_df['lib_rem_time'].str.split(':')[1] / 60.0)
 
         # Load EDAT
         _cols = [
@@ -2071,8 +2074,8 @@ write_report(projects, atypes, stypes, datafile, timezone, requery)
 
                 fig.append_trace(
                     go.Box(
-                        y=dff.lib_rem_time,
-                        name='lib_rem_time',
+                        y=dff.lib_rem_min,
+                        name='lib_rem_min',
                         boxpoints='all',
                         text=dff.label,
                     ), 1, 4)
