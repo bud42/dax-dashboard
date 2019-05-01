@@ -1545,10 +1545,11 @@ write_report(projects, atypes, stypes, datafile, timezone, requery)
             dfp = pd.DataFrame(rows)
 
             # Filter by session type
-            if selected_sesstype == 'baseline':
-                dfp = dfp[dfp['session'].str.endswith('a')]
-            elif selected_sesstype == 'followup':
-                dfp = dfp[dfp['session'].str.endswith('b')]
+            dfp = self.filter_bysesstype(dfp, selected_sesstype)
+            #if selected_sesstype == 'baseline':
+            #    dfp = dfp[dfp['session'].str.endswith('a')]
+            #elif selected_sesstype == 'followup':
+            #    dfp = dfp[dfp['session'].str.endswith('b')]
 
             # Make a 1x1 figure
             fig = plotly.tools.make_subplots(rows=1, cols=1)
@@ -1647,10 +1648,11 @@ write_report(projects, atypes, stypes, datafile, timezone, requery)
                 dff = dff[dff['project'].isin(selected_proj)]
 
             # Filter by session type
-            if selected_sesstype == 'baseline':
-                dff = dff[dff['session'].str.endswith('a')]
-            elif selected_sesstype == 'followup':
-                dff = dff[dff['session'].str.endswith('b')]
+            dff = self.filter_bysesstype(dff, selected_sesstype)
+            #if selected_sesstype == 'baseline':
+            #    dff = dff[dff['session'].str.endswith('a')]
+            #elif selected_sesstype == 'followup':
+            #    dff = dff[dff['session'].str.endswith('b')]
 
             if selected_type:
                 for t in selected_type:
@@ -1673,10 +1675,11 @@ write_report(projects, atypes, stypes, datafile, timezone, requery)
                 dff = dff[dff['project'].isin(selected_proj)]
 
             # Filter by session type
-            if selected_sesstype == 'baseline':
-                dff = dff[dff['session'].str.endswith('a')]
-            elif selected_sesstype == 'followup':
-                dff = dff[dff['session'].str.endswith('b')]
+            dff = self.filter_bysesstype(dff, selected_sesstype)
+            #if selected_sesstype == 'baseline':
+            #    dff = dff[dff['session'].str.endswith('a')]
+            #elif selected_sesstype == 'followup':
+            #    dff = dff[dff['session'].str.endswith('b')]
 
             return dff.to_dict('records')
 
@@ -1695,11 +1698,12 @@ write_report(projects, atypes, stypes, datafile, timezone, requery)
             if selected_groupby == 'project':
                 dfp = pd.DataFrame(rows)
 
-                # Filter by session type
-                if selected_sesstype == 'baseline':
-                    dfp = dfp[dfp['session'].str.endswith('a')]
-                elif selected_sesstype == 'followup':
-                    dfp = dfp[dfp['session'].str.endswith('b')]
+                 # Filter by session type
+                dff = self.filter_bysesstype(dff, selected_sesstype)
+                #if selected_sesstype == 'baseline':
+                #    dfp = dfp[dfp['session'].str.endswith('a')]
+                #elif selected_sesstype == 'followup':
+                #    dfp = dfp[dfp['session'].str.endswith('b')]
 
                 xall = sorted(dfp.project.unique())
                 yall = dfp.sort_values(
@@ -1779,11 +1783,12 @@ write_report(projects, atypes, stypes, datafile, timezone, requery)
                 dfp = pd.DataFrame(rows)
                 df = self.dashdata.task_df
 
-                # Filter by session type
-                if selected_sesstype == 'baseline':
-                    dfp = dfp[dfp['session'].str.endswith('a')]
-                elif selected_sesstype == 'followup':
-                    dfp = dfp[dfp['session'].str.endswith('b')]
+                 # Filter by session type
+                dff = self.filter_bysesstype(dff, selected_sesstype)
+                #if selected_sesstype == 'baseline':
+                #    dfp = dfp[dfp['session'].str.endswith('a')]
+                #elif selected_sesstype == 'followup':
+                #    dfp = dfp[dfp['session'].str.endswith('b')]
 
                 if not selected_type:
                     xall = list(df.proctype.unique())
@@ -2176,6 +2181,14 @@ write_report(projects, atypes, stypes, datafile, timezone, requery)
                     className="container")
             ])
         ])
+
+    def filter_bysesstype(self, data, sesstype):
+        if sesstype == 'baseline':
+            data = data[data['session'].str.endswith('a')]
+        elif sesstype == 'followup':
+            data = data[data['session'].str.endswith('b')]
+
+        return data
 
     def get_app(self):
         return self.app
