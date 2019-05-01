@@ -1435,6 +1435,14 @@ write_report(projects, atypes, stypes, datafile, timezone, requery)
                         id='dropdown-stats-scantype', multi=True,
                         options=_scantype_opts,
                         placeholder='Select Scan Type(s)'),
+                    dcc.RadioItems(
+                        options=[
+                            {'label': 'All Sessions', 'value': 'all'},
+                            {'label': 'Baseline Only', 'value': 'baseline'},
+                            {'label': 'Followup Only', 'value': 'followup'}],
+                        value='all',
+                        id='radio-stats-sesstype',
+                        labelStyle={'display': 'inline-block'}),
                     html.Div(id='stats-content', children=[]),
                     html.Div(id='selected-indexes-stats'),
                 ], className="container", style={"max-width": "none"})
@@ -1546,10 +1554,6 @@ write_report(projects, atypes, stypes, datafile, timezone, requery)
 
             # Filter by session type
             dfp = self.filter_bysesstype(dfp, selected_sesstype)
-            #if selected_sesstype == 'baseline':
-            #    dfp = dfp[dfp['session'].str.endswith('a')]
-            #elif selected_sesstype == 'followup':
-            #    dfp = dfp[dfp['session'].str.endswith('b')]
 
             # Make a 1x1 figure
             fig = plotly.tools.make_subplots(rows=1, cols=1)
@@ -1649,10 +1653,6 @@ write_report(projects, atypes, stypes, datafile, timezone, requery)
 
             # Filter by session type
             dff = self.filter_bysesstype(dff, selected_sesstype)
-            #if selected_sesstype == 'baseline':
-            #    dff = dff[dff['session'].str.endswith('a')]
-            #elif selected_sesstype == 'followup':
-            #    dff = dff[dff['session'].str.endswith('b')]
 
             if selected_type:
                 for t in selected_type:
@@ -1676,10 +1676,6 @@ write_report(projects, atypes, stypes, datafile, timezone, requery)
 
             # Filter by session type
             dff = self.filter_bysesstype(dff, selected_sesstype)
-            #if selected_sesstype == 'baseline':
-            #    dff = dff[dff['session'].str.endswith('a')]
-            #elif selected_sesstype == 'followup':
-            #    dff = dff[dff['session'].str.endswith('b')]
 
             return dff.to_dict('records')
 
@@ -1698,12 +1694,8 @@ write_report(projects, atypes, stypes, datafile, timezone, requery)
             if selected_groupby == 'project':
                 dfp = pd.DataFrame(rows)
 
-                 # Filter by session type
+                # Filter by session type
                 dfp = self.filter_bysesstype(dfp, selected_sesstype)
-                #if selected_sesstype == 'baseline':
-                #    dfp = dfp[dfp['session'].str.endswith('a')]
-                #elif selected_sesstype == 'followup':
-                #    dfp = dfp[dfp['session'].str.endswith('b')]
 
                 xall = sorted(dfp.project.unique())
                 yall = dfp.sort_values(
@@ -1783,13 +1775,10 @@ write_report(projects, atypes, stypes, datafile, timezone, requery)
                 dfp = pd.DataFrame(rows)
                 df = self.dashdata.task_df
 
-                 # Filter by session type
+                # Filter by session type
                 dfp = self.filter_bysesstype(dfp, selected_sesstype)
-                #if selected_sesstype == 'baseline':
-                #    dfp = dfp[dfp['session'].str.endswith('a')]
-                #elif selected_sesstype == 'followup':
-                #    dfp = dfp[dfp['session'].str.endswith('b')]
 
+                # Filter by proc type
                 if not selected_type:
                     xall = list(df.proctype.unique())
                 else:
@@ -2045,10 +2034,11 @@ write_report(projects, atypes, stypes, datafile, timezone, requery)
             [Input('dropdown-stats-proctype', 'value'),
              Input('dropdown-stats-proj', 'value'),
              Input('dropdown-stats-status', 'value'),
-             Input('dropdown-stats-scantype', 'value')])
+             Input('dropdown-stats-scantype', 'value'),
+             Input('radio-stats-sesstype', 'value')])
         def update_rows_stats(
                 selected_proctype, selected_proj,
-                selected_stat, selected_scantype):
+                selected_stat, selected_scantype, selected_sesstype):
 
             if selected_proctype == 'LST_v1':
                 dff = self.dashdata.lst_df
@@ -2074,6 +2064,11 @@ write_report(projects, atypes, stypes, datafile, timezone, requery)
             if selected_scantype:
                 print('selected_scantype=', selected_scantype)
                 dff = dff[dff['scan_type'].isin(selected_scantype)]
+
+            # Filter by sess type
+            if selected_sesstype:
+                print('selected_sesstype=', selected_sesstype)
+                dff = self.filter_bysesstype(dff, selected_sesstype)
 
             return dff.to_dict('records')
 
@@ -2191,6 +2186,8 @@ write_report(projects, atypes, stypes, datafile, timezone, requery)
             df = df[
                 ~df['session'].str.endswith('a') &
                 ~df['session'].str.endswith('_bl')]
+        else:
+            df = df
 
         return df
 
