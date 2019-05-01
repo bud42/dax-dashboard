@@ -597,6 +597,41 @@ xsiType=proc:genprocdata&columns=ID,xsiType,project,proc:genprocdata/proctype'
             self.rsfc_df['lib_rem_time'].str.split(':').str[1].astype(float) /
             60.0)
 
+        # Load FS6
+        _cols = [
+            'label', 'project', 'session', 'qcstatus',
+            'recon_estimatedtotalintracranialvol_etiv',
+            'recon_left_hippocampus_volume_mm3',
+            'recon_right_hippocampus_volume_mm3',
+            'recon_left_lateral_ventricle_volume_mm3',
+            'recon_right_lateral_ventricle_volume_mm3',
+            'recon_lh_superiorfrontal_thickavg',
+            'recon_rh_superiorfrontal_thickavg']
+        _list = stat_list['FS6_v1']
+        self.fs6_df = pd.DataFrame(_list, columns=_cols)
+        self.fs6_df['lib_rem_min'] = (
+            self.fs6_df['lib_rem_time'].str.split(':').str[0].astype(float) +
+            self.fs6_df['lib_rem_time'].str.split(':').str[1].astype(float) /
+            60.0)
+        self.fs6_df['med_rem_min'] = (
+            self.fs6_df['med_rem_time'].str.split(':').str[0].astype(float) +
+            self.fs6_df['med_rem_time'].str.split(':').str[1].astype(float) /
+            60.0)
+        self.fs6_df['con_rem_min'] = (
+            self.fs6_df['con_rem_time'].str.split(':').str[0].astype(float) +
+            self.fs6_df['con_rem_time'].str.split(':').str[1].astype(float) /
+            60.0)
+        self.fs6_df.rename(
+            columns={
+                'recon_estimatedtotalintracranialvol_etiv': 'etiv',
+                'recon_left_hippocampus_volume_mm3': 'lhpc',
+                'recon_right_hippocampus_volume_mm3': 'rhpc',
+                'recon_left_lateral_ventricle_volume_mm3': 'lvent',
+                'recon_right_lateral_ventricle_volume_mm3': 'rvent',
+                'recon_lh_superiorfrontal_thickavg': 'lsupflobe',
+                'recon_rh_superiorfrontal_thickavg': 'rsupflobe'
+            }, inplace=True)
+
         # Load EDAT
         _cols = [
             'label',
@@ -2097,6 +2132,71 @@ write_report(projects, atypes, stypes, datafile, timezone, requery)
                         text=dff.label,
                     ), 1, 6)
 
+            elif selected_proctype == 'FS6_v1':
+                # Check for empty data
+                if len(dff) == 0:
+                    return None
+
+                # Make a 1x4 figure
+                fig = plotly.tools.make_subplots(rows=1, cols=7)
+
+                # Add traces to figure
+                fig.append_trace(
+                    go.Box(
+                        y=dff.etiv,
+                        name='etiv',
+                        boxpoints='all',
+                        text=dff.label,
+                    ), 1, 1)
+
+                fig.append_trace(
+                    go.Box(
+                        y=dff.lhpc,
+                        name='lhpc',
+                        boxpoints='all',
+                        text=dff.label,
+                    ), 1, 2)
+
+                fig.append_trace(
+                    go.Box(
+                        y=dff.rhpc,
+                        name='rhpc',
+                        boxpoints='all',
+                        text=dff.label,
+                    ), 1, 3)
+
+                fig.append_trace(
+                    go.Box(
+                        y=dff.lvent,
+                        name='lvent',
+                        boxpoints='all',
+                        text=dff.label,
+                    ), 1, 4)
+
+                fig.append_trace(
+                    go.Box(
+                        y=dff.rvent,
+                        name='rvent',
+                        boxpoints='all',
+                        text=dff.label,
+                    ), 1, 5)
+
+                fig.append_trace(
+                    go.Box(
+                        y=dff.lsupflobe,
+                        name='lsupflobe',
+                        boxpoints='all',
+                        text=dff.label,
+                    ), 1, 6)
+
+                fig.append_trace(
+                    go.Box(
+                        y=dff.rsupflobe,
+                        name='rsupflobe',
+                        boxpoints='all',
+                        text=dff.label,
+                    ), 1, 7)
+
             # Customize figure
             fig['layout'].update(hovermode='closest', showlegend=True)
 
@@ -2123,6 +2223,8 @@ write_report(projects, atypes, stypes, datafile, timezone, requery)
                 dff = self.dashdata.fmri4_df
             elif selected_proctype == 'RSFC_CONN_v1':
                 dff = self.dashdata.rsfc_df
+            elif selected_proctype == 'FS6_v1':
+                dff = self.dashdata.fs6_df
             else:
                 dff = pd.DataFrame()
 
@@ -2161,6 +2263,8 @@ write_report(projects, atypes, stypes, datafile, timezone, requery)
                 dff = self.dashdata.fmri4_df
             elif selected_proctype == 'RSFC_CONN_v1':
                 dff = self.dashdata.rsfc_df
+            elif selected_proctype == 'FS6_v1':
+                dff = self.dashdata.fs6_df
 
             try:
                 return self.make_options(dff.scan_type.unique())
@@ -2181,6 +2285,8 @@ write_report(projects, atypes, stypes, datafile, timezone, requery)
                 dff = self.dashdata.fmri4_df
             elif selected_proctype == 'RSFC_CONN_v1':
                 dff = self.dashdata.rsfc_df
+            elif selected_proctype == 'FS6_v1':
+                dff = self.dashdata.fs6_df
 
             try:
                 return self.make_options(dff.qcstatus.unique())
@@ -2201,6 +2307,8 @@ write_report(projects, atypes, stypes, datafile, timezone, requery)
                 dff = self.dashdata.fmri4_df
             elif selected_proctype == 'RSFC_CONN_v1':
                 dff = self.dashdata.rsfc_df
+            elif selected_proctype == 'FS6_v1':
+                dff = self.dashdata.fs6_df
 
             return [dt.DataTable(
                 rows=dff.to_dict('records'),
