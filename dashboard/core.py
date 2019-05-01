@@ -1918,6 +1918,8 @@ write_report(projects, atypes, stypes, datafile, timezone, requery)
                 dff = dff[dff['scan_type'].isin(selected_scantype)]
 
             if selected_proctype == 'LST_v1':
+                fig = plotly.tools.make_subplots(rows=1, cols=3)
+
                 # Add traces to figure
                 fig.append_trace(
                     go.Box(
@@ -1925,7 +1927,8 @@ write_report(projects, atypes, stypes, datafile, timezone, requery)
                         name='wml_volume',
                         boxpoints='all',
                         text=dff.label,
-                    ), 1, 1)
+                    ), 1, 2)
+
             elif selected_proctype == 'EDATQA_v1':
                 # Make a 1x3 figure
                 fig = plotly.tools.make_subplots(rows=1, cols=3)
@@ -2032,6 +2035,63 @@ write_report(projects, atypes, stypes, datafile, timezone, requery)
                         boxpoints='all',
                         text=dff.label,
                     ), 1, 3)
+
+            elif selected_proctype == 'RSFC_CONN_v1':
+                # Check for empty data
+                if len(dff) == 0:
+                    return None
+
+                # Make a 1x4 figure
+                fig = plotly.tools.make_subplots(rows=1, cols=6)
+
+                # Add traces to figure
+                fig.append_trace(
+                    go.Box(
+                        y=dff.lib_pct_outliers,
+                        name='lib_pct_outliers',
+                        boxpoints='all',
+                        text=dff.label,
+                    ), 1, 1)
+
+                fig.append_trace(
+                    go.Box(
+                        y=dff.med_pct_outliers,
+                        name='med_pct_outliers',
+                        boxpoints='all',
+                        text=dff.label,
+                    ), 1, 2)
+
+                fig.append_trace(
+                    go.Box(
+                        y=dff.con_pct_outliers,
+                        name='con_pct_outliers',
+                        boxpoints='all',
+                        text=dff.label,
+                    ), 1, 3)
+
+                fig.append_trace(
+                    go.Box(
+                        y=dff.lib_rem_time,
+                        name='lib_rem_time',
+                        boxpoints='all',
+                        text=dff.label,
+                    ), 1, 4)
+
+                fig.append_trace(
+                    go.Box(
+                        y=dff.med_rem_time,
+                        name='med_rem_time',
+                        boxpoints='all',
+                        text=dff.label,
+                    ), 1, 5)
+
+                fig.append_trace(
+                    go.Box(
+                        y=dff.con_rem_time,
+                        name='con_rem_time',
+                        boxpoints='all',
+                        text=dff.label,
+                    ), 1, 6)
 
             # Customize figure
             fig['layout'].update(hovermode='closest', showlegend=True)
