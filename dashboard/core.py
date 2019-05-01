@@ -2185,14 +2185,12 @@ write_report(projects, atypes, stypes, datafile, timezone, requery)
     def filter_bysesstype(self, df, sesstype):
         if sesstype == 'baseline':
             df = df[
-                df['session'].str.endswith('a') or
-                df['session'].str.endswith('_bl')
-            ]
+                df['session'].str.endswith('a') |
+                df['session'].str.endswith('_bl')]
         elif sesstype == 'followup':
             df = df[
-                ~df['session'].str.endswith('a') and
-                ~df['session'].str.endswith('_bl')
-            ]
+                ~df['session'].str.endswith('a') &
+                ~df['session'].str.endswith('_bl')]
 
         return df
 
