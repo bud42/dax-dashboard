@@ -48,7 +48,8 @@ RGB_YELLOW = 'rgb(244,160,0)'
 RGB_RED = 'rgb(219,68,55)'
 RGB_GREY = 'rgb(200,200,200)'
 
-STATS_TYPES = ['LST_v1', 'fMRIQA_v3', 'EDATQA_v1', 'fMRIQA_v4']
+STATS_TYPES = [
+    'LST_v1', 'fMRIQA_v3', 'EDATQA_v1', 'fMRIQA_v4', 'RSFC_CONN_v1', 'FS6_v1']
 
 
 def write_report(projects, assr_types, scan_types, datafile, tz, requery=True):
@@ -583,6 +584,14 @@ xsiType=proc:genprocdata&columns=ID,xsiType,project,proc:genprocdata/proctype'
         _cols = ['label', 'project', 'session', 'qcstatus', 'wml_volume']
         _list = stat_list['LST_v1']
         self.lst_df = pd.DataFrame(_list, columns=_cols)
+
+        # Load RSFC_CONN
+        _cols = [
+            'label', 'project', 'session', 'qcstatus',
+            'lib_pct_outliers', 'med_pct_outliers', 'con_pct_outliers',
+            'lib_rem_time', 'med_rem_time', 'con_rem_time']
+        _list = stat_list['RSFC_CONN_v1']
+        self.rsfc_df = pd.DataFrame(_list, columns=_cols)
 
         # Load EDAT
         _cols = [
@@ -2048,6 +2057,8 @@ write_report(projects, atypes, stypes, datafile, timezone, requery)
                 dff = self.dashdata.fmri3_df
             elif selected_proctype == 'fMRIQA_v4':
                 dff = self.dashdata.fmri4_df
+            elif selected_proctype == 'RSFC_CONN_v1':
+                dff = self.dashdata.rsfc_df
             else:
                 dff = pd.DataFrame()
 
@@ -2084,6 +2095,8 @@ write_report(projects, atypes, stypes, datafile, timezone, requery)
                 dff = self.dashdata.fmri3_df
             elif selected_proctype == 'fMRIQA_v4':
                 dff = self.dashdata.fmri4_df
+            elif selected_proctype == 'RSFC_CONN_v1':
+                dff = self.dashdata.rsfc_df
 
             try:
                 return self.make_options(dff.scan_type.unique())
@@ -2102,6 +2115,8 @@ write_report(projects, atypes, stypes, datafile, timezone, requery)
                 dff = self.dashdata.fmri3_df
             elif selected_proctype == 'fMRIQA_v4':
                 dff = self.dashdata.fmri4_df
+            elif selected_proctype == 'RSFC_CONN_v1':
+                dff = self.dashdata.rsfc_df
 
             try:
                 return self.make_options(dff.qcstatus.unique())
@@ -2120,6 +2135,8 @@ write_report(projects, atypes, stypes, datafile, timezone, requery)
                 dff = self.dashdata.fmri3_df
             elif selected_proctype == 'fMRIQA_v4':
                 dff = self.dashdata.fmri4_df
+            elif selected_proctype == 'RSFC_CONN_v1':
+                dff = self.dashdata.rsfc_df
 
             return [dt.DataTable(
                 rows=dff.to_dict('records'),
