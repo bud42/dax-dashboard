@@ -596,6 +596,14 @@ xsiType=proc:genprocdata&columns=ID,xsiType,project,proc:genprocdata/proctype'
             self.rsfc_df['lib_rem_time'].str.split(':').str[0].astype(float) +
             self.rsfc_df['lib_rem_time'].str.split(':').str[1].astype(float) /
             60.0)
+        self.rsfc_df['med_rem_min'] = (
+            self.rsfc_df['med_rem_time'].str.split(':').str[0].astype(float) +
+            self.rsfc_df['med_rem_time'].str.split(':').str[1].astype(float) /
+            60.0)
+        self.rsfc_df['con_rem_min'] = (
+            self.rsfc_df['con_rem_time'].str.split(':').str[0].astype(float) +
+            self.rsfc_df['con_rem_time'].str.split(':').str[1].astype(float) /
+            60.0)
 
         # Load FS6
         _cols = [
@@ -609,18 +617,6 @@ xsiType=proc:genprocdata&columns=ID,xsiType,project,proc:genprocdata/proctype'
             'recon_rh_superiorfrontal_thickavg']
         _list = stat_list['FS6_v1']
         self.fs6_df = pd.DataFrame(_list, columns=_cols)
-        self.fs6_df['lib_rem_min'] = (
-            self.fs6_df['lib_rem_time'].str.split(':').str[0].astype(float) +
-            self.fs6_df['lib_rem_time'].str.split(':').str[1].astype(float) /
-            60.0)
-        self.fs6_df['med_rem_min'] = (
-            self.fs6_df['med_rem_time'].str.split(':').str[0].astype(float) +
-            self.fs6_df['med_rem_time'].str.split(':').str[1].astype(float) /
-            60.0)
-        self.fs6_df['con_rem_min'] = (
-            self.fs6_df['con_rem_time'].str.split(':').str[0].astype(float) +
-            self.fs6_df['con_rem_time'].str.split(':').str[1].astype(float) /
-            60.0)
         self.fs6_df.rename(
             columns={
                 'recon_estimatedtotalintracranialvol_etiv': 'etiv',
@@ -2118,16 +2114,16 @@ write_report(projects, atypes, stypes, datafile, timezone, requery)
 
                 fig.append_trace(
                     go.Box(
-                        y=dff.med_rem_time,
-                        name='med_rem_time',
+                        y=dff.med_rem_min,
+                        name='med_rem_min',
                         boxpoints='all',
                         text=dff.label,
                     ), 1, 5)
 
                 fig.append_trace(
                     go.Box(
-                        y=dff.con_rem_time,
-                        name='con_rem_time',
+                        y=dff.con_rem_min,
+                        name='con_rem_min',
                         boxpoints='all',
                         text=dff.label,
                     ), 1, 6)
