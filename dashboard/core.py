@@ -1489,6 +1489,12 @@ write_report(projects, atypes, stypes, datafile, timezone, requery)
                         labelStyle={'display': 'inline-block'}),
                     html.Div(id='stats-content', children=[]),
                     html.Div(id='selected-indexes-stats'),
+                    html.A(
+                        html.Button('CSV'),
+                        id='csv-stats',
+                        download="statsdata.csv",
+                        href="",
+                        target="_blank")
                 ], className="container", style={"max-width": "none"})
 
         @app.callback(
@@ -1916,6 +1922,16 @@ write_report(projects, atypes, stypes, datafile, timezone, requery)
                 fig['layout'].update(barmode='stack', showlegend=True)
 
                 return fig
+
+        @app.callback(
+            Output('csv-stats', 'href'),
+            [Input('datatable-stats', 'rows')])
+        def update_csv_stats(rows):
+            dff = pd.DataFrame(rows)
+            _csv = dff.to_csv(index=False, encoding='utf-8')
+            _csv = urllib.parse.quote(_csv)
+            _csv = "data:text/csv;charset=utf-8,%EF%BB%BF" + _csv
+            return _csv
 
         @app.callback(
             Output('download-link', 'href'),
