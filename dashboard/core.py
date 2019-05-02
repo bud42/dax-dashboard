@@ -529,8 +529,11 @@ xsiType=proc:genprocdata&columns=ID,xsiType,project,proc:genprocdata/proctype'
             'Passed': 'P', 'Good': 'P', 'Passed with edits': 'P',
             'Questionable': 'P',
             'Failed': 'F', 'Bad': 'F',
-            'Needs QA': 'Q'},
+            'Needs QA': 'Q',
+            'Do Not Run': 'N'},
             inplace=True)
+
+        # Change any unknown statuses (i.e. not replaced above) to J
         self.assr_df.loc[
             (self.assr_df['qcstatus'].str.len() > 1), 'qcstatus'] = 'J'
         self.assr_df['name'] = self.assr_df['label'] + '.slurm'
