@@ -1751,6 +1751,7 @@ write_report(projects, atypes, stypes, datafile, timezone, requery)
                 ygreen = [0] * len(assr_proj_options)
                 ygrey = [0] * len(assr_proj_options)
                 yyell = [0] * len(assr_proj_options)
+                yblue = [0] * len(assr_proj_options)
 
                 # Make a 1x1 figured
                 fig = plotly.tools.make_subplots(rows=1, cols=1)
@@ -1776,12 +1777,15 @@ write_report(projects, atypes, stypes, datafile, timezone, requery)
                                     break
                                 elif 'F' in sess[t] and cur <= 2:
                                     cur = 2
-                                elif (('Q' in sess[t] or 'J' in sess[t]) and
-                                        cur < 1):
+                                elif ('Q' in sess[t] and cur < 1):
                                     cur = 1
+                                elif ('J' in sess[t] and cur < 1):
+                                    cur = 4
 
                             # Record final value across all types
-                            if cur == 3:
+                            if cur == 4:
+                                yblue[i] += 1
+                            elif cur == 3:
                                 ygrey[i] += 1
                             elif cur == 2:
                                 yred[i] += 1
@@ -1804,6 +1808,11 @@ write_report(projects, atypes, stypes, datafile, timezone, requery)
                     fig.append_trace(go.Bar(
                         x=xall, y=yred, name='Failed',
                         marker=dict(color=RGB_RED),
+                        opacity=0.9), 1, 1)
+
+                    fig.append_trace(go.Bar(
+                        x=xall, y=yblue, name='In Progress',
+                        marker=dict(color=RGB_BLUE),
                         opacity=0.9), 1, 1)
 
                     fig.append_trace(go.Bar(
