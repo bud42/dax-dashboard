@@ -540,32 +540,32 @@ xsiType=proc:genprocdata&columns=ID,xsiType,project,proc:genprocdata/proctype'
             aggfunc=lambda q: ''.join(q))
         self.assr_dfp.reset_index(inplace=True)
 
-        # Load fmri_v3
-        _cols = [
-            'label',
-            'project',
-            'session',
-            'scan_type',
-            'qcstatus',
-            'fmriqa_v3_voxel_displacement_median',
-            'fmriqa_v3_voxel_displacement_95prctile',
-            'fmriqa_v3_voxel_displacement_99prctile',
-            'fmriqa_v3_signal_delta_95prctile',
-            'fmriqa_v3_global_timeseries_stddev',
-            'fmriqa_v3_tsnr_95prctile',
-            'fmriqa_v3_tsnr_median']
-        _list = stat_list['fMRIQA_v3']
-        self.fmri3_df = pd.DataFrame(_list, columns=_cols)
-        self.fmri3_df.rename(
-            columns={
-                'fmriqa_v3_voxel_displacement_median': 'displace_median',
-                'fmriqa_v3_voxel_displacement_95prctile': 'displace_95',
-                'fmriqa_v3_voxel_displacement_99prctile': 'displace_99',
-                'fmriqa_v3_signal_delta_95prctile': 'sig_delta_95',
-                'fmriqa_v3_global_timeseries_stddev': 'glob_ts_stddev',
-                'fmriqa_v3_tsnr_95prctile': 'tsnr_95',
-                'fmriqa_v3_tsnr_median': 'tsnr_median'
-            }, inplace=True)
+        # # Load fmri_v3
+        # _cols = [
+        #     'label',
+        #     'project',
+        #     'session',
+        #     'scan_type',
+        #     'qcstatus',
+        #     'fmriqa_v3_voxel_displacement_median',
+        #     'fmriqa_v3_voxel_displacement_95prctile',
+        #     'fmriqa_v3_voxel_displacement_99prctile',
+        #     'fmriqa_v3_signal_delta_95prctile',
+        #     'fmriqa_v3_global_timeseries_stddev',
+        #     'fmriqa_v3_tsnr_95prctile',
+        #     'fmriqa_v3_tsnr_median']
+        # _list = stat_list['fMRIQA_v3']
+        # self.fmri3_df = pd.DataFrame(_list, columns=_cols)
+        # self.fmri3_df.rename(
+        #     columns={
+        #         'fmriqa_v3_voxel_displacement_median': 'displace_median',
+        #         'fmriqa_v3_voxel_displacement_95prctile': 'displace_95',
+        #         'fmriqa_v3_voxel_displacement_99prctile': 'displace_99',
+        #         'fmriqa_v3_signal_delta_95prctile': 'sig_delta_95',
+        #         'fmriqa_v3_global_timeseries_stddev': 'glob_ts_stddev',
+        #         'fmriqa_v3_tsnr_95prctile': 'tsnr_95',
+        #         'fmriqa_v3_tsnr_median': 'tsnr_median'
+        #     }, inplace=True)
 
         # Load fmri_v4
         _cols = [
@@ -2254,8 +2254,8 @@ write_report(projects, atypes, stypes, datafile, timezone, requery)
                 dff = self.dashdata.lst_df
             elif selected_proctype == 'EDATQA_v1':
                 dff = self.dashdata.edat_df
-            elif selected_proctype == 'fMRIQA_v3':
-                dff = self.dashdata.fmri3_df
+            # elif selected_proctype == 'fMRIQA_v3':
+            #     dff = self.dashdata.fmri3_df
             elif selected_proctype == 'fMRIQA_v4':
                 dff = self.dashdata.fmri4_df
             elif selected_proctype == 'RSFC_CONN_v1':
@@ -2294,8 +2294,8 @@ write_report(projects, atypes, stypes, datafile, timezone, requery)
                 dff = self.dashdata.lst_df
             elif selected_proctype == 'EDATQA_v1':
                 dff = self.dashdata.edat_df
-            elif selected_proctype == 'fMRIQA_v3':
-                dff = self.dashdata.fmri3_df
+            # elif selected_proctype == 'fMRIQA_v3':
+            #     dff = self.dashdata.fmri3_df
             elif selected_proctype == 'fMRIQA_v4':
                 dff = self.dashdata.fmri4_df
             elif selected_proctype == 'RSFC_CONN_v1':
@@ -2316,8 +2316,8 @@ write_report(projects, atypes, stypes, datafile, timezone, requery)
                 dff = self.dashdata.lst_df
             elif selected_proctype == 'EDATQA_v1':
                 dff = self.dashdata.edat_df
-            elif selected_proctype == 'fMRIQA_v3':
-                dff = self.dashdata.fmri3_df
+            # elif selected_proctype == 'fMRIQA_v3':
+            #     dff = self.dashdata.fmri3_df
             elif selected_proctype == 'fMRIQA_v4':
                 dff = self.dashdata.fmri4_df
             elif selected_proctype == 'RSFC_CONN_v1':
@@ -2338,8 +2338,8 @@ write_report(projects, atypes, stypes, datafile, timezone, requery)
                 dff = self.dashdata.lst_df
             elif selected_proctype == 'EDATQA_v1':
                 dff = self.dashdata.edat_df
-            elif selected_proctype == 'fMRIQA_v3':
-                dff = self.dashdata.fmri3_df
+            # elif selected_proctype == 'fMRIQA_v3':
+            #     dff = self.dashdata.fmri3_df
             elif selected_proctype == 'fMRIQA_v4':
                 dff = self.dashdata.fmri4_df
             elif selected_proctype == 'RSFC_CONN_v1':
