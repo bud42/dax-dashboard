@@ -1444,7 +1444,13 @@ write_report(projects, atypes, stypes, datafile, timezone, requery)
                         sortable=True,
                         editable=False,
                         id='datatable-task'),
-                    html.Div(id='selected-indexes')
+                    html.Div(id='selected-indexes'),
+                    html.A(
+                        html.Button('CSV'),
+                        id='csv-task',
+                        download="jobsdata.csv",
+                        href="",
+                        target="_blank")
                 ], className="container", style={
                     'width:': '100%', 'max-width': 'none'})
 
@@ -1922,6 +1928,16 @@ write_report(projects, atypes, stypes, datafile, timezone, requery)
                 fig['layout'].update(barmode='stack', showlegend=True)
 
                 return fig
+
+        @app.callback(
+            Output('csv-task', 'href'),
+            [Input('datatable-task', 'rows')])
+        def update_csv_task(rows):
+            dff = pd.DataFrame(rows)
+            _csv = dff.to_csv(index=False, encoding='utf-8')
+            _csv = urllib.parse.quote(_csv)
+            _csv = "data:text/csv;charset=utf-8,%EF%BB%BF" + _csv
+            return _csv
 
         @app.callback(
             Output('csv-stats', 'href'),
