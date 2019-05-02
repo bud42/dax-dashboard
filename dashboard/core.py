@@ -49,7 +49,7 @@ RGB_RED = 'rgb(219,68,55)'
 RGB_GREY = 'rgb(200,200,200)'
 
 STATS_TYPES = [
-    'LST_v1', 'fMRIQA_v3', 'EDATQA_v1', 'fMRIQA_v4', 'RSFC_CONN_v1', 'FS6_v1']
+    'LST_v1', 'EDATQA_v1', 'fMRIQA_v4', 'RSFC_CONN_v1', 'FS6_v1']
 
 
 def write_report(projects, assr_types, scan_types, datafile, tz, requery=True):
