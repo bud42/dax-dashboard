@@ -49,7 +49,7 @@ RGB_RED = 'rgb(219,68,55)'
 RGB_GREY = 'rgb(200,200,200)'
 
 STATS_TYPES = [
-    'LST_v1', 'EDATQA_v1', 'fMRIQA_v4', 'RSFC_CONN_v1', 'FS6_v1']
+    'LST_v1', 'EDATQA_v1', 'fMRIQA_v4', 'RSFC_CONN_v1', 'FS6_v1', 'AMYVIDQA_v1']
 
 
 def write_report(projects, assr_types, scan_types, datafile, tz, requery=True):
@@ -629,6 +629,35 @@ xsiType=proc:genprocdata&columns=ID,xsiType,project,proc:genprocdata/proctype'
                 'recon_right_lateral_ventricle_volume_mm3': 'rvent',
                 'recon_lh_superiorfrontal_thickavg': 'lsupflobe',
                 'recon_rh_superiorfrontal_thickavg': 'rsupflobe'
+            }, inplace=True)
+
+         # Load AMYVIDQA_v1
+        _cols = [
+            'label', 'project', 'session', 'qcstatus',
+            'amyvid_acing_suvr', 
+            'amyvid_cblmgm_suvr',
+            'amyvid_cblmtot_suvr',
+            'amyvid_cblmwm_suvr',
+            'amyvid_compgm_suvr',
+            'amyvid_cortwm_suvr',
+            'amyvid_flobe_suvr',
+            'amyvid_pcing_suvr',
+            'amyvid_plobe_suvr',
+            'amyvid_tlobe_suvr']
+        _list = stat_list['AMYVIDQA_v1']
+        self.amyvid_df = pd.DataFrame(_list, columns=_cols)
+        self.amyvid_df.rename(
+            columns={
+	            'amyvid_acing_suvr': 'acing', 
+	            'amyvid_cblmgm_suvr': 'cblmgm',
+	            'amyvid_cblmtot_suvr':'cblmtot',
+	            'amyvid_cblmwm_suvr': 'cblmwm',
+	            'amyvid_compgm_suvr': 'compgm',
+	            'amyvid_cortwm_suvr': 'cortwm',
+	            'amyvid_flobe_suvr': 'flobe',
+	            'amyvid_pcing_suvr': 'pcing',
+	            'amyvid_plobe_suvr': 'plobe',
+	            'amyvid_tlobe_suvr': 'tlobe'
             }, inplace=True)
 
         # Load EDAT
@@ -2237,6 +2266,96 @@ write_report(projects, atypes, stypes, datafile, timezone, requery)
                         text=dff.label,
                     ), 1, 7)
 
+            elif selected_proctype == 'AMYVIDQA_v1':
+                # Check for empty data
+                if len(dff) == 0:
+                    return None
+
+                # Make a 1x4 figure
+                fig = plotly.tools.make_subplots(rows=1, cols=10)
+
+                # Add traces to figure
+                fig.append_trace(
+                    go.Box(
+                        y=dff.acing,
+                        name='acing',
+                        boxpoints='all',
+                        text=dff.label,
+                    ), 1, 1)
+
+                fig.append_trace(
+                    go.Box(
+                        y=dff.cblmgm,
+                        name='cblmgm',
+                        boxpoints='all',
+                        text=dff.label,
+                    ), 1, 2)
+
+                fig.append_trace(
+                    go.Box(
+                        y=dff.cblmtot,
+                        name='cblmtot',
+                        boxpoints='all',
+                        text=dff.label,
+                    ), 1, 3)
+
+                fig.append_trace(
+                    go.Box(
+                        y=dff.cblmwm,
+                        name='cblmwm',
+                        boxpoints='all',
+                        text=dff.label,
+                    ), 1, 4)
+
+                fig.append_trace(
+                    go.Box(
+                        y=dff.compgm,
+                        name='compgm',
+                        boxpoints='all',
+                        text=dff.label,
+                    ), 1, 5)
+
+                fig.append_trace(
+                    go.Box(
+                        y=dff.cortwm,
+                        name='cortwm',
+                        boxpoints='all',
+                        text=dff.label,
+                    ), 1, 6)
+
+                fig.append_trace(
+                    go.Box(
+                        y=dff.flobe,
+                        name='flobe',
+                        boxpoints='all',
+                        text=dff.label,
+                    ), 1, 7)
+
+                fig.append_trace(
+                    go.Box(
+                        y=dff.pcing,
+                        name='pcing',
+                        boxpoints='all',
+                        text=dff.label,
+                    ), 1, 8)
+
+
+                fig.append_trace(
+                    go.Box(
+                        y=dff.plobe,
+                        name='plobe',
+                        boxpoints='all',
+                        text=dff.label,
+                    ), 1, 9)
+
+                fig.append_trace(
+                    go.Box(
+                        y=dff.tlobe,
+                        name='tlobe',
+                        boxpoints='all',
+                        text=dff.label,
+                    ), 1, 10)
+
             # Customize figure
             fig['layout'].update(hovermode='closest', showlegend=True)
 
@@ -2265,6 +2384,8 @@ write_report(projects, atypes, stypes, datafile, timezone, requery)
                 dff = self.dashdata.rsfc_df
             elif selected_proctype == 'FS6_v1':
                 dff = self.dashdata.fs6_df
+            elif selected_proctype == 'AMYVIDQA_v1':
+                dff = self.dashdata.amyvid_df
             else:
                 dff = pd.DataFrame()
 
@@ -2305,6 +2426,8 @@ write_report(projects, atypes, stypes, datafile, timezone, requery)
                 dff = self.dashdata.rsfc_df
             elif selected_proctype == 'FS6_v1':
                 dff = self.dashdata.fs6_df
+            elif selected_proctype == 'AMYVDQA_v1':
+                dff = self.dashdata.amyvid_df
 
             try:
                 return self.make_options(dff.scan_type.unique())
@@ -2327,6 +2450,8 @@ write_report(projects, atypes, stypes, datafile, timezone, requery)
                 dff = self.dashdata.rsfc_df
             elif selected_proctype == 'FS6_v1':
                 dff = self.dashdata.fs6_df
+            elif selected_proctype == 'AMYVDQA_v1':
+                dff = self.dashdata.amyvid_df
 
             try:
                 return self.make_options(dff.qcstatus.unique())
@@ -2349,6 +2474,8 @@ write_report(projects, atypes, stypes, datafile, timezone, requery)
                 dff = self.dashdata.rsfc_df
             elif selected_proctype == 'FS6_v1':
                 dff = self.dashdata.fs6_df
+            elif selected_proctype == 'AMYVDQA_v1':
+                dff = self.dashdata.amyvid_df
 
             return [dt.DataTable(
                 rows=dff.to_dict('records'),
