@@ -634,30 +634,16 @@ xsiType=proc:genprocdata&columns=ID,xsiType,project,proc:genprocdata/proctype'
          # Load AMYVIDQA_v1
         _cols = [
             'label', 'project', 'session', 'qcstatus',
-            'amyvid_acing_suvr', 
-            'amyvid_cblmgm_suvr',
-            'amyvid_cblmtot_suvr',
-            'amyvid_cblmwm_suvr',
             'amyvid_compgm_suvr',
-            'amyvid_cortwm_suvr',
-            'amyvid_flobe_suvr',
             'amyvid_pcing_suvr',
-            'amyvid_plobe_suvr',
-            'amyvid_tlobe_suvr']
+            'amyvid_cortwm_suvr']
         _list = stat_list['AMYVIDQA_v1']
         self.amyvid_df = pd.DataFrame(_list, columns=_cols)
         self.amyvid_df.rename(
             columns={
-	            'amyvid_acing_suvr': 'acing', 
-	            'amyvid_cblmgm_suvr': 'cblmgm',
-	            'amyvid_cblmtot_suvr':'cblmtot',
-	            'amyvid_cblmwm_suvr': 'cblmwm',
 	            'amyvid_compgm_suvr': 'compgm',
-	            'amyvid_cortwm_suvr': 'cortwm',
-	            'amyvid_flobe_suvr': 'flobe',
 	            'amyvid_pcing_suvr': 'pcing',
-	            'amyvid_plobe_suvr': 'plobe',
-	            'amyvid_tlobe_suvr': 'tlobe'
+                'amyvid_cortwm_suvr': 'cortwm'
             }, inplace=True)
 
         # Load EDAT
@@ -669,9 +655,7 @@ xsiType=proc:genprocdata&columns=ID,xsiType,project,proc:genprocdata/proctype'
             'qcstatus',
             'edatqa_acc_mean',
             'edatqa_rt_mean',
-            'edatqa_trial_count'
-
-        ]
+            'edatqa_trial_count']
         _list = stat_list['EDATQA_v1']
         self.edat_df = pd.DataFrame(_list, columns=_cols)
         self.edat_df.rename(
@@ -2272,64 +2256,16 @@ write_report(projects, atypes, stypes, datafile, timezone, requery)
                     return None
 
                 # Make a 1x4 figure
-                fig = plotly.tools.make_subplots(rows=1, cols=10)
+                fig = plotly.tools.make_subplots(rows=1, cols=3)
 
                 # Add traces to figure
-                fig.append_trace(
-                    go.Box(
-                        y=dff.acing,
-                        name='acing',
-                        boxpoints='all',
-                        text=dff.label,
-                    ), 1, 1)
-
-                fig.append_trace(
-                    go.Box(
-                        y=dff.cblmgm,
-                        name='cblmgm',
-                        boxpoints='all',
-                        text=dff.label,
-                    ), 1, 2)
-
-                fig.append_trace(
-                    go.Box(
-                        y=dff.cblmtot,
-                        name='cblmtot',
-                        boxpoints='all',
-                        text=dff.label,
-                    ), 1, 3)
-
-                fig.append_trace(
-                    go.Box(
-                        y=dff.cblmwm,
-                        name='cblmwm',
-                        boxpoints='all',
-                        text=dff.label,
-                    ), 1, 4)
-
                 fig.append_trace(
                     go.Box(
                         y=dff.compgm,
                         name='compgm',
                         boxpoints='all',
                         text=dff.label,
-                    ), 1, 5)
-
-                fig.append_trace(
-                    go.Box(
-                        y=dff.cortwm,
-                        name='cortwm',
-                        boxpoints='all',
-                        text=dff.label,
-                    ), 1, 6)
-
-                fig.append_trace(
-                    go.Box(
-                        y=dff.flobe,
-                        name='flobe',
-                        boxpoints='all',
-                        text=dff.label,
-                    ), 1, 7)
+                    ), 1, 1)
 
                 fig.append_trace(
                     go.Box(
@@ -2337,24 +2273,15 @@ write_report(projects, atypes, stypes, datafile, timezone, requery)
                         name='pcing',
                         boxpoints='all',
                         text=dff.label,
-                    ), 1, 8)
-
-
-                fig.append_trace(
-                    go.Box(
-                        y=dff.plobe,
-                        name='plobe',
-                        boxpoints='all',
-                        text=dff.label,
-                    ), 1, 9)
+                    ), 1, 2)
 
                 fig.append_trace(
                     go.Box(
-                        y=dff.tlobe,
-                        name='tlobe',
+                        y=dff.cortwm,
+                        name='cortwm',
                         boxpoints='all',
                         text=dff.label,
-                    ), 1, 10)
+                    ), 1, 3)
 
             # Customize figure
             fig['layout'].update(hovermode='closest', showlegend=True)
