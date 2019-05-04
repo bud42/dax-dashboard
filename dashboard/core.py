@@ -2353,7 +2353,7 @@ write_report(projects, atypes, stypes, datafile, timezone, requery)
                 dff = self.dashdata.rsfc_df
             elif selected_proctype == 'FS6_v1':
                 dff = self.dashdata.fs6_df
-            elif selected_proctype == 'AMYVDQA_v1':
+            elif selected_proctype == 'AMYVIDQA_v1':
                 dff = self.dashdata.amyvid_df
 
             try:
@@ -2377,7 +2377,7 @@ write_report(projects, atypes, stypes, datafile, timezone, requery)
                 dff = self.dashdata.rsfc_df
             elif selected_proctype == 'FS6_v1':
                 dff = self.dashdata.fs6_df
-            elif selected_proctype == 'AMYVDQA_v1':
+            elif selected_proctype == 'AMYVIDQA_v1':
                 dff = self.dashdata.amyvid_df
 
             try:
@@ -2401,7 +2401,7 @@ write_report(projects, atypes, stypes, datafile, timezone, requery)
                 dff = self.dashdata.rsfc_df
             elif selected_proctype == 'FS6_v1':
                 dff = self.dashdata.fs6_df
-            elif selected_proctype == 'AMYVDQA_v1':
+            elif selected_proctype == 'AMYVIDQA_v1':
                 dff = self.dashdata.amyvid_df
 
             return [dt.DataTable(
