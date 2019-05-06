@@ -1541,7 +1541,6 @@ write_report(projects, atypes, stypes, datafile, timezone, requery)
                         options=time_proj_options, placeholder='All projects'),
                     dt.DataTable(
                         rows=self.dashdata.time_df.to_dict('records'),
-                        columns=self.TIME_COLS,
                         row_selectable=True,
                         filterable=True,
                         sortable=True,
