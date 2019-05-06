@@ -416,6 +416,7 @@ xsiType=proc:genprocdata&columns=ID,xsiType,project,proc:genprocdata/proctype'
         self.assr_df = None
         self.task_df = None
         self.scan_df = None
+        self.time_df = None
         if 'use_squeue' in self.config and self.config['use_squeue']:
             self.use_squeue = True
         else:
@@ -698,6 +699,9 @@ xsiType=proc:genprocdata&columns=ID,xsiType,project,proc:genprocdata/proctype'
 
         # self.test_df = self.assr_df.copy()
         # self.test_dfp = self.assr_dfp.copy()
+
+        # Get list of sessions???
+        self.time_df = self.scan_df.copy()
 
     def selected_projects(self):
         if self.assr_df is None:
@@ -1518,6 +1522,33 @@ write_report(projects, atypes, stypes, datafile, timezone, requery)
                         href="",
                         target="_blank")
                 ], className="container", style={"max-width": "none"})
+
+            elif value == 5:
+                _df = self.dashdata.time_df
+                time_proj_options = self.make_options(_df.project.unique())
+
+                return html.Div([
+                    dcc.Graph(id='graph-time'),
+                    dcc.Dropdown(id='dropdown-time-time', options=[
+                        {'label': '1 day', 'value': 0},
+                        {'label': '1 week', 'value': 1},
+                        {'label': '1 month', 'value': 2},
+                        {'label': '1 year', 'value': 3},
+                        {'label': 'All time', 'value': 4}], value=2),
+                    dcc.Dropdown(
+                        id='dropdown-time-proj', multi=True,
+                        options=time_proj_options, placeholder='All projects'),
+                    dt.DataTable(
+                        rows=self.dashdata.time_df.to_dict('records'),
+                        columns=self.TIME_COLS,
+                        row_selectable=True,
+                        filterable=True,
+                        sortable=True,
+                        editable=False,
+                        id='datatable-time'),
+                    html.Div(id='selected-indexes'),
+                ], className="container", style={
+                    'width:': '100%', 'max-width': 'none'})
 
         @app.callback(
             Output('datatable-task', 'rows'),
@@ -2412,6 +2443,69 @@ write_report(projects, atypes, stypes, datafile, timezone, requery)
                 sortable=True,
                 editable=False,
                 id='datatable-stats')]
+
+        @app.callback(
+            Output('datatable-time', 'rows'),
+            [Input('dropdown-time-time', 'value'),
+             Input('dropdown-time-proc', 'value')])
+        def update_rows_time(selected_time, selected_proj):
+            DFORMAT = self.DFORMAT
+            starttime = self.dashdata.updated_datetime()
+            _df = self.dashdata.time_df
+
+            # Filter by time
+            if selected_time == 0:
+                _prevtime = starttime - timedelta(days=1)
+                fdate = datetime.strftime(_prevtime, DFORMAT)
+            elif selected_time == 1:
+                _prevtime = starttime - timedelta(days=7)
+                fdate = datetime.strftime(_prevtime, DFORMAT)
+            elif selected_time == 2:
+                _prevtime = starttime - timedelta(days=30)
+                fdate = datetime.strftime(_prevtime, DFORMAT)
+            elif selected_time == 3:
+                _prevtime = starttime - timedelta(days=365)
+                fdate = datetime.strftime(_prevtime, DFORMAT)
+            else:
+                fdate = '1969-12-31'
+
+            dff = _df[(_df['datetime'] > fdate)]
+
+            # Filter by project
+            if selected_proj:
+                dff = dff[dff['project'].isin(selected_proj)]
+
+            return dff.to_dict('records')
+
+        @app.callback(
+            Output('graph-time', 'figure'),
+            [Input('datatable-time', 'rows'),
+             Input('datatable-time', 'selected_row_indices')])
+        def update_figure_time(rows, selected_row_indices):
+            # Load data from input
+            dff = pd.DataFrame(rows)
+
+            # Make a 1x1 figure
+            fig = plotly.tools.make_subplots(rows=1, cols=1)
+
+            # Check for empty data
+            if len(dff) == 0:
+                return fig
+
+            # Plot trace for each project
+            for i in dff.project.unique():
+                # Filter data by status
+                dft = dff[dff.project == i]
+
+                # Add trace to figure
+                fig.append_trace({
+                    'name': '{} ({})'.format(i, len(dft)),
+                    'x': dft['datetime'],
+                    'text': dft['label'],
+                    'mode': 'markers'
+                }, 1, 1)
+
+            return fig
 
     def script_running(self):
         script_list = glob(self.datadir + '/*.py')
