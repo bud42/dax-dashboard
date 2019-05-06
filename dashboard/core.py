@@ -632,7 +632,7 @@ xsiType=proc:genprocdata&columns=ID,xsiType,project,proc:genprocdata/proctype'
                 'recon_rh_superiorfrontal_thickavg': 'rsupflobe'
             }, inplace=True)
 
-         # Load AMYVIDQA_v1
+        # Load AMYVIDQA_v1
         _cols = [
             'label', 'project', 'session', 'qcstatus',
             'amyvid_compgm_suvr',
@@ -642,8 +642,8 @@ xsiType=proc:genprocdata&columns=ID,xsiType,project,proc:genprocdata/proctype'
         self.amyvid_df = pd.DataFrame(_list, columns=_cols)
         self.amyvid_df.rename(
             columns={
-	            'amyvid_compgm_suvr': 'compgm',
-	            'amyvid_pcing_suvr': 'pcing',
+                'amyvid_compgm_suvr': 'compgm',
+                'amyvid_pcing_suvr': 'pcing',
                 'amyvid_cortwm_suvr': 'cortwm'
             }, inplace=True)
 
@@ -1323,6 +1323,7 @@ write_report(projects, atypes, stypes, datafile, timezone, requery)
                             dcc.Tab(label='Scans', value=2),
                             dcc.Tab(label='Jobs', value=3),
                             dcc.Tab(label='Stats', value=4),
+                            dcc.Tab(label='Timeline', value=5)
                         ],
                         vertical=False
                     ),
