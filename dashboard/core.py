@@ -2447,7 +2447,7 @@ write_report(projects, atypes, stypes, datafile, timezone, requery)
         @app.callback(
             Output('datatable-time', 'rows'),
             [Input('dropdown-time-time', 'value'),
-             Input('dropdown-time-proc', 'value')])
+             Input('dropdown-time-proj', 'value')])
         def update_rows_time(selected_time, selected_proj):
             DFORMAT = self.DFORMAT
             starttime = self.dashdata.updated_datetime()
@@ -2485,6 +2485,8 @@ write_report(projects, atypes, stypes, datafile, timezone, requery)
             # Load data from input
             dff = pd.DataFrame(rows)
 
+            print(dff)
+
             # Make a 1x1 figure
             fig = plotly.tools.make_subplots(rows=1, cols=1)
 
@@ -2493,13 +2495,14 @@ write_report(projects, atypes, stypes, datafile, timezone, requery)
                 return fig
 
             # Plot trace for each project
-            for i in dff.project.unique():
+            for proj in dff.project.unique():
+                print(proj)
                 # Filter data by status
-                dft = dff[dff.project == i]
+                dft = dff[dff.project == proj]
 
                 # Add trace to figure
                 fig.append_trace({
-                    'name': '{} ({})'.format(i, len(dft)),
+                    'name': '{} ({})'.format(proj, len(dft)),
                     'x': dft['datetime'],
                     'text': dft['label'],
                     'mode': 'markers'
