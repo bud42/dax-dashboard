@@ -2469,7 +2469,7 @@ write_report(projects, atypes, stypes, datafile, timezone, requery)
             else:
                 fdate = '1969-12-31'
 
-            dff = _df[(_df['datetime'] > fdate)]
+            dff = _df[(_df['scandate'] > fdate)]
 
             # Filter by project
             if selected_proj:
