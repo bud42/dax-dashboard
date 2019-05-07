@@ -544,33 +544,6 @@ xsiType=proc:genprocdata&columns=ID,xsiType,project,proc:genprocdata/proctype'
             aggfunc=lambda q: ''.join(q))
         self.assr_dfp.reset_index(inplace=True)
 
-        # # Load fmri_v3
-        # _cols = [
-        #     'label',
-        #     'project',
-        #     'session',
-        #     'scan_type',
-        #     'qcstatus',
-        #     'fmriqa_v3_voxel_displacement_median',
-        #     'fmriqa_v3_voxel_displacement_95prctile',
-        #     'fmriqa_v3_voxel_displacement_99prctile',
-        #     'fmriqa_v3_signal_delta_95prctile',
-        #     'fmriqa_v3_global_timeseries_stddev',
-        #     'fmriqa_v3_tsnr_95prctile',
-        #     'fmriqa_v3_tsnr_median']
-        # _list = stat_list['fMRIQA_v3']
-        # self.fmri3_df = pd.DataFrame(_list, columns=_cols)
-        # self.fmri3_df.rename(
-        #     columns={
-        #         'fmriqa_v3_voxel_displacement_median': 'displace_median',
-        #         'fmriqa_v3_voxel_displacement_95prctile': 'displace_95',
-        #         'fmriqa_v3_voxel_displacement_99prctile': 'displace_99',
-        #         'fmriqa_v3_signal_delta_95prctile': 'sig_delta_95',
-        #         'fmriqa_v3_global_timeseries_stddev': 'glob_ts_stddev',
-        #         'fmriqa_v3_tsnr_95prctile': 'tsnr_95',
-        #         'fmriqa_v3_tsnr_median': 'tsnr_median'
-        #     }, inplace=True)
-
         # Load fmri_v4
         _cols = [
             'label',
@@ -701,7 +674,9 @@ xsiType=proc:genprocdata&columns=ID,xsiType,project,proc:genprocdata/proctype'
         # self.test_dfp = self.assr_dfp.copy()
 
         # Get list of sessions???
-        self.time_df = self.scan_df.copy()
+        _cols = ['session', 'project', 'scandate', 'subject']
+        self.time_df = pd.DataFrame(scan_list, columns=_cols)
+        self.time_df.drop_duplicates(inplace=True)
 
     def selected_projects(self):
         if self.assr_df is None:
@@ -2484,8 +2459,6 @@ write_report(projects, atypes, stypes, datafile, timezone, requery)
         def update_figure_time(rows, selected_row_indices):
             # Load data from input
             dff = pd.DataFrame(rows)
-
-            print(dff)
 
             # Make a 1x1 figure
             fig = plotly.tools.make_subplots(rows=1, cols=1)
