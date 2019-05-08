@@ -35,12 +35,6 @@ from dax import XnatUtils
 # the session is Failed. Then if at least one assessor is In Progress, then\
 # the session is In Progress. If no assessors are found, then session is None'],
 
-#RGB_GREEN='rgb(27,157,5)'
-#RGB_YELLOW='rgb(240,240,30)'
-#RGB_RED='rgb(200,0,0)'
-#RGB_GREY='rgb(200,200,200)'
-#RGB_BLUE=rgb(65,105,225)'
-
 RGB_DKBLUE = 'rgb(59,89,152)'
 RGB_BLUE = 'rgb(66,133,244)'
 RGB_GREEN = 'rgb(15,157,88)'
@@ -49,7 +43,8 @@ RGB_RED = 'rgb(219,68,55)'
 RGB_GREY = 'rgb(200,200,200)'
 
 STATS_TYPES = [
-    'LST_v1', 'EDATQA_v1', 'fMRIQA_v4', 'RSFC_CONN_v1', 'FS6_v1', 'AMYVIDQA_v1']
+    'LST_v1', 'EDATQA_v1', 'fMRIQA_v4',
+    'RSFC_CONN_v1', 'FS6_v1', 'AMYVIDQA_v1']
 
 
 def write_report(projects, assr_types, scan_types, datafile, tz, requery=True):
@@ -674,6 +669,7 @@ xsiType=proc:genprocdata&columns=ID,xsiType,project,proc:genprocdata/proctype'
         # self.test_dfp = self.assr_dfp.copy()
 
         # Get list of sessions???
+        # site, scanner, modality
         _cols = ['session', 'project', 'scandate', 'subject']
         self.time_df = pd.DataFrame(scan_list, columns=_cols)
         self.time_df.drop_duplicates(inplace=True)
@@ -2477,9 +2473,9 @@ write_report(projects, atypes, stypes, datafile, timezone, requery)
                 fig.append_trace({
                     'name': '{} ({})'.format(proj, len(dft)),
                     'x': dft['scandate'],
-                    'y': dft['project'],
+                    'y': dft['subject'],
                     'text': dft['session'],
-                    'mode': 'markers'
+                    'mode': 'lines+markers'
                 }, 1, 1)
 
             return fig
