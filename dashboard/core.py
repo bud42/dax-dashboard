@@ -2491,6 +2491,7 @@ write_report(projects, atypes, stypes, datafile, timezone, requery)
 
             # Add trace to figure
             fig.append_trace({
+                'name': '{} ({})'.format('MRI', len(dft)),
                 'x': dft['scandate'],
                 'y': dft['project'],
                 'text': dft['session'],
@@ -2502,6 +2503,7 @@ write_report(projects, atypes, stypes, datafile, timezone, requery)
 
             # Add PET
             fig.append_trace({
+                'name': '{} ({})'.format('PET', len(dft)),
                 'x': dft['scandate'],
                 'y': dft['project'],
                 'text': dft['session'],
