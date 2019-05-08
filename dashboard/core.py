@@ -2463,18 +2463,31 @@ write_report(projects, atypes, stypes, datafile, timezone, requery)
             if len(dff) == 0:
                 return fig
 
-            # Plot trace for each project
-            for i, subj in enumerate(dff.subject.unique()):
-                # Filter data
-                dft = dff[dff.subject == subj]
+#            # Plot trace for each project
+#            for i, subj in enumerate(dff.subject.unique()):
+#                # Filter data
+#                dft = dff[dff.subject == subj]
+#
+#                # Add trace to figure
+#                fig.append_trace({
+#                    'x': dft['scandate'],
+#                    'y': [i]*len(dft),
+#                    'text': dft['session'],
+#                    'mode': 'lines+markers'
+#                }, 1, 1)
 
-                # Add trace to figure
-                fig.append_trace({
-                    'x': dft['scandate'],
-                    'y': [i]*len(dft),
-                    'text': dft['session'],
-                    'mode': 'lines+markers'
-                }, 1, 1)
+            # Plot trace for each
+
+            # Filter data
+            dft = dff
+
+            # Add trace to figure
+            fig.append_trace({
+                'x': dft['scandate'],
+                'y': dft['project'],
+                'text': dft['session'],
+                'mode': 'markers'
+            }, 1, 1)
 
             return fig
 
