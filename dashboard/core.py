@@ -2464,16 +2464,14 @@ write_report(projects, atypes, stypes, datafile, timezone, requery)
                 return fig
 
             # Plot trace for each project
-            for proj in dff.project.unique():
-                print(proj)
-                # Filter data by status
-                dft = dff[dff.project == proj]
+            for subj in dff.subject.unique():
+                # Filter data
+                dft = dff[dff.subject == subj]
 
                 # Add trace to figure
                 fig.append_trace({
-                    'name': '{} ({})'.format(proj, len(dft)),
                     'x': dft['scandate'],
-                    'y': dft['subject'],
+                    'y': dft.index,
                     'text': dft['session'],
                     'mode': 'lines+markers'
                 }, 1, 1)
