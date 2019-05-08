@@ -80,7 +80,8 @@ xnat:imagesessiondata/date'
     }
     SCAN_URI = '/data/archive/experiments?project={}&\
 xsiType=xnat:imageSessionData&\
-columns=ID,URI,label,subject_label,project,\
+columns=ID,URI,label,subject_label,project,modality,scanner,session_type,\
+xnat:imagesssionData/acquisition_site,\
 xnat:imagescandata/id,xnat:imagescandata/type,xnat:imagescandata/quality,\
 xnat:imagescandata/series_description,xnat:imageScanData/meta/last_modified,\
 xnat:imagesessiondata/date'
@@ -2478,10 +2479,21 @@ write_report(projects, atypes, stypes, datafile, timezone, requery)
 
             # Plot trace for each
 
-            # Filter data
-            dft = dff
+            # Filter MR data
+			dft = dff[dff.modality == 'MR']
 
             # Add trace to figure
+            fig.append_trace({
+                'x': dft['scandate'],
+                'y': dft['project'],
+                'text': dft['session'],
+                'mode': 'markers'
+            }, 1, 1)
+
+            # Filter PET data
+			dft = dff[dff.modality == 'PT']
+
+             # Add PET
             fig.append_trace({
                 'x': dft['scandate'],
                 'y': dft['project'],
