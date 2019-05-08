@@ -361,7 +361,8 @@ xnat:imagesessiondata/date'
     }
     SCAN_URI = '/data/archive/experiments?project={}&\
 xsiType=xnat:imageSessionData&\
-columns=ID,URI,label,subject_label,project,\
+columns=ID,URI,label,subject_label,project,modality,scanner,session_type,\
+xnat:imagesssionData/acquisition_site,\
 xnat:imagescandata/id,xnat:imagescandata/type,xnat:imagescandata/quality,\
 xnat:imagescandata/series_description,xnat:imageScanData/meta/last_modified\
 xnat:imagesessiondata/date'
@@ -671,7 +672,13 @@ xsiType=proc:genprocdata&columns=ID,xsiType,project,proc:genprocdata/proctype'
 
         # Get list of sessions???
         # site, scanner, modality
-        _cols = ['session', 'project', 'scandate', 'subject']
+        _cols = [
+            'session',
+            'project',
+            'scandate',
+            'subject',
+            'modality',
+            'scanner']
         self.time_df = pd.DataFrame(scan_list, columns=_cols)
         self.time_df.drop_duplicates(inplace=True)
 
