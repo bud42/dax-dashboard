@@ -2454,7 +2454,7 @@ write_report(projects, atypes, stypes, datafile, timezone, requery)
              Input('datatable-time', 'selected_row_indices')])
         def update_figure_time(rows, selected_row_indices):
             # Load data from input
-            dff = pd.DataFrame(rows)
+            dff = pd.DataFrame(rows).sort_values('scandate')
 
             # Make a 1x1 figure
             fig = plotly.tools.make_subplots(rows=1, cols=1)
