@@ -2480,7 +2480,7 @@ write_report(projects, atypes, stypes, datafile, timezone, requery)
             # Plot trace for each
 
             # Filter MR data
-			dft = dff[dff.modality == 'MR']
+            dft = dff[dff.modality == 'MR']
 
             # Add trace to figure
             fig.append_trace({
@@ -2491,9 +2491,9 @@ write_report(projects, atypes, stypes, datafile, timezone, requery)
             }, 1, 1)
 
             # Filter PET data
-			dft = dff[dff.modality == 'PT']
+            dft = dff[dff.modality == 'PT']
 
-             # Add PET
+            # Add PET
             fig.append_trace({
                 'x': dft['scandate'],
                 'y': dft['project'],
