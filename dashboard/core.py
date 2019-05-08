@@ -2471,7 +2471,7 @@ write_report(projects, atypes, stypes, datafile, timezone, requery)
                 # Add trace to figure
                 fig.append_trace({
                     'x': dft['scandate'],
-                    'y': i,
+                    'y': [i],
                     'text': dft['session'],
                     'mode': 'lines+markers'
                 }, 1, 1)
