@@ -80,7 +80,7 @@ xnat:imagesessiondata/date'
     }
     SCAN_URI = '/data/archive/experiments?project={}&\
 xsiType=xnat:imageSessionData&\
-columns=ID,URI,label,subject_label,project,modality,scanner,session_type,\
+columns=ID,URI,label,subject_label,project,modality,scanner,\
 xnat:imagesessiondata/acquisition_site,\
 xnat:imagescandata/id,xnat:imagescandata/type,xnat:imagescandata/quality,\
 xnat:imagescandata/series_description,xnat:imageScanData/meta/last_modified,\
@@ -92,7 +92,6 @@ xnat:imagesessiondata/date'
         'subject_label': 'subject',
         'project': 'project',
         'scanner': 'scanner',
-        'session_type': 'sesstype',
         'modality': 'modality',
         'xnat:imagesessiondata/acquisition_site': 'site',
         'xnat:imagescandata/id': 'scan_id',
@@ -365,7 +364,7 @@ xnat:imagesessiondata/date'
     }
     SCAN_URI = '/data/archive/experiments?project={}&\
 xsiType=xnat:imageSessionData&\
-columns=ID,URI,label,subject_label,project,modality,scanner,session_type,\
+columns=ID,URI,label,subject_label,project,modality,scanner,\
 xnat:imagesessiondata/acquisition_site,\
 xnat:imagescandata/id,xnat:imagescandata/type,xnat:imagescandata/quality,\
 xnat:imagescandata/series_description,xnat:imageScanData/meta/last_modified\
@@ -377,7 +376,6 @@ xnat:imagesessiondata/date'
         'subject_label': 'subject',
         'project': 'project',
         'scanner': 'scanner',
-        'session_type': 'sesstype',
         'modality': 'modality',
         'xnat:imagesessiondata/acquisition_site': 'site',
         'xnat:imagescandata/id': 'scan_id',
@@ -686,8 +684,7 @@ xsiType=proc:genprocdata&columns=ID,xsiType,project,proc:genprocdata/proctype'
             'subject',
             'modality',
             'scanner',
-            'site',
-            'sesstype']
+            'site']
         self.time_df = pd.DataFrame(scan_list, columns=_cols)
         self.time_df.drop_duplicates(inplace=True)
 
