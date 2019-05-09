@@ -2542,7 +2542,8 @@ write_report(projects, atypes, stypes, datafile, timezone, requery)
                 'x': dft['scandate'],
                 'y': dft['project'],
                 'text': dft['session'],
-                'mode': 'markers'
+                'mode': 'markers',
+                'marker': dict(size=10, line=dict(width=1), opacity=0.9)
             }, 1, 1)
 
             # Filter PET data
@@ -2554,7 +2555,8 @@ write_report(projects, atypes, stypes, datafile, timezone, requery)
                 'x': dft['scandate'],
                 'y': dft['project'],
                 'text': dft['session'],
-                'mode': 'markers'
+                'mode': 'markers',
+                'marker': dict(size=10, line=dict(width=1), opacity=0.9)
             }, 1, 1)
 
             return fig
