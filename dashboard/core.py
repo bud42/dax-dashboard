@@ -1514,10 +1514,16 @@ write_report(projects, atypes, stypes, datafile, timezone, requery)
                 time_proj_options = self.make_options(_df.project.unique())
                 time_scanner_opts = self.make_options(_df.scanner.unique())
                 time_site_opts = self.make_options(_df.site.unique())
-                time_modality_opts = self.make_options(_df.modality.unique())
 
                 return html.Div([
                     dcc.Graph(id='graph-time'),
+                    dcc.RadioItems(
+                        options=[
+                            {'label': 'By Project', 'value': 'project'},
+                            {'label': 'By Site', 'value': 'site'}],
+                        value='project',
+                        id='radio-time-groupby',
+                        labelStyle={'display': 'inline-block'}),
                     dcc.Dropdown(id='dropdown-time-time', options=[
                         {'label': '1 day', 'value': 0},
                         {'label': '1 week', 'value': 1},
@@ -1533,9 +1539,6 @@ write_report(projects, atypes, stypes, datafile, timezone, requery)
                     dcc.Dropdown(
                         id='dropdown-time-site', multi=True,
                         options=time_site_opts, placeholder='All sites'),
-                    dcc.Dropdown(
-                        id='dropdown-time-modality', multi=True,
-                        options=time_modality_opts, placeholder='All modalities'),
                     dcc.RadioItems(
                         options=[
                             {'label': 'All Sessions', 'value': 'all'},
@@ -2454,11 +2457,10 @@ write_report(projects, atypes, stypes, datafile, timezone, requery)
              Input('dropdown-time-proj', 'value'),
              Input('dropdown-time-site', 'value'),
              Input('dropdown-time-scanner', 'value'),
-             Input('dropdown-time-modality', 'value'),
              Input('radio-time-sesstype', 'value')])
         def update_rows_time(
                 selected_time, selected_proj, selected_site,
-                selected_scanner, selected_modality, selected_sesstype):
+                selected_scanner, selected_sesstype):
 
             print('update_rows_time')
 
@@ -2498,11 +2500,6 @@ write_report(projects, atypes, stypes, datafile, timezone, requery)
                 print('selected_scanner=', selected_scanner)
                 dff = dff[dff['scanner'].isin(selected_scanner)]
 
-            # Filter by modality
-            if selected_modality:
-                print('selected_modality=', selected_modality)
-                dff = dff[dff['modality'].isin(selected_modality)]
-
             # Filter by sesstype
             if selected_sesstype:
                 print('selected_sesstype=', selected_sesstype)
@@ -2514,8 +2511,9 @@ write_report(projects, atypes, stypes, datafile, timezone, requery)
         @app.callback(
             Output('graph-time', 'figure'),
             [Input('datatable-time', 'rows'),
+             Input('radio-time-groupby', 'value'),
              Input('datatable-time', 'selected_row_indices')])
-        def update_figure_time(rows, selected_row_indices):
+        def update_figure_time(rows, selected_groupby, selected_row_indices):
             print('update_figure_time')
 
             # Load data from input
@@ -2532,16 +2530,19 @@ write_report(projects, atypes, stypes, datafile, timezone, requery)
             if len(dff) == 0:
                 return fig
 
-            # Plot trace for each
-
             # Filter MR data
             dft = dff[dff.modality == 'MR']
 
-            # Add trace to figure
+            if selected_groupby == 'project':
+                ygroupby = dft['project']
+            else:
+                ygroupby = dft['site']
+
+            # Add trace for MRI to figure
             fig.append_trace({
                 'name': '{} ({})'.format('MRI', len(dft)),
                 'x': dft['scandate'],
-                'y': dft['project'],
+                'y': ygroupby,
                 'text': dft['session'],
                 'mode': 'markers',
                 'marker': dict(size=10, line=dict(width=1), opacity=0.9)
@@ -2550,11 +2551,16 @@ write_report(projects, atypes, stypes, datafile, timezone, requery)
             # Filter PET data
             dft = dff[dff.modality == 'PT']
 
+            if selected_groupby == 'project':
+                ygroupby = dft['project']
+            else:
+                ygroupby = dft['site']
+
             # Add PET
             fig.append_trace({
                 'name': '{} ({})'.format('PET', len(dft)),
                 'x': dft['scandate'],
-                'y': dft['project'],
+                'y': ygroupby,
                 'text': dft['session'],
                 'mode': 'markers',
                 'marker': dict(size=10, line=dict(width=1), opacity=0.9)
