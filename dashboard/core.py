@@ -81,7 +81,7 @@ xnat:imagesessiondata/date'
     SCAN_URI = '/data/archive/experiments?project={}&\
 xsiType=xnat:imageSessionData&\
 columns=ID,URI,label,subject_label,project,modality,scanner,session_type,\
-xnat:imagesssionData/acquisition_site,\
+xnat:imagesessiondata/acquisition_site,\
 xnat:imagescandata/id,xnat:imagescandata/type,xnat:imagescandata/quality,\
 xnat:imagescandata/series_description,xnat:imageScanData/meta/last_modified,\
 xnat:imagesessiondata/date'
@@ -94,7 +94,7 @@ xnat:imagesessiondata/date'
         'scanner': 'scanner',
         'session_type': 'sesstype',
         'modality': 'modality',
-        'xnat:imagesssionData/acquisition_site': 'site',
+        'xnat:imagesessiondata/acquisition_site': 'site',
         'xnat:imagescandata/id': 'scan_id',
         'xnat:imagescandata/type': 'type',
         'xnat:imagescandata/quality': 'quality',
@@ -366,7 +366,7 @@ xnat:imagesessiondata/date'
     SCAN_URI = '/data/archive/experiments?project={}&\
 xsiType=xnat:imageSessionData&\
 columns=ID,URI,label,subject_label,project,modality,scanner,session_type,\
-xnat:imagesssionData/acquisition_site,\
+xnat:imagesessiondata/acquisition_site,\
 xnat:imagescandata/id,xnat:imagescandata/type,xnat:imagescandata/quality,\
 xnat:imagescandata/series_description,xnat:imageScanData/meta/last_modified\
 xnat:imagesessiondata/date'
@@ -379,7 +379,7 @@ xnat:imagesessiondata/date'
         'scanner': 'scanner',
         'session_type': 'sesstype',
         'modality': 'modality',
-        'xnat:imagesssionData/acquisition_site': 'site',
+        'xnat:imagesessiondata/acquisition_site': 'site',
         'xnat:imagescandata/id': 'scan_id',
         'xnat:imagescandata/type': 'type',
         'xnat:imagescandata/quality': 'quality',
@@ -1517,6 +1517,7 @@ write_report(projects, atypes, stypes, datafile, timezone, requery)
                 time_proj_options = self.make_options(_df.project.unique())
                 time_scanner_opts = self.make_options(_df.scanner.unique())
                 time_site_opts = self.make_options(_df.site.unique())
+                time_modality_opts = self.make_options(_df.modality.unique())
 
                 return html.Div([
                     dcc.Graph(id='graph-time'),
@@ -1535,6 +1536,9 @@ write_report(projects, atypes, stypes, datafile, timezone, requery)
                     dcc.Dropdown(
                         id='dropdown-time-site', multi=True,
                         options=time_site_opts, placeholder='All sites'),
+                    dcc.Dropdown(
+                        id='dropdown-time-modality', multi=True,
+                        options=time_modality_opts, placeholder='All modalities'),
                     dcc.RadioItems(
                         options=[
                             {'label': 'All Sessions', 'value': 'all'},
@@ -2534,8 +2538,7 @@ write_report(projects, atypes, stypes, datafile, timezone, requery)
                 'x': dft['scandate'],
                 'y': dft['project'],
                 'text': dft['session'],
-                'mode': 'markers',
-                'marker': dict(size=10, line=dict(width=1))
+                'mode': 'markers'
             }, 1, 1)
 
             # Filter PET data
