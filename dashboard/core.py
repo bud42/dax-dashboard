@@ -2509,8 +2509,9 @@ write_report(projects, atypes, stypes, datafile, timezone, requery)
             # Filter by sesstype
             if selected_sesstype:
                 print('selected_sesstype=', selected_sesstype)
-                dff = dff[dff['sesstype'].isin(selected_sesstype)]
+                dff = self.filter_bysesstype(dff, selected_sesstype)
 
+            # Finally return the filtered data
             return dff.to_dict('records')
 
         @app.callback(
