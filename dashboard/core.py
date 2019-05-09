@@ -91,6 +91,10 @@ xnat:imagesessiondata/date'
         'label': 'session',
         'subject_label': 'subject',
         'project': 'project',
+        'scanner': 'scanner',
+        'session_type': 'sesstype',
+        'modality': 'modality',
+        'xnat:imagesssionData/acquisition_site': 'site',
         'xnat:imagescandata/id': 'scan_id',
         'xnat:imagescandata/type': 'type',
         'xnat:imagescandata/quality': 'quality',
@@ -372,6 +376,10 @@ xnat:imagesessiondata/date'
         'label': 'session',
         'subject_label': 'subject',
         'project': 'project',
+        'scanner': 'scanner',
+        'session_type': 'sesstype',
+        'modality': 'modality',
+        'xnat:imagesssionData/acquisition_site': 'site',
         'xnat:imagescandata/id': 'scan_id',
         'xnat:imagescandata/type': 'type',
         'xnat:imagescandata/quality': 'quality',
@@ -670,15 +678,16 @@ xsiType=proc:genprocdata&columns=ID,xsiType,project,proc:genprocdata/proctype'
         # self.test_df = self.assr_df.copy()
         # self.test_dfp = self.assr_dfp.copy()
 
-        # Get list of sessions???
-        # site, scanner, modality
+        # Get timeline data from scans
         _cols = [
             'session',
             'project',
             'scandate',
             'subject',
             'modality',
-            'scanner']
+            'scanner',
+            'site',
+            'sesstype']
         self.time_df = pd.DataFrame(scan_list, columns=_cols)
         self.time_df.drop_duplicates(inplace=True)
 
@@ -1506,6 +1515,8 @@ write_report(projects, atypes, stypes, datafile, timezone, requery)
             elif value == 5:
                 _df = self.dashdata.time_df
                 time_proj_options = self.make_options(_df.project.unique())
+                time_scanner_opts = self.make_options(_df.scanner.unique())
+                time_site_opts = self.make_options(_df.site.unique())
 
                 return html.Div([
                     dcc.Graph(id='graph-time'),
@@ -1518,6 +1529,20 @@ write_report(projects, atypes, stypes, datafile, timezone, requery)
                     dcc.Dropdown(
                         id='dropdown-time-proj', multi=True,
                         options=time_proj_options, placeholder='All projects'),
+                    dcc.Dropdown(
+                        id='dropdown-time-scanner', multi=True,
+                        options=time_scanner_opts, placeholder='All scanners'),
+                    dcc.Dropdown(
+                        id='dropdown-time-site', multi=True,
+                        options=time_site_opts, placeholder='All sites'),
+                    dcc.RadioItems(
+                        options=[
+                            {'label': 'All Sessions', 'value': 'all'},
+                            {'label': 'Baseline Only', 'value': 'baseline'},
+                            {'label': 'Followup Only', 'value': 'followup'}],
+                        value='all',
+                        id='radio-time-sesstype',
+                        labelStyle={'display': 'inline-block'}),
                     dt.DataTable(
                         rows=self.dashdata.time_df.to_dict('records'),
                         row_selectable=True,
@@ -2426,8 +2451,15 @@ write_report(projects, atypes, stypes, datafile, timezone, requery)
         @app.callback(
             Output('datatable-time', 'rows'),
             [Input('dropdown-time-time', 'value'),
-             Input('dropdown-time-proj', 'value')])
-        def update_rows_time(selected_time, selected_proj):
+             Input('dropdown-time-proj', 'value'),
+             Input('dropdown-time-site', 'value'),
+             Input('dropdown-time-scanner', 'value'),
+             Input('dropdown-time-modality', 'value'),
+             Input('radio-time-sesstype', 'value')])
+        def update_rows_time(
+                selected_time, selected_proj, selected_site,
+                selected_scanner, selected_modality, selected_sesstype):
+
             DFORMAT = self.DFORMAT
             starttime = self.dashdata.updated_datetime()
             _df = self.dashdata.time_df
@@ -2454,6 +2486,26 @@ write_report(projects, atypes, stypes, datafile, timezone, requery)
             if selected_proj:
                 dff = dff[dff['project'].isin(selected_proj)]
 
+            # Filter by site
+            if selected_site:
+                print('selected_site=', selected_site)
+                dff = dff[dff['site'].isin(selected_site)]
+
+            # Filter by scanner
+            if selected_scanner:
+                print('selected_scanner=', selected_scanner)
+                dff = dff[dff['scanner'].isin(selected_scanner)]
+
+            # Filter by modality
+            if selected_modality:
+                print('selected_modality=', selected_modality)
+                dff = dff[dff['modality'].isin(selected_modality)]
+
+            # Filter by sesstype
+            if selected_sesstype:
+                print('selected_sesstype=', selected_sesstype)
+                dff = dff[dff['sesstype'].isin(selected_sesstype)]
+
             return dff.to_dict('records')
 
         @app.callback(
@@ -2471,19 +2523,6 @@ write_report(projects, atypes, stypes, datafile, timezone, requery)
             if len(dff) == 0:
                 return fig
 
-#            # Plot trace for each project
-#            for i, subj in enumerate(dff.subject.unique()):
-#                # Filter data
-#                dft = dff[dff.subject == subj]
-#
-#                # Add trace to figure
-#                fig.append_trace({
-#                    'x': dft['scandate'],
-#                    'y': [i]*len(dft),
-#                    'text': dft['session'],
-#                    'mode': 'lines+markers'
-#                }, 1, 1)
-
             # Plot trace for each
 
             # Filter MR data
@@ -2495,7 +2534,8 @@ write_report(projects, atypes, stypes, datafile, timezone, requery)
                 'x': dft['scandate'],
                 'y': dft['project'],
                 'text': dft['session'],
-                'mode': 'markers'
+                'mode': 'markers',
+                'marker': dict(size=10, line=dict(width=1))
             }, 1, 1)
 
             # Filter PET data
