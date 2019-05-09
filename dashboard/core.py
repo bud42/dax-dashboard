@@ -1554,7 +1554,6 @@ write_report(projects, atypes, stypes, datafile, timezone, requery)
                         sortable=True,
                         editable=False,
                         id='datatable-time'),
-                    html.Div(id='selected-indexes'),
                 ], className="container", style={
                     'width:': '100%', 'max-width': 'none'})
 
@@ -2464,6 +2463,8 @@ write_report(projects, atypes, stypes, datafile, timezone, requery)
                 selected_time, selected_proj, selected_site,
                 selected_scanner, selected_modality, selected_sesstype):
 
+            print('update_rows_time')
+
             DFORMAT = self.DFORMAT
             starttime = self.dashdata.updated_datetime()
             _df = self.dashdata.time_df
@@ -2517,6 +2518,8 @@ write_report(projects, atypes, stypes, datafile, timezone, requery)
             [Input('datatable-time', 'rows'),
              Input('datatable-time', 'selected_row_indices')])
         def update_figure_time(rows, selected_row_indices):
+            print('update_figure_time')
+
             # Load data from input
             dff = pd.DataFrame(rows).sort_values('scandate')
 
