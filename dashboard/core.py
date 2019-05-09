@@ -2522,9 +2522,11 @@ write_report(projects, atypes, stypes, datafile, timezone, requery)
             dff = pd.DataFrame(rows)
 
             # Make a 1x1 figure
-            fig = plotly.tools.make_subplots(rows=1, cols=1, layout={
-                'xaxis': {'automargin': True},
-                'yaxis': {'automargin': True}})
+            fig = plotly.tools.make_subplots(rows=1, cols=1)
+
+            # Customize figure
+            fig['layout'].update(
+                xaxis=dict(automargin=True), yaxis=dict(automargin=True))
 
             # Check for empty data
             if len(dff) == 0:
