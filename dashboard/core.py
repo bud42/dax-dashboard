@@ -2522,7 +2522,7 @@ write_report(projects, atypes, stypes, datafile, timezone, requery)
             print('update_figure_time')
 
             # Load data from input
-            dff = pd.DataFrame(rows).sort_values('scandate')
+            dff = pd.DataFrame(rows)
 
             # Make a 1x1 figure
             fig = plotly.tools.make_subplots(rows=1, cols=1)
