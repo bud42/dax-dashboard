@@ -1,5 +1,6 @@
 # coding=utf-8
 import os
+import shutil
 import math
 from datetime import datetime, timedelta
 from glob import glob
@@ -7,6 +8,7 @@ import tempfile
 from zipfile import BadZipfile
 import fileinput
 import subprocess
+import pytz
 
 import yaml
 import json
@@ -21,8 +23,32 @@ import dash_table_experiments as dt
 from dash.dependencies import Input, Output, State
 from dax import XnatUtils
 
+# TODO: checkboxes on generate report for each boxplots type
 
-def write_report(proj_list, assr_types, scan_types, datafile):
+# TODO:
+# Radio buttons for Per Session, Per Assessor
+# Radio buttons for Per Session, Per Scan
+
+# Each session represented 1 time in graph. If at least one assessor is Passed,\
+# then the whole session is passed. Then if at least one assessor is Needs QA,\
+# then the session is Needs QA. Then if at least one assessor is Failed, then\
+# the session is Failed. Then if at least one assessor is In Progress, then\
+# the session is In Progress. If no assessors are found, then session is None'],
+
+RGB_DKBLUE = 'rgb(59,89,152)'
+RGB_BLUE = 'rgb(66,133,244)'
+RGB_GREEN = 'rgb(15,157,88)'
+RGB_YELLOW = 'rgb(244,160,0)'
+RGB_RED = 'rgb(219,68,55)'
+RGB_GREY = 'rgb(200,200,200)'
+
+STATS_TYPES = [
+    'LST_v1', 'EDATQA_v1', 'fMRIQA_v4',
+    'RSFC_CONN_v1', 'FS6_v1', 'AMYVIDQA_v1']
+
+
+def write_report(projects, assr_types, scan_types, datafile, tz, requery=True):
+    MOD_URI = '/data/archive/experiments?project={}&columns=last_modified'
     ASSR_URI = '/REST/experiments?project={}&xsiType=proc:genprocdata&\
 columns=ID,label,URI,xsiType,project,\
 xnat:imagesessiondata/subject_id,\
@@ -31,7 +57,8 @@ proc:genprocdata/procstatus,proc:genprocdata/proctype,\
 proc:genprocdata/validation/status,proc:genprocdata/procversion,\
 proc:genprocdata/jobstartdate,proc:genprocdata/memused,\
 proc:genprocdata/walltimeused,proc:genprocdata/jobid,proc:genprocdata/inputs,\
-proc:genprocdata/meta/last_modified'
+proc:genprocdata/meta/last_modified,\
+xnat:imagesessiondata/date'
     ASSR_RENAME = {
         'ID': 'ID',
         'URI': 'URI',
@@ -48,36 +75,81 @@ proc:genprocdata/meta/last_modified'
         'project': 'project',
         'session_label': 'session',
         'xnat:imagesessiondata/subject_id': 'subject',
-        'proc:genprocdata/meta/last_modified': 'last_modified'
+        'proc:genprocdata/meta/last_modified': 'last_modified',
+        'xnat:imagesessiondata/date': 'scandate'
     }
     SCAN_URI = '/data/archive/experiments?project={}&\
 xsiType=xnat:imageSessionData&\
-columns=ID,URI,label,subject_label,project,\
+columns=ID,URI,label,subject_label,project,modality,scanner,\
+xnat:imagesessiondata/acquisition_site,\
 xnat:imagescandata/id,xnat:imagescandata/type,xnat:imagescandata/quality,\
-xnat:imagescandata/series_description,xnat:imageScanData/meta/last_modified'
+xnat:imagescandata/series_description,xnat:imageScanData/meta/last_modified,\
+xnat:imagesessiondata/date'
     SCAN_RENAME = {
         'ID': 'ID',
         'URI': 'URI',
         'label': 'session',
         'subject_label': 'subject',
         'project': 'project',
+        'scanner': 'scanner',
+        'modality': 'modality',
+        'xnat:imagesessiondata/acquisition_site': 'site',
         'xnat:imagescandata/id': 'scan_id',
         'xnat:imagescandata/type': 'type',
         'xnat:imagescandata/quality': 'quality',
         'xnat:imagescandata/series_description': 'scan_description',
-        'xnat:imageScanData/meta/last_modified': 'last_modified'
+        'xnat:imageScanData/meta/last_modified': 'last_modified',
+        'xnat:imagesessiondata/date': 'scandate'
     }
 
     name = os.path.splitext(os.path.basename(datafile))[0]
     data = {}
+    olddata = None
     data['projects'] = {}
-    data['updatetime'] = datetime.strftime(datetime.now(), '%Y-%m-%d %H:%M:%S')
+    data['updatetime'] = datetime.strftime(
+        datetime.now(pytz.timezone(tz)), '%Y-%m-%d %H:%M:%S')
+
+    if not requery:
+        # Look for existing report with same name and only load anything that
+        # has changed
+        try:
+            # Load latest data from file
+            oldfile = sorted(glob(
+                datafile.rsplit('_', 1)[0] + '*.json'), reverse=True)[0]
+
+            print('INFO:oldfile=' + oldfile)
+            with open(oldfile) as f:
+                olddata = json.load(f)
+
+            prevtime = olddata['updatetime']
+
+        except IndexError:
+            print('INFO:existing data file not found, will requery')
+            requery = True
 
     print('INFO:{}:connecting to XNAT'.format(name))
     xnat = XnatUtils.get_interface()
 
-    for proj in proj_list:
+    for proj in projects:
         print('INFO:{}:handling project:{}'.format(name, proj))
+
+        if not requery:
+            _uri = MOD_URI.format(proj)
+
+            # Get latest modified date from project sessions
+            _df = pd.DataFrame(xnat._get_json(_uri))
+            lastmod = _df['last_modified'].max()
+
+            # Skip if not modified
+            if lastmod < prevtime and proj in olddata['projects']:
+                print('INFO:skipping project, not modified:{}:{}'.format(
+                    proj, lastmod))
+                # Copy old data to new data
+                data['projects'][proj] = olddata['projects'][proj]
+                continue
+            else:
+                print('INFO:project modified, will requery:{}:{}'.format(
+                    proj, lastmod))
 
         # Create project in new data
         data['projects'][proj] = {}
@@ -112,26 +184,18 @@ xnat:imagescandata/series_description,xnat:imageScanData/meta/last_modified'
         data['projects'][proj]['assr'] = _df.to_dict('records')
         assr_list = data['projects'][proj]['assr']
 
-        # LST
-        if 'LST_v1' in assr_types:
-            print('INFO:{}:extracting LST data:{}'.format(name, proj))
-            _list = [a for a in assr_list if a['proctype'] == 'LST_v1']
-            _stats = init_stats(_list, xnat)
-            data['projects'][proj]['lst'] = _stats
-
-        # fMRI
-        if 'fMRIQA_v3' in assr_types:
-            print('INFO:{}:extracting fMRI data:{}'.format(name, proj))
-            _list = [a for a in assr_list if a['proctype'] == 'fMRIQA_v3']
-            _stats = init_stats(_list, xnat)
-            data['projects'][proj]['fmri'] = _stats
-
-        # EDAT
-        if 'EDATQA_v1' in assr_types:
-            print('INFO:{}:extracting EDAT data:{}'.format(name, proj))
-            _list = [a for a in assr_list if a['proctype'] == 'EDATQA_v1']
-            _stats = init_stats(_list, xnat)
-            data['projects'][proj]['edat'] = _stats
+        # Stats Data
+        for stype in STATS_TYPES:
+            print('INFO:{}:extracting stats:{}:{}'.format(name, proj, stype))
+            try:
+                old_stats = olddata['projects'][proj][stype]
+                _list = [a for a in assr_list if a['proctype'] == stype]
+                _stats = update_stats(xnat, old_stats, _list, prevtime)
+                data['projects'][proj][stype] = _stats
+            except (KeyError, TypeError):
+                _list = [a for a in assr_list if a['proctype'] == stype]
+                _stats = init_stats(_list, xnat)
+                data['projects'][proj][stype] = _stats
 
     # Write updated data file
     print('INFO:{}:finished extracting, saving'.format(name))
@@ -141,11 +205,35 @@ xnat:imagescandata/series_description,xnat:imageScanData/meta/last_modified'
     print('INFO:{}:DONE!'.format(name))
 
 
+def update_stats(xnat, old_stats, assr_list, prevtime):
+        new_stats = []
+
+        # Check each assr
+        for assr in assr_list:
+            news = None
+            if assr['last_modified'] < prevtime:
+                # Find it in old stats
+                for olds in old_stats:
+                    if olds['label'] == assr['label']:
+                        # Copy old to new
+                        news = olds
+                        break
+
+            if not news:
+                print('DEBUG:loading stat from XNAT:' + assr['label'])
+                news = load_stat(assr, xnat)
+
+            # Save to list
+            new_stats.append(news)
+
+        return new_stats
+
+
 def init_stats(assr_list, xnat):
     _stats = []
 
-    # Check each lst
-    for assr in assr_list:
+    # Load each
+    for assr in sorted(assr_list, key=lambda a: a['label']):
         # Load from xnat
         print('INFO:loading stats:' + assr['label'])
         _stats.append(load_stat(assr, xnat))
@@ -184,6 +272,8 @@ def load_stats_data(res):
             _stats.update(load_keyvalue_data(f))
     except BadZipfile:
         print('DEBUG:bad zip file')
+    finally:
+    	shutil.rmtree(_dir)
 
     return _stats
 
@@ -207,17 +297,7 @@ out/resources/{}'
 
     # Try to match each assr with a scan and append the scantype
     labels = assr['label'].split('-x-')
-    if len(labels) == 5:
-        scan_obj = xnat.select(
-            '/projects/' + labels[0] +
-            '/subjects/' + labels[1] +
-            '/experiments/' + labels[2] +
-            '/scans/' + labels[3]
-        )
-        if scan_obj.exists():
-            assr['scan_type'] = scan_obj.attrs.get('type')
-            assr['scan_descrip'] = scan_obj.attrs.get('series_description')
-    elif len(labels) == 4 and assr['inputs']:
+    if assr['inputs']:
         # Try to interpret scan from inputs field
         assr_inputs = json.loads(assr['inputs'].replace('&quot;', '"'))
         _key, _val = assr_inputs.popitem()
@@ -228,6 +308,16 @@ out/resources/{}'
             '/subjects/' + labels[1] +
             '/experiments/' + labels[2] +
             '/scans/' + scan_id
+        )
+        if scan_obj.exists():
+            assr['scan_type'] = scan_obj.attrs.get('type')
+            assr['scan_descrip'] = scan_obj.attrs.get('series_description')
+    elif len(labels) == 5:
+        scan_obj = xnat.select(
+            '/projects/' + labels[0] +
+            '/subjects/' + labels[1] +
+            '/experiments/' + labels[2] +
+            '/scans/' + labels[3]
         )
         if scan_obj.exists():
             assr['scan_type'] = scan_obj.attrs.get('type')
@@ -251,7 +341,8 @@ proc:genprocdata/procstatus,proc:genprocdata/proctype,\
 proc:genprocdata/validation/status,proc:genprocdata/procversion,\
 proc:genprocdata/jobstartdate,proc:genprocdata/memused,\
 proc:genprocdata/walltimeused,proc:genprocdata/jobid,proc:genprocdata/inputs,\
-proc:genprocdata/meta/last_modified'
+proc:genprocdata/meta/last_modified,\
+xnat:imagesessiondata/date'
     ASSR_RENAME = {
         'ID': 'ID',
         'URI': 'URI',
@@ -268,24 +359,31 @@ proc:genprocdata/meta/last_modified'
         'project': 'project',
         'session_label': 'session',
         'xnat:imagesessiondata/subject_id': 'subject',
-        'proc:genprocdata/meta/last_modified': 'last_modified'
+        'proc:genprocdata/meta/last_modified': 'last_modified',
+        'xnat:imagesessiondata/date': 'scandate'
     }
     SCAN_URI = '/data/archive/experiments?project={}&\
 xsiType=xnat:imageSessionData&\
-columns=ID,URI,label,subject_label,project\
+columns=ID,URI,label,subject_label,project,modality,scanner,\
+xnat:imagesessiondata/acquisition_site,\
 xnat:imagescandata/id,xnat:imagescandata/type,xnat:imagescandata/quality,\
-xnat:imagescandata/series_description,xnat:imageScanData/meta/last_modified'
+xnat:imagescandata/series_description,xnat:imageScanData/meta/last_modified\
+xnat:imagesessiondata/date'
     SCAN_RENAME = {
         'ID': 'ID',
         'URI': 'URI',
         'label': 'session',
         'subject_label': 'subject',
         'project': 'project',
+        'scanner': 'scanner',
+        'modality': 'modality',
+        'xnat:imagesessiondata/acquisition_site': 'site',
         'xnat:imagescandata/id': 'scan_id',
         'xnat:imagescandata/type': 'type',
         'xnat:imagescandata/quality': 'quality',
         'xnat:imagescandata/series_description': 'scan_description',
-        'xnat:imageScanData/meta/last_modified': 'last_modified'
+        'xnat:imageScanData/meta/last_modified': 'last_modified',
+        'xnat:imagesessiondata/date': 'scandate'
     }
     RES_URI = '/projects/{}/subjects/{}/experiments/{}/assessors/{}/\
 out/resources/{}'
@@ -307,7 +405,8 @@ xsiType=proc:genprocdata&columns=ID,xsiType,project,proc:genprocdata/proctype'
             print('INFO:Loading project list from XNAT')
             proj_list = [x['id'] for x in self.xnat._get_json(self.FAV_URI)]
         elif isinstance(self.config['xnat_projects'], basestring):
-            proj_list = [self.config['xnat_projects']]
+            _str = self.config['xnat_projects']
+            proj_list = [x.strip() for x in _str.split(',')]
         else:
             proj_list = self.config['xnat_projects']
 
@@ -320,10 +419,16 @@ xsiType=proc:genprocdata&columns=ID,xsiType,project,proc:genprocdata/proctype'
         self.assr_df = None
         self.task_df = None
         self.scan_df = None
+        self.time_df = None
         if 'use_squeue' in self.config and self.config['use_squeue']:
             self.use_squeue = True
         else:
             self.use_squeue = False
+
+        if 'timezone' in self.config:
+            self.timezone = self.config['timezone']
+        else:
+            self.timezone = 'US/Central'
 
     def get_projects(self):
         ROLE_LIST = ['Owners', 'Members', 'Collaborators']
@@ -349,13 +454,11 @@ xsiType=proc:genprocdata&columns=ID,xsiType,project,proc:genprocdata/proctype'
             json.dump(data, outfile)
 
     def init_data(self):
-        nowtime = datetime.now()
+        nowtime = datetime.now(pytz.timezone(self.timezone))
         newdata = {}
         newdata['projects'] = {}
         newdata['updatetime'] = self.formatted_time(nowtime)
         newdatafile = self.data_filename(nowtime)
-
-        print('DEBUG:init_data():begin=' + self.now_formatted())
 
         for proj in self.all_proj_list:
             print('INFO:init project data:' + proj)
@@ -372,26 +475,14 @@ xsiType=proc:genprocdata&columns=ID,xsiType,project,proc:genprocdata/proctype'
             assr_list = self.extract_project_assr(proj)
             newdata['projects'][proj]['assr'] = assr_list
 
-            # LST
-            print('INFO:extracting LST data:' + proj)
-            _list = [a for a in assr_list if a['proctype'] == 'LST_v1']
-            _stats = self.init_stats(_list)
-            newdata['projects'][proj]['lst'] = _stats
-
-            # fMRI
-            print('INFO:extracting fMRI data:' + proj)
-            _list = [a for a in assr_list if a['proctype'] == 'fMRIQA_v3']
-            _stats = self.init_stats(_list)
-            newdata['projects'][proj]['fmri'] = _stats
-
-            # EDAT
-            print('INFO:extracting EDAT data:' + proj)
-            _list = [a for a in assr_list if a['proctype'] == 'EDATQA_v1']
-            _stats = self.init_stats(_list)
-            newdata['projects'][proj]['edat'] = _stats
+            # Extract stats data
+            for stype in STATS_TYPES:
+                print('INFO:extracting stats data:{}:{}', proj, stype)
+                _list = [a for a in assr_list if a['proctype'] == stype]
+                _stats = self.init_stats(_list)
+                newdata['projects'][proj][stype] = _stats
 
         print('INFO:finished init data, now saving')
-        print('DEBUG:init_data():end=' + self.now_formatted())
 
         # Write updated data file
         self.save_data(newdata, newdatafile)
@@ -401,9 +492,10 @@ xsiType=proc:genprocdata&columns=ID,xsiType,project,proc:genprocdata/proctype'
     def load_data(self, datafile):
         assr_list = list()
         scan_list = list()
-        fmri_list = list()
-        lst_list = list()
-        edat_list = list()
+        stat_list = {}
+        for stype in STATS_TYPES:
+            stat_list[stype] = list()
+
         self.datafile = datafile
 
         print('INFO:data file=' + datafile)
@@ -420,12 +512,11 @@ xsiType=proc:genprocdata&columns=ID,xsiType,project,proc:genprocdata/proctype'
 
             assr_list.extend(data['projects'][proj]['assr'])
             scan_list.extend(data['projects'][proj]['scan'])
-            if 'fmri' in data['projects'][proj]:
-                fmri_list.extend(data['projects'][proj]['fmri'])
-            if 'lst' in data['projects'][proj]:
-                lst_list.extend(data['projects'][proj]['lst'])
-            if 'edat' in data['projects'][proj]:
-                edat_list.extend(data['projects'][proj]['edat'])
+
+            for stype in STATS_TYPES:
+                if stype in data['projects'][proj]:
+                    print('loading stats:{}:{}'.format(proj, stype))
+                    stat_list[stype].extend(data['projects'][proj][stype])
 
         if self.use_squeue:
             self.squeue_df = pd.DataFrame(data['squeue'])
@@ -434,70 +525,116 @@ xsiType=proc:genprocdata&columns=ID,xsiType,project,proc:genprocdata/proctype'
 
         # Load assessors
         _cols = [
-            'proctype', 'label', 'qcstatus', 'project', 'session',
+            'proctype', 'label', 'qcstatus', 'project', 'session', 'scandate',
             'procstatus', 'jobstartdate', 'jobid', 'memused', 'version',
             'walltimeused']
         self.assr_df = pd.DataFrame(assr_list, columns=_cols)
         self.assr_df['qcstatus'].replace({
-            'Passed': 'P', 'passed': 'P',
+            'Passed': 'P', 'Good': 'P', 'Passed with edits': 'P',
             'Questionable': 'P',
-            'Failed': 'F',
-            'Needs QA': 'Q'},
+            'Failed': 'F', 'Bad': 'F',
+            'Needs QA': 'Q',
+            'Do Not Run': 'N'},
             inplace=True)
+
+        # Change any unknown statuses (i.e. not replaced above) to J
         self.assr_df.loc[
             (self.assr_df['qcstatus'].str.len() > 1), 'qcstatus'] = 'J'
         self.assr_df['name'] = self.assr_df['label'] + '.slurm'
         self.assr_dfp = self.assr_df.pivot_table(
-            index=('session', 'project'),
+            index=('session', 'project', 'scandate'),
             columns='proctype', values='qcstatus',
             aggfunc=lambda q: ''.join(q))
         self.assr_dfp.reset_index(inplace=True)
 
-        # Load fmri
+        # Load fmri_v4
         _cols = [
             'label',
             'project',
             'session',
-            'qcstatus',
             'scan_type',
-            'fmriqa_v3_voxel_displacement_median',
-            'fmriqa_v3_voxel_displacement_95prctile',
-            'fmriqa_v3_voxel_displacement_99prctile',
-            'fmriqa_v3_signal_delta_95prctile',
-            'fmriqa_v3_global_timeseries_stddev',
-            'fmriqa_v3_tsnr_95prctile',
-            'fmriqa_v3_tsnr_median']
-        self.fmri_df = pd.DataFrame(fmri_list, columns=_cols)
-        self.fmri_df.rename(
-            columns={
-                'fmriqa_v3_voxel_displacement_median': 'displace_median',
-                'fmriqa_v3_voxel_displacement_95prctile': 'displace_95',
-                'fmriqa_v3_voxel_displacement_99prctile': 'displace_99',
-                'fmriqa_v3_signal_delta_95prctile': 'sig_delta_95',
-                'fmriqa_v3_global_timeseries_stddev': 'glob_ts_stddev',
-                'fmriqa_v3_tsnr_95prctile': 'tsnr_95',
-                'fmriqa_v3_tsnr_median': 'tsnr_median'
-            }, inplace=True)
+            'qcstatus',
+            'fd_mean',
+            'dvars_mean',
+            'tsnr_robust_median']
+        _list = stat_list['fMRIQA_v4']
+        self.fmri4_df = pd.DataFrame(_list, columns=_cols)
 
         # Load LST
+        _cols = ['label', 'project', 'session', 'qcstatus', 'wml_volume']
+        _list = stat_list['LST_v1']
+        self.lst_df = pd.DataFrame(_list, columns=_cols)
+
+        # Load RSFC_CONN
         _cols = [
-            'label', 'project', 'session', 'qcstatus', 'wml_volume'
-        ]
-        self.lst_df = pd.DataFrame(lst_list, columns=_cols)
+            'label', 'project', 'session', 'qcstatus',
+            'lib_pct_outliers', 'med_pct_outliers', 'con_pct_outliers',
+            'lib_rem_time', 'med_rem_time', 'con_rem_time']
+        _list = stat_list['RSFC_CONN_v1']
+        self.rsfc_df = pd.DataFrame(_list, columns=_cols)
+        self.rsfc_df['lib_rem_min'] = (
+            self.rsfc_df['lib_rem_time'].str.split(':').str[0].astype(float) +
+            self.rsfc_df['lib_rem_time'].str.split(':').str[1].astype(float) /
+            60.0)
+        self.rsfc_df['med_rem_min'] = (
+            self.rsfc_df['med_rem_time'].str.split(':').str[0].astype(float) +
+            self.rsfc_df['med_rem_time'].str.split(':').str[1].astype(float) /
+            60.0)
+        self.rsfc_df['con_rem_min'] = (
+            self.rsfc_df['con_rem_time'].str.split(':').str[0].astype(float) +
+            self.rsfc_df['con_rem_time'].str.split(':').str[1].astype(float) /
+            60.0)
+
+        # Load FS6
+        _cols = [
+            'label', 'project', 'session', 'qcstatus',
+            'recon_estimatedtotalintracranialvol_etiv',
+            'recon_left_hippocampus_volume_mm3',
+            'recon_right_hippocampus_volume_mm3',
+            'recon_left_lateral_ventricle_volume_mm3',
+            'recon_right_lateral_ventricle_volume_mm3',
+            'recon_lh_superiorfrontal_thickavg',
+            'recon_rh_superiorfrontal_thickavg']
+        _list = stat_list['FS6_v1']
+        self.fs6_df = pd.DataFrame(_list, columns=_cols)
+        self.fs6_df.rename(
+            columns={
+                'recon_estimatedtotalintracranialvol_etiv': 'etiv',
+                'recon_left_hippocampus_volume_mm3': 'lhpc',
+                'recon_right_hippocampus_volume_mm3': 'rhpc',
+                'recon_left_lateral_ventricle_volume_mm3': 'lvent',
+                'recon_right_lateral_ventricle_volume_mm3': 'rvent',
+                'recon_lh_superiorfrontal_thickavg': 'lsupflobe',
+                'recon_rh_superiorfrontal_thickavg': 'rsupflobe'
+            }, inplace=True)
+
+        # Load AMYVIDQA_v1
+        _cols = [
+            'label', 'project', 'session', 'qcstatus',
+            'amyvid_compgm_suvr',
+            'amyvid_pcing_suvr',
+            'amyvid_cortwm_suvr']
+        _list = stat_list['AMYVIDQA_v1']
+        self.amyvid_df = pd.DataFrame(_list, columns=_cols)
+        self.amyvid_df.rename(
+            columns={
+                'amyvid_compgm_suvr': 'compgm',
+                'amyvid_pcing_suvr': 'pcing',
+                'amyvid_cortwm_suvr': 'cortwm'
+            }, inplace=True)
 
         # Load EDAT
         _cols = [
             'label',
             'project',
             'session',
-            'qcstatus',
             'scan_type',
+            'qcstatus',
             'edatqa_acc_mean',
             'edatqa_rt_mean',
-            'edatqa_trial_count'
-
-        ]
-        self.edat_df = pd.DataFrame(edat_list, columns=_cols)
+            'edatqa_trial_count']
+        _list = stat_list['EDATQA_v1']
+        self.edat_df = pd.DataFrame(_list, columns=_cols)
         self.edat_df.rename(
             columns={
                 'edatqa_acc_mean': 'acc_mean',
@@ -506,13 +643,13 @@ xsiType=proc:genprocdata&columns=ID,xsiType,project,proc:genprocdata/proctype'
             }, inplace=True)
 
         # Load scan data
-        _cols = ['session', 'project', 'quality', 'type']
+        _cols = ['session', 'project', 'scandate', 'quality', 'type']
         self.scan_df = pd.DataFrame(scan_list, columns=_cols)
         self.scan_df['quality'].replace(
             {'usable': 'P', 'unusable': 'F', 'questionable': 'Q'},
             inplace=True)
         self.scan_dfp = self.scan_df.pivot_table(
-            index=('session', 'project'),
+            index=('session', 'project', 'scandate'),
             columns='type', values='quality',
             aggfunc=lambda x: ''.join(x))
         self.scan_dfp.reset_index(inplace=True)
@@ -535,6 +672,21 @@ xsiType=proc:genprocdata&columns=ID,xsiType,project,proc:genprocdata/proctype'
             self.task_df = self.task_df.apply(self.clean_values, axis=1)
             # Minimize columns
             self.task_df = self.task_df[self.TASK_COLS]
+
+        # self.test_df = self.assr_df.copy()
+        # self.test_dfp = self.assr_dfp.copy()
+
+        # Get timeline data from scans
+        _cols = [
+            'session',
+            'project',
+            'scandate',
+            'subject',
+            'modality',
+            'scanner',
+            'site']
+        self.time_df = pd.DataFrame(scan_list, columns=_cols)
+        self.time_df.drop_duplicates(inplace=True)
 
     def selected_projects(self):
         if self.assr_df is None:
@@ -560,7 +712,8 @@ xsiType=proc:genprocdata&columns=ID,xsiType,project,proc:genprocdata/proctype'
         return datetime.strptime(self.updatetime, self.DFORMAT)
 
     def now_formatted(self):
-        return datetime.strftime(datetime.now(), self.DFORMAT)
+        return datetime.strftime(
+            datetime.now(pytz.timezone(self.timezone), self.DFORMAT))
 
     def data_filename(self, curtime):
         ftime = datetime.strftime(curtime, '%Y%m%d-%H%M%S')
@@ -573,8 +726,7 @@ xsiType=proc:genprocdata&columns=ID,xsiType,project,proc:genprocdata/proctype'
         return sorted(glob(self.datadir + '/data*.json'), reverse=True)[0]
 
     def update_data(self, fullupdate=False):
-        print('DEBUG:update_data():start=' + self.now_formatted())
-        nowtime = datetime.now()
+        nowtime = datetime.now(pytz.timezone(self.timezone))
         newdata = {}
         newdata['projects'] = {}
         newdata['updatetime'] = self.formatted_time(nowtime)
@@ -605,8 +757,6 @@ xsiType=proc:genprocdata&columns=ID,xsiType,project,proc:genprocdata/proctype'
 
             dirty = True
 
-            print('INFO:re-loading project data:' + proj)
-
             # Create project in new data
             newdata['projects'][proj] = {}
 
@@ -619,40 +769,17 @@ xsiType=proc:genprocdata&columns=ID,xsiType,project,proc:genprocdata/proctype'
             assr_list = self.extract_project_assr(proj)
             newdata['projects'][proj]['assr'] = assr_list
 
-            # LST
-            print('INFO:extracting LST data:' + proj)
-            try:
-                old_stats = olddata['projects'][proj]['lst']
-            except KeyError:
-                old_stats = list()
+            for stype in STATS_TYPES:
+                print('INFO:extracting stats data:{}:{}'.format(proj, stype))
+                try:
+                    old_stats = olddata['projects'][proj][stype]
+                except KeyError:
+                    old_stats = list()
+                    prevtime = 0
 
-            _list = [a for a in assr_list if a['proctype'] == 'LST_v1']
-            _stats = self.update_stats(old_stats, _list, prevtime)
-            newdata['projects'][proj]['lst'] = _stats
-
-            # fMRI
-            print('INFO:extracting fMRI data:' + proj)
-            try:
-                old_stats = olddata['projects'][proj]['fmri']
-            except KeyError:
-                old_stats = list()
-
-            _list = [a for a in assr_list if a['proctype'] == 'fMRIQA_v3']
-            _stats = self.update_stats(old_stats, _list, prevtime)
-            newdata['projects'][proj]['fmri'] = _stats
-
-            # EDAT
-            print('INFO:extracting EDAT data:' + proj)
-            try:
-                old_stats = olddata['projects'][proj]['edat']
-            except KeyError:
-                old_stats = list()
-
-            _list = [a for a in assr_list if a['proctype'] == 'EDATQA_v1']
-            _stats = self.update_stats(old_stats, _list, prevtime)
-            newdata['projects'][proj]['edat'] = _stats
-
-        print('DEBUG:update_data():complete=' + self.now_formatted())
+                _list = [a for a in assr_list if a['proctype'] == stype]
+                _stats = self.update_stats(old_stats, _list, prevtime)
+                newdata['projects'][proj][stype] = _stats
 
         if dirty:
             print('INFO:finished extracting new data, now saving')
@@ -662,7 +789,6 @@ xsiType=proc:genprocdata&columns=ID,xsiType,project,proc:genprocdata/proctype'
 
             # Reload data
             self.load_data()
-            print('DEBUG:update_data():end=' + self.now_formatted())
         else:
             print('INFO:nothing to update')
 
@@ -695,7 +821,7 @@ xsiType=proc:genprocdata&columns=ID,xsiType,project,proc:genprocdata/proctype'
         new_stats = []
 
         # Check each assr
-        for assr in assr_list:
+        for assr in sorted(assr_list, key=lambda a: a['label']):
             news = None
             if assr['last_modified'] < prevtime:
                 # Find it in old stats
@@ -849,7 +975,11 @@ stypes = {}
 
 datafile = '{}'
 
-write_report(projects, atypes, stypes, datafile)
+timezone = '{}'
+
+requery = {}
+
+write_report(projects, atypes, stypes, datafile, timezone, requery)
 '''
     DFORMAT = '%Y-%m-%d %H:%M:%S'
     TASK_COLS = [
@@ -863,13 +993,18 @@ write_report(projects, atypes, stypes, datafile)
         self.config = None
 
         with open(config_file, 'r') as f:
-            self.config = yaml.load(f)
+            self.config = yaml.load(f, Loader=yaml.FullLoader)
 
         if not os.path.exists(self.config['data_dir']):
             raise IOError('Dir does not exist:' + self.config['data_dir'])
 
         self.dashdata = DashboardData(self.config, self.xnat)
         self.datadir = self.config['data_dir']
+        if 'timezone' in self.config:
+            self.timezone = self.config['timezone']
+        else:
+            self.timezone = 'US/Central'
+
         self.app = None
         self.url_base_pathname = url_base_pathname
         self.build_app()
@@ -899,11 +1034,16 @@ write_report(projects, atypes, stypes, datafile)
         report_options = [{
             'label': os.path.splitext(os.path.basename(x))[0],
             'value': x} for x in report_list]
-        if report_list:
+
+        if self.dashdata.datafile:
+            cur_report = os.path.basename(
+                self.dashdata.datafile).rsplit('_', 1)[0]
+        elif report_list:
             cur_report = report_list[0]
         else:
             cur_report = None
 
+        print('DEBUG:cur_report='+cur_report)
         # Make the main dash app
         app = dash.Dash(__name__)
 
@@ -945,7 +1085,10 @@ write_report(projects, atypes, stypes, datafile)
                         id='dropdown-report-list',
                         options=report_options,
                         value=cur_report, clearable=False,
-                        style={'display': 'inline-block', 'width': '400px'}),
+                        style={
+                            'display': 'inline-block',
+                            'width': '400px',
+                            'vertical-align': 'bottom'}),
                     dcc.Interval(
                         id='interval-component',
                         interval=10000,
@@ -956,7 +1099,7 @@ write_report(projects, atypes, stypes, datafile)
                         style={'margin-left': '25px', 'margin-right': '25px'})
                 ], style={'float': 'right', 'display': 'inline-block'}),
             ], style={'display': 'inline-block'}),
-            html.Div(children=['Just a sec...'], id='report-content')
+            html.Div(children=['Just a moment...'], id='report-content')
         ])
 
         @app.callback(
@@ -977,7 +1120,11 @@ write_report(projects, atypes, stypes, datafile)
                 return report_layout
 
         def get_generate_layout():
-            print('DEBUG:get_generate_layout')
+            # Check for currently generating report,
+            # python file exists but json file does not
+            cur_script = self.script_running()
+            if cur_script:
+                return self.script_running_content(cur_script)
 
             _list = self.all_projects()
             all_proj_options = [{'label': x, 'value': x} for x in _list]
@@ -987,6 +1134,14 @@ write_report(projects, atypes, stypes, datafile)
 
             _list = self.all_assr_types()
             all_assr_options = [{'label': x, 'value': x} for x in _list]
+
+            if self.dashdata.datafile:
+                cur_report = os.path.basename(
+                    self.dashdata.datafile).rsplit('_', 1)[0]
+            else:
+                cur_report = ''
+
+            print('DEBUG:cur_report='+cur_report)
 
             # Build it
             return html.Div([
@@ -1038,8 +1193,18 @@ write_report(projects, atypes, stypes, datafile)
                             dcc.Input(
                                 id='dropdown-generate-prefix',
                                 placeholder='Enter prefix for the new report',
-                                value='',
+                                value=cur_report,
                                 style={'font-size': 'large', 'width': '33%'}),
+                            dcc.RadioItems(
+                                options=[
+                                    {'label': 'Update existing',
+                                     'value': 'update'},
+                                    {'label': 'Requery existing',
+                                     'value': 'requery'}
+                                ],
+                                value='update',
+                                id='radio-generate-update',
+                                labelStyle={'display': 'inline-block'}),
                             html.Br(), html.Br()]),
                         html.Div(id='output-provider'),
                         html.Button(
@@ -1059,24 +1224,29 @@ write_report(projects, atypes, stypes, datafile)
             [State('dropdown-generate-proj', 'value'),
              State('dropdown-generate-assr-types', 'value'),
              State('dropdown-generate-scan-types', 'value'),
-             State('dropdown-generate-prefix', 'value')])
-        def handle_submit(n_clicks, pvalue, avalue, svalue, prefix):
+             State('dropdown-generate-prefix', 'value'),
+             State('radio-generate-update', 'value')])
+        def handle_submit(n_clicks, pvalue, avalue, svalue, prefix, update):
             if not n_clicks:
                 raise dash.exceptions.PreventUpdate("No data changed!")
 
             # Write script
-            nowtime = datetime.now()
+            nowtime = datetime.now(pytz.timezone(self.timezone))
             ftime = datetime.strftime(nowtime, '%Y%m%d-%H%M%S')
-            filebase = prefix + ftime
+            filebase = '{}_{}'.format(prefix, ftime)
             newdata_file = os.path.join(self.datadir, filebase + '.json')
             script_file = os.path.join(self.datadir, filebase + '.py')
             log_file = os.path.join(self.datadir, filebase + '.log')
+            if update == 'update':
+                requery = False
+            else:
+                requery = True
 
-            print('DEBUG:newdata_file=' + newdata_file)
             module_dir = os.path.abspath(os.path.join(
                 os.path.dirname(__file__), '..'))
             script_text = self.GEN_TEMPLATE.format(
-                module_dir, pvalue, avalue, svalue, newdata_file)
+                module_dir, pvalue, avalue, svalue,
+                newdata_file, self.timezone, requery)
             with open(script_file, 'w') as f:
                 f.writelines(script_text)
 
@@ -1086,8 +1256,7 @@ write_report(projects, atypes, stypes, datafile)
             subprocess.Popen(cmd, shell=True)
 
             # Display message to user
-            msg = 'Your report is being generated'
-            msg += ' and will be available ASAP!'
+            msg = 'Your report is being generated!'
 
             return [
                 html.H3(msg),
@@ -1115,7 +1284,6 @@ write_report(projects, atypes, stypes, datafile)
                 raise dash.exceptions.PreventUpdate("No data changed!")
 
             log_file = file_list[0]
-            print('DEBUG:reading file:' + log_file)
             with open(log_file, 'r') as f:
                 content = f.read()
 
@@ -1125,25 +1293,22 @@ write_report(projects, atypes, stypes, datafile)
             Output('report-content', 'children'),
             [Input('dropdown-report-list', 'value')])
         def load_report_layout(selected_rpt):
+            print('DEBUG:load_report_layout:' + selected_rpt)
             if selected_rpt is None:
                 return 'No existing reports'
 
-            print('DEBUG:load_report_layout')
             if self.dashdata.datafile != selected_rpt:
-                print('DEBUG:load_report_layout:loading:' + selected_rpt)
                 self.dashdata.load_data(selected_rpt)
-                print('DEBUG:load_report_layout:finished loading')
 
             report_content = [
                 html.Div(
                     dcc.Tabs(
                         id='tabs', value=1, children=[
                             dcc.Tab(label='Processing', value=1),
-                            dcc.Tab(label='Jobs', value=2),
-                            dcc.Tab(label='fMRIQA', value=3),
-                            dcc.Tab(label='EDATQA', value=4),
-                            dcc.Tab(label='Scans', value=5),
-                            dcc.Tab(label='LST', value=6),
+                            dcc.Tab(label='Scans', value=2),
+                            dcc.Tab(label='Jobs', value=3),
+                            dcc.Tab(label='Stats', value=4),
+                            dcc.Tab(label='Timeline', value=5)
                         ],
                         vertical=False
                     ),
@@ -1151,7 +1316,6 @@ write_report(projects, atypes, stypes, datafile)
                 html.Div(id='tab-output'),
                 html.Div(dt.DataTable(rows=[{}]), style={'display': 'none'})
             ]
-            print('DEBUG:returning content')
             return report_content
 
         @app.callback(
@@ -1161,7 +1325,104 @@ write_report(projects, atypes, stypes, datafile)
             if not self.dashdata.updatetime:
                 return html.H3('No data yet')
 
-            if value == 2:
+            if value == 1:
+                _df = self.dashdata.assr_df
+                assr_proj_options = self.make_options(_df.project.unique())
+                assr_type_options = self.make_options(_df.proctype.unique())
+                acols = ['session', 'project', 'scandate']
+                acols += list(_df.proctype.unique())
+
+                return html.Div([
+                    dcc.Graph(
+                        id='graph-both'),
+                    dcc.RadioItems(
+                        options=[
+                            {'label': 'By Project', 'value': 'project'},
+                            {'label': 'By Proc Type', 'value': 'proctype'}],
+                        value='project',
+                        id='radio-both-groupby',
+                        labelStyle={'display': 'inline-block'}),
+                    dcc.Dropdown(
+                        id='dropdown-both-proj', multi=True,
+                        options=assr_proj_options,
+                        placeholder='Select Project(s)'),
+                    dcc.Dropdown(
+                        id='dropdown-both-type', multi=True,
+                        options=assr_type_options,
+                        placeholder='Select Processing Type(s)'),
+                    dcc.RadioItems(
+                        options=[
+                            {'label': 'All Sessions', 'value': 'all'},
+                            {'label': 'Baseline Only', 'value': 'baseline'},
+                            {'label': 'Followup Only', 'value': 'followup'}],
+                        value='all',
+                        id='radio-both-sesstype',
+                        labelStyle={'display': 'inline-block'}),
+                    dt.DataTable(
+                        rows=self.dashdata.assr_dfp.to_dict('records'),
+                        columns=acols,  # specifies order of columns
+                        filterable=False,
+                        sortable=True,
+                        editable=False,
+                        id='datatable-both'),
+                    html.A(
+                        html.Button('CSV'),
+                        id='download-link',
+                        download="assrdata.csv",
+                        href="",
+                        target="_blank")
+                ], className="container", style={"max-width": "none"})
+
+            elif value == 2:
+                _df = self.dashdata.scan_df
+                scan_proj_options = self.make_options(_df.project.unique())
+                scan_type_options = self.make_options(_df.type.unique())
+                scan_stat_options = self.make_options(
+                    ['Passed', 'Needs QA', 'Failed'])
+                scan_cols = ['session', 'project', 'scandate']
+                scan_cols += list(_df.type.unique())
+
+                return html.Div([
+                    dcc.Graph(
+                        id='graph-scan'),
+                    dcc.RadioItems(
+                        options=[
+                            {'label': 'By Project', 'value': 'project'},
+                            {'label': 'By Scan Type', 'value': 'scantype'}],
+                        value='project',
+                        id='radio-scan-groupby',
+                        labelStyle={'display': 'inline-block'}),
+                    dcc.Dropdown(
+                        id='dropdown-scan-proj', multi=True,
+                        options=scan_proj_options,
+                        placeholder='Select Project(s)'),
+                    dcc.Dropdown(
+                        id='dropdown-scan-type', multi=True,
+                        options=scan_type_options,
+                        placeholder='Select Scan Type(s)'),
+                    dcc.Dropdown(
+                        id='dropdown-scan-stat', multi=True,
+                        options=scan_stat_options,
+                        placeholder='Select QC Status'),
+                    dcc.RadioItems(
+                        options=[
+                            {'label': 'All Sessions', 'value': 'all'},
+                            {'label': 'Baseline Only', 'value': 'baseline'},
+                            {'label': 'Followup Only', 'value': 'followup'}],
+                        value='all',
+                        id='radio-scan-sesstype',
+                        labelStyle={'display': 'inline-block'}),
+                    dt.DataTable(
+                        rows=self.dashdata.scan_dfp.to_dict('records'),
+                        columns=scan_cols,  # specifies order of columns
+                        filterable=True,
+                        sortable=True,
+                        editable=False,
+                        id='datatable-scan'),
+                    html.Div(id='selected-indexes-scan'),
+                ], className="container", style={"max-width": "none"})
+
+            elif value == 3:
                 _df = self.dashdata.task_df
                 task_proj_options = self.make_options(_df.project.unique())
                 task_proc_options = self.make_options(_df.proctype.unique())
@@ -1189,173 +1450,112 @@ write_report(projects, atypes, stypes, datafile)
                         sortable=True,
                         editable=False,
                         id='datatable-task'),
-                    html.Div(id='selected-indexes')
-                ], className="container", style={
-                    'width:': '100%', 'max-width': 'none'})
-            elif value == 3:
-                _df = self.dashdata.fmri_df
-                fmri_proj_options = self.make_options(_df.project.unique())
-                fmri_type_options = self.make_options(_df.scan_type.unique())
-                fmri_stat_options = self.make_options(_df.qcstatus.unique())
-                fmri_cols = [
-                    'label', 'project', 'session', 'qcstatus', 'scan_type',
-                    'displace_median',
-                    'displace_95',
-                    'displace_99',
-                    'sig_delta_95',
-                    'tsnr_95',
-                    'tsnr_median'
-                ]
-                return html.Div([
-                    dcc.Graph(
-                        id='graph-fmri'),
-                    dcc.Dropdown(
-                        id='dropdown-fmri-proj', multi=True,
-                        options=fmri_proj_options,
-                        placeholder='Select project(s)'),
-                    dcc.Dropdown(
-                        id='dropdown-fmri-type', multi=True,
-                        options=fmri_type_options,
-                        placeholder='Select scan type(s)'),
-                    dcc.Dropdown(
-                        id='dropdown-fmri-stat', multi=True,
-                        options=fmri_stat_options,
-                        placeholder='Select qc status'),
-                    dt.DataTable(
-                        rows=self.dashdata.fmri_df.to_dict('records'),
-                        columns=fmri_cols,  # specifies order of columns
-                        row_selectable=True,
-                        filterable=True,
-                        sortable=True,
-                        editable=False,
-                        id='datatable-fmri'),
-                    html.Div(id='selected-indexes-fmri'),
-                ], className="container", style={"max-width": "none"})
-            elif value == 4:
-                _df = self.dashdata.edat_df
-                edat_proj_options = self.make_options(_df.project.unique())
-                edat_type_options = self.make_options(_df.scan_type.unique())
-                edat_stat_options = self.make_options(_df.qcstatus.unique())
-                edat_cols = [
-                    'label', 'project', 'session', 'qcstatus', 'scan_type',
-                    'acc_mean', 'rt_mean', 'trial_count'
-                ]
-                return html.Div([
-                    dcc.Graph(
-                        id='graph-edat'),
-                    dcc.Dropdown(
-                        id='dropdown-edat-proj', multi=True,
-                        options=edat_proj_options,
-                        placeholder='Select project(s)'),
-                    dcc.Dropdown(
-                        id='dropdown-edat-type', multi=True,
-                        options=edat_type_options,
-                        placeholder='Select scan type(s)'),
-                    dcc.Dropdown(
-                        id='dropdown-edat-stat', multi=True,
-                        options=edat_stat_options,
-                        placeholder='Select qc status'),
-                    dt.DataTable(
-                        rows=self.dashdata.edat_df.to_dict('records'),
-                        columns=edat_cols,  # specifies order of columns
-                        row_selectable=True,
-                        filterable=True,
-                        sortable=True,
-                        editable=False,
-                        id='datatable-edat'),
-                    html.Div(id='selected-indexes-edat'),
-                ], className="container", style={"max-width": "none"})
-            elif value == 5:
-                _df = self.dashdata.scan_df
-                scan_proj_options = self.make_options(_df.project.unique())
-                scan_type_options = self.make_options(_df.type.unique())
-                scan_stat_options = self.make_options(
-                    ['Passed', 'Needs QA', 'Failed'])
-                scan_cols = ['session', 'project'] + list(_df.type.unique())
-
-                return html.Div([
-                    dcc.Graph(
-                        id='graph-scan'),
-                    dcc.Dropdown(
-                        id='dropdown-scan-proj', multi=True,
-                        options=scan_proj_options,
-                        placeholder='Select project(s)'),
-                    dcc.Dropdown(
-                        id='dropdown-scan-type', multi=True,
-                        options=scan_type_options,
-                        placeholder='Select scan type(s)'),
-                    dcc.Dropdown(
-                        id='dropdown-scan-stat', multi=True,
-                        options=scan_stat_options,
-                        placeholder='Select status'),
-                    dt.DataTable(
-                        rows=self.dashdata.scan_dfp.to_dict('records'),
-                        columns=scan_cols,  # specifies order of columns
-                        filterable=True,
-                        sortable=True,
-                        editable=False,
-                        id='datatable-scan'),
-                    html.Div(id='selected-indexes-scan'),
-                ], className="container", style={"max-width": "none"})
-            elif value == 6:
-                _df = self.dashdata.lst_df
-                lst_proj_options = self.make_options(_df.project.unique())
-                lst_stat_options = self.make_options(_df.qcstatus.unique())
-                lst_cols = [
-                    'label', 'project', 'session', 'qcstatus', 'wml_volume']
-
-                return html.Div([
-                    dcc.Graph(
-                        id='graph-lst'),
-                    dcc.Dropdown(
-                        id='dropdown-lst-proj', multi=True,
-                        options=lst_proj_options,
-                        placeholder='Select project(s)'),
-                    dcc.Dropdown(
-                        id='dropdown-lst-stat', multi=True,
-                        options=lst_stat_options,
-                        placeholder='Select qc status'),
-                    dt.DataTable(
-                        rows=self.dashdata.lst_df.to_dict('records'),
-                        columns=lst_cols,  # specifies order of columns
-                        row_selectable=True,
-                        filterable=True,
-                        sortable=True,
-                        editable=False,
-                        id='datatable-lst'),
-                    html.Div(id='selected-indexes-lst'),
-                ], className="container", style={"max-width": "none"})
-            elif value == 1:
-                _df = self.dashdata.assr_df
-                assr_proj_options = self.make_options(_df.project.unique())
-                assr_type_options = self.make_options(_df.proctype.unique())
-                acols = ['session', 'project'] + list(_df.proctype.unique())
-
-                return html.Div([
-                    dcc.Graph(
-                        id='graph-both'),
-                    dcc.Dropdown(
-                        id='dropdown-both-proj', multi=True,
-                        options=assr_proj_options,
-                        placeholder='Select project(s)'),
-                    dcc.Dropdown(
-                        id='dropdown-both-type', multi=True,
-                        options=assr_type_options,
-                        placeholder='Select type(s)'),
-                    dt.DataTable(
-                        rows=self.dashdata.assr_dfp.to_dict('records'),
-                        columns=acols,  # specifies order of columns
-                        filterable=False,
-                        sortable=True,
-                        editable=False,
-                        id='datatable-both'),
+                    html.Div(id='selected-indexes'),
                     html.A(
                         html.Button('CSV'),
-                        id='download-link',
-                        download="assrdata.csv",
+                        id='csv-task',
+                        download="jobsdata.csv",
+                        href="",
+                        target="_blank")
+                ], className="container", style={
+                    'width:': '100%', 'max-width': 'none'})
+
+            elif value == 4:
+                _df = self.dashdata.lst_df
+                _proj_options = self.make_options(_df.project.unique())
+                _status_options = self.make_options(_df.qcstatus.unique())
+                _proctype_options = self.make_options(STATS_TYPES)
+                # _cols = ['label', 'project', 'session', 'qcstatus']
+                try:
+                    _scantype_opts = self.make_options(_df.scan_type.unique())
+                except AttributeError:
+                    _scantype_opts = {}
+
+                return html.Div([
+                    dcc.Graph(
+                        id='graph-stats'),
+                    dcc.Dropdown(
+                        id='dropdown-stats-proctype', multi=False,
+                        options=_proctype_options,
+                        placeholder='Select Processing Type',
+                        value='LST_v1'),
+                    dcc.Dropdown(
+                        id='dropdown-stats-proj', multi=True,
+                        options=_proj_options,
+                        placeholder='Select Project(s)'),
+                    dcc.Dropdown(
+                        id='dropdown-stats-status', multi=True,
+                        options=_status_options,
+                        placeholder='Select QC Status'),
+                    dcc.Dropdown(
+                        id='dropdown-stats-scantype', multi=True,
+                        options=_scantype_opts,
+                        placeholder='Select Scan Type(s)'),
+                    dcc.RadioItems(
+                        options=[
+                            {'label': 'All Sessions', 'value': 'all'},
+                            {'label': 'Baseline Only', 'value': 'baseline'},
+                            {'label': 'Followup Only', 'value': 'followup'}],
+                        value='all',
+                        id='radio-stats-sesstype',
+                        labelStyle={'display': 'inline-block'}),
+                    html.Div(id='stats-content', children=[]),
+                    html.Div(id='selected-indexes-stats'),
+                    html.A(
+                        html.Button('CSV'),
+                        id='csv-stats',
+                        download="statsdata.csv",
                         href="",
                         target="_blank")
                 ], className="container", style={"max-width": "none"})
+
+            elif value == 5:
+                _df = self.dashdata.time_df
+                time_proj_options = self.make_options(_df.project.unique())
+                time_scanner_opts = self.make_options(_df.scanner.unique())
+                time_site_opts = self.make_options(_df.site.unique())
+
+                return html.Div([
+                    dcc.Graph(id='graph-time'),
+                    dcc.RadioItems(
+                        options=[
+                            {'label': 'By Project', 'value': 'project'},
+                            {'label': 'By Site', 'value': 'site'}],
+                        value='project',
+                        id='radio-time-groupby',
+                        labelStyle={'display': 'inline-block'}),
+                    dcc.Dropdown(id='dropdown-time-time', options=[
+                        {'label': '1 day', 'value': 0},
+                        {'label': '1 week', 'value': 1},
+                        {'label': '1 month', 'value': 2},
+                        {'label': '1 year', 'value': 3},
+                        {'label': 'All time', 'value': 4}], value=2),
+                    dcc.Dropdown(
+                        id='dropdown-time-proj', multi=True,
+                        options=time_proj_options, placeholder='All projects'),
+                    dcc.Dropdown(
+                        id='dropdown-time-scanner', multi=True,
+                        options=time_scanner_opts, placeholder='All scanners'),
+                    dcc.Dropdown(
+                        id='dropdown-time-site', multi=True,
+                        options=time_site_opts, placeholder='All sites'),
+                    dcc.RadioItems(
+                        options=[
+                            {'label': 'All Sessions', 'value': 'all'},
+                            {'label': 'Baseline Only', 'value': 'baseline'},
+                            {'label': 'Followup Only', 'value': 'followup'}],
+                        value='all',
+                        id='radio-time-sesstype',
+                        labelStyle={'display': 'inline-block'}),
+                    dt.DataTable(
+                        rows=self.dashdata.time_df.to_dict('records'),
+                        row_selectable=True,
+                        filterable=True,
+                        sortable=True,
+                        editable=False,
+                        id='datatable-time'),
+                ], className="container", style={
+                    'width:': '100%', 'max-width': 'none'})
 
         @app.callback(
             Output('datatable-task', 'rows'),
@@ -1450,195 +1650,69 @@ write_report(projects, atypes, stypes, datafile)
             return fig
 
         @app.callback(
-            Output('graph-fmri', 'figure'),
-            [Input('datatable-fmri', 'rows'),
-             Input('datatable-fmri', 'selected_row_indices')])
-        def update_figure_fmri(rows, selected_row_indices):
-            # Load data from input
-            dff = pd.DataFrame(rows)
-
-            # Make a 1x4 figure
-            fig = plotly.tools.make_subplots(rows=1, cols=4)
-
-            # Check for empty data
-            if len(dff) == 0:
-                return fig
-
-            # Add traces to figure
-            fig.append_trace(
-                go.Box(
-                    y=dff.displace_95,
-                    name='displace_95',
-                    boxpoints='all',
-                    text=dff.label,
-                ), 1, 1)
-
-            fig.append_trace(
-                go.Box(
-                    y=dff.displace_median,
-                    name='displace_median',
-                    boxpoints='all',
-                    text=dff.label,
-                ), 1, 2)
-
-            fig.append_trace(
-                go.Box(
-                    y=dff.displace_99,
-                    name='displace_99',
-                    boxpoints='all',
-                    text=dff.label,
-                ), 1, 3)
-
-            fig.append_trace(
-                go.Box(
-                    y=dff.sig_delta_95,
-                    name='sig_95',
-                    boxpoints='all',
-                    text=dff.label,
-                ), 1, 4)
-
-            # Customize figure
-            fig['layout'].update(hovermode='closest', showlegend=True)
-
-            return fig
-
-        @app.callback(
-            Output('datatable-fmri', 'rows'),
-            [Input('dropdown-fmri-proj', 'value'),
-             Input('dropdown-fmri-type', 'value'),
-             Input('dropdown-fmri-stat', 'value')])
-        def update_rows_fmri(selected_proj, selected_type, selected_stat):
-            dff = self.dashdata.fmri_df
-
-            # Filter by project
-            if selected_proj:
-                dff = dff[dff['project'].isin(selected_proj)]
-
-            # Filter by scan type
-            if selected_type:
-                dff = dff[dff['scan_type'].isin(selected_type)]
-
-            # Filter by status
-            if selected_stat:
-                dff = dff[dff['qcstatus'].isin(selected_stat)]
-
-            return dff.to_dict('records')
-
-        @app.callback(
             Output('graph-scan', 'figure'),
             [Input('datatable-scan', 'rows'),
-             Input('datatable-scan', 'selected_row_indices')])
-        def update_figure_scan(rows, selected_row_indices):
+             Input('datatable-scan', 'selected_row_indices'),
+             Input('radio-scan-groupby', 'value'),
+             Input('radio-scan-sesstype', 'value')])
+        def update_figure_scan(
+                rows,
+                selected_row_indices, selected_groupby, selected_sesstype):
+
             # Load data from input
-            dff = pd.DataFrame(rows)
+            dfp = pd.DataFrame(rows)
+
+            # Filter by session type
+            dfp = self.filter_bysesstype(dfp, selected_sesstype)
 
             # Make a 1x1 figure
             fig = plotly.tools.make_subplots(rows=1, cols=1)
 
             # Check for empty data
-            if len(dff) == 0:
+            if len(dfp) == 0:
                 return fig
 
-            ydata = dff.sort_values(
-                'project').groupby('project')['session'].count()
+            if selected_groupby == 'project':
+                ydata = dfp.sort_values(
+                    'project').groupby('project')['session'].count()
 
-            fig.append_trace(
-                go.Bar(
-                    x=sorted(dff.project.unique()),
-                    y=ydata,
-                    name='counts',
-                ), 1, 1)
+                fig.append_trace(
+                    go.Bar(
+                        x=sorted(dfp.project.unique()),
+                        y=ydata,
+                        name='counts',
+                    ), 1, 1)
 
-            return fig
-
-        @app.callback(
-            Output('datatable-scan', 'rows'),
-            [Input('dropdown-scan-proj', 'value'),
-             Input('dropdown-scan-type', 'value'),
-             Input('dropdown-scan-stat', 'value')])
-        def update_rows_scan(selected_proj, selected_type, selected_stat):
-            dff = self.dashdata.scan_dfp
-
-            # Filter by project
-            if selected_proj:
-                dff = dff[dff['project'].isin(selected_proj)]
-
-            if selected_type:
-                for t in selected_type:
-                    # Filter to include anything with at least one P or Q
-                    dff = dff[(dff[t].str.contains(
-                        'P', na=False)) | (dff[t].str.contains('Q', na=False))]
-
-            return dff.to_dict('records')
-
-        @app.callback(
-            Output('datatable-both', 'rows'),
-            [Input('dropdown-both-proj', 'value'),
-             Input('dropdown-both-type', 'value')])
-        def update_rows_both(selected_proj, selected_type):
-            dff = self.dashdata.assr_dfp
-
-            # Filter by project
-            if selected_proj:
-                dff = dff[dff['project'].isin(selected_proj)]
-
-            return dff.to_dict('records')
-
-        @app.callback(
-            Output('graph-both', 'figure'),
-            [Input('datatable-both', 'rows'),
-             Input('dropdown-both-proj', 'value'),
-             Input('dropdown-both-type', 'value')])
-        def update_figure_both(rows, selected_proj, selected_type):
-            dfp = pd.DataFrame(rows)
-            xall = sorted(dfp.project.unique())
-            yall = dfp.sort_values(
-                'project').groupby('project')['session'].count()
-
-            assr_proj_options = [{'label': x, 'value': x} for x in xall]
-
-            yred = [0] * len(assr_proj_options)
-            ygreen = [0] * len(assr_proj_options)
-            ygrey = [0] * len(assr_proj_options)
-            yyell = [0] * len(assr_proj_options)
-
-            # Make a 1x1 figured
-            fig = plotly.tools.make_subplots(rows=1, cols=1)
-
-            if not selected_type:
-                # Draw bar
-                fig.append_trace(go.Bar(
-                    x=xall, y=yall, name='All',
-                    marker=dict(color='rgb(59,89,152)')
-                ), 1, 1)
+                return fig
 
             else:
-                # TODO: optimize this cause it's ugly
-                for i, proj in enumerate(xall):
-                    # Subset for this project
-                    dfpp = dfp.loc[dfp['project'] == proj]
-                    # Iterate by session
-                    for s, sess in dfpp.iterrows():
-                        cur = 0
-                        for t in selected_type:
-                            if not sess[t]:
-                                cur = 3
-                                break
-                            elif 'F' in sess[t] and cur <= 2:
-                                cur = 2
-                            elif (('Q' in sess[t] or 'J' in sess[t]) and
-                                    cur < 1):
-                                cur = 1
+                df = self.dashdata.scan_df
+                xall = list(df.type.unique())
 
-                        # Record final value across all types
-                        if cur == 3:
+                scantype_options = [{'label': x, 'value': x} for x in xall]
+                yred = [0] * len(scantype_options)
+                ygreen = [0] * len(scantype_options)
+                ygrey = [0] * len(scantype_options)
+                yyell = [0] * len(scantype_options)
+                yblue = [0] * len(scantype_options)
+
+                # Make a 1x1 figure
+                fig = plotly.tools.make_subplots(rows=1, cols=1)
+                for i, t in enumerate(xall):
+                    # Iterate by session
+                    for s, sess in dfp.iterrows():
+                        if not sess[t]:
                             ygrey[i] += 1
-                        elif cur == 2:
-                            yred[i] += 1
-                        elif cur == 1:
-                            yyell[i] += 1
-                        else:
+                        elif 'P' in sess[t]:
                             ygreen[i] += 1
+                        elif 'Q' in sess[t]:
+                            yyell[i] += 1
+                        elif 'J' in sess[t]:
+                            yblue[i] += 1
+                        elif 'F' in sess[t]:
+                            yred[i] += 1
+                        else:
+                            ygrey[i] += 1
 
                 # Draw bar for each status
                 fig.append_trace(go.Bar(
@@ -1657,6 +1731,11 @@ write_report(projects, atypes, stypes, datafile)
                     opacity=0.9), 1, 1)
 
                 fig.append_trace(go.Bar(
+                    x=xall, y=yblue, name='In Progress',
+                    marker=dict(color='rgb(65,105,225)'),
+                    opacity=0.9), 1, 1)
+
+                fig.append_trace(go.Bar(
                     x=xall, y=ygrey, name='None',
                     marker=dict(color='rgb(200,200,200)'),
                     opacity=0.9), 1, 1)
@@ -1664,53 +1743,265 @@ write_report(projects, atypes, stypes, datafile)
                 # Customize figure
                 fig['layout'].update(barmode='stack', showlegend=True)
 
-            return fig
-
-        @app.callback(
-            Output('graph-lst', 'figure'),
-            [Input('datatable-lst', 'rows'),
-             Input('datatable-lst', 'selected_row_indices')])
-        def update_figure_lst(rows, selected_row_indices):
-            # Load data from input
-            dff = pd.DataFrame(rows)
-
-            # Make a 1x1 figure
-            fig = plotly.tools.make_subplots(rows=1, cols=1)
-
-            # Check for empty data
-            if len(dff) == 0:
                 return fig
 
-            # Add traces to figure
-            fig.append_trace(
-                go.Box(
-                    y=dff.wml_volume,
-                    name='wml_volume',
-                    boxpoints='all',
-                    text=dff.label,
-                ), 1, 1)
-
-            # Customize figure
-            fig['layout'].update(hovermode='closest', showlegend=True)
-
-            return fig
-
         @app.callback(
-            Output('datatable-lst', 'rows'),
-            [Input('dropdown-lst-proj', 'value'),
-             Input('dropdown-lst-stat', 'value')])
-        def update_rows_lst(selected_proj, selected_stat):
-            dff = self.dashdata.lst_df
+            Output('datatable-scan', 'rows'),
+            [Input('dropdown-scan-proj', 'value'),
+             Input('dropdown-scan-type', 'value'),
+             Input('dropdown-scan-stat', 'value'),
+             Input('radio-scan-sesstype', 'value')])
+        def update_rows_scan(
+                selected_proj, selected_type,
+                selected_stat, selected_sesstype):
+
+            dff = self.dashdata.scan_dfp
 
             # Filter by project
             if selected_proj:
                 dff = dff[dff['project'].isin(selected_proj)]
 
-            # Filter by status
-            if selected_stat:
-                dff = dff[dff['qcstatus'].isin(selected_stat)]
+            # Filter by session type
+            dff = self.filter_bysesstype(dff, selected_sesstype)
+
+            if selected_type:
+                for t in selected_type:
+                    # Filter to include anything with at least one P or Q
+                    dff = dff[(dff[t].str.contains(
+                        'P', na=False)) | (dff[t].str.contains('Q', na=False))]
 
             return dff.to_dict('records')
+
+        @app.callback(
+            Output('datatable-both', 'rows'),
+            [Input('dropdown-both-proj', 'value'),
+             Input('dropdown-both-type', 'value'),
+             Input('radio-both-sesstype', 'value')])
+        def update_rows_both(selected_proj, selected_type, selected_sesstype):
+            dff = self.dashdata.assr_dfp
+
+            # Filter by project
+            if selected_proj:
+                dff = dff[dff['project'].isin(selected_proj)]
+
+            # Filter by session type
+            dff = self.filter_bysesstype(dff, selected_sesstype)
+
+            return dff.to_dict('records')
+
+        @app.callback(
+            Output('graph-both', 'figure'),
+            [Input('datatable-both', 'rows'),
+             Input('dropdown-both-proj', 'value'),
+             Input('dropdown-both-type', 'value'),
+             Input('radio-both-groupby', 'value'),
+             Input('radio-both-sesstype', 'value')])
+        def update_figure_both(
+                rows,
+                selected_proj, selected_type,
+                selected_groupby, selected_sesstype):
+
+            if selected_groupby == 'project':
+                dfp = pd.DataFrame(rows)
+
+                # Filter by session type
+                dfp = self.filter_bysesstype(dfp, selected_sesstype)
+
+                xall = sorted(dfp.project.unique())
+                yall = dfp.sort_values(
+                    'project').groupby('project')['session'].count()
+
+                assr_proj_options = [{'label': x, 'value': x} for x in xall]
+
+                yred = [0] * len(assr_proj_options)
+                ygreen = [0] * len(assr_proj_options)
+                ygrey = [0] * len(assr_proj_options)
+                yyell = [0] * len(assr_proj_options)
+                yblue = [0] * len(assr_proj_options)
+
+                # Make a 1x1 figured
+                fig = plotly.tools.make_subplots(rows=1, cols=1)
+
+                if not selected_type:
+                    # Draw bar
+                    fig.append_trace(go.Bar(
+                        x=xall, y=yall, name='All',
+                        marker=dict(color=RGB_DKBLUE)
+                    ), 1, 1)
+
+                else:
+                    # TODO: optimize this cause it's ugly
+                    for i, proj in enumerate(xall):
+                        # Subset for this project
+                        dfpp = dfp.loc[dfp['project'] == proj]
+                        # Iterate by session
+                        for s, sess in dfpp.iterrows():
+                            cur = 0
+                            for t in selected_type:
+                                if not sess[t]:
+                                    cur = 3
+                                    break
+                                elif 'F' in sess[t] and cur <= 2:
+                                    cur = 2
+                                elif ('Q' in sess[t] and cur < 1):
+                                    cur = 1
+                                elif ('J' in sess[t] and cur < 1):
+                                    cur = 4
+
+                            # Record final value across all types
+                            if cur == 4:
+                                yblue[i] += 1
+                            elif cur == 3:
+                                ygrey[i] += 1
+                            elif cur == 2:
+                                yred[i] += 1
+                            elif cur == 1:
+                                yyell[i] += 1
+                            else:
+                                ygreen[i] += 1
+
+                    # Draw bar for each status
+                    fig.append_trace(go.Bar(
+                        x=xall, y=ygreen, name='Passed',
+                        marker=dict(color=RGB_GREEN),
+                        opacity=0.9), 1, 1)
+
+                    fig.append_trace(go.Bar(
+                        x=xall, y=yyell, name='Needs QA',
+                        marker=dict(color=RGB_YELLOW),
+                        opacity=0.9), 1, 1)
+
+                    fig.append_trace(go.Bar(
+                        x=xall, y=yred, name='Failed',
+                        marker=dict(color=RGB_RED),
+                        opacity=0.9), 1, 1)
+
+                    fig.append_trace(go.Bar(
+                        x=xall, y=yblue, name='In Progress',
+                        marker=dict(color=RGB_BLUE),
+                        opacity=0.9), 1, 1)
+
+                    fig.append_trace(go.Bar(
+                        x=xall, y=ygrey, name='None',
+                        marker=dict(color=RGB_GREY),
+                        opacity=0.9), 1, 1)
+
+                    # Customize figure
+                    fig['layout'].update(barmode='stack', showlegend=True)
+
+                return fig
+            else:
+                dfp = pd.DataFrame(rows)
+                df = self.dashdata.task_df
+
+                # Filter by session type
+                dfp = self.filter_bysesstype(dfp, selected_sesstype)
+
+                # Filter by proc type
+                if not selected_type:
+                    xall = list(df.proctype.unique())
+                else:
+                    xall = selected_type
+
+                proctype_options = [{'label': x, 'value': x} for x in xall]
+                yred = [0] * len(proctype_options)
+                ygreen = [0] * len(proctype_options)
+                ygrey = [0] * len(proctype_options)
+                yyell = [0] * len(proctype_options)
+                yblue = [0] * len(proctype_options)
+
+                # Make a 1x1 figure
+                fig = plotly.tools.make_subplots(rows=1, cols=1)
+                for i, t in enumerate(xall):
+                    # Iterate by session
+                    for s, sess in dfp.iterrows():
+                        if not sess[t]:
+                            ygrey[i] += 1
+                        elif 'P' in sess[t]:
+                            ygreen[i] += 1
+                        elif 'Q' in sess[t]:
+                            yyell[i] += 1
+                        elif 'J' in sess[t]:
+                            yblue[i] += 1
+                        elif 'F' in sess[t]:
+                            yred[i] += 1
+                        else:
+                            ygrey[i] += 1
+
+                # Exclude proctypes that are all grey
+                sess_count = len(dfp)
+                xall_new = list()
+                yred_new = list()
+                ygreen_new = list()
+                yyell_new = list()
+                yblue_new = list()
+                ygrey_new = list()
+                for i, t in enumerate(xall):
+                    if sess_count > ygrey[i]:
+                        xall_new.append(t)
+                        yred_new.append(yred[i])
+                        ygreen_new.append(ygreen[i])
+                        yyell_new.append(yyell[i])
+                        yblue_new.append(yblue[i])
+                        ygrey_new.append(ygrey[i])
+
+                xall = xall_new
+                yred = yred_new
+                ygreen = ygreen_new
+                yyell = yyell_new
+                yblue = yblue_new
+                ygrey = ygrey_new
+
+                # Draw bar for each status
+                fig.append_trace(go.Bar(
+                    x=xall, y=ygreen, name='Passed',
+                    marker=dict(color=RGB_GREEN),
+                    opacity=0.9), 1, 1)
+
+                fig.append_trace(go.Bar(
+                    x=xall, y=yyell, name='Needs QA',
+                    marker=dict(color=RGB_YELLOW),
+                    opacity=0.9), 1, 1)
+
+                fig.append_trace(go.Bar(
+                    x=xall, y=yred, name='Failed',
+                    marker=dict(color=RGB_RED),
+                    opacity=0.9), 1, 1)
+
+                fig.append_trace(go.Bar(
+                    x=xall, y=yblue, name='In Progress',
+                    marker=dict(color=RGB_BLUE),
+                    opacity=0.9), 1, 1)
+
+                fig.append_trace(go.Bar(
+                    x=xall, y=ygrey, name='None',
+                    marker=dict(color=RGB_GREY),
+                    opacity=0.9), 1, 1)
+
+                # Customize figure
+                fig['layout'].update(barmode='stack', showlegend=True)
+
+                return fig
+
+        @app.callback(
+            Output('csv-task', 'href'),
+            [Input('datatable-task', 'rows')])
+        def update_csv_task(rows):
+            dff = pd.DataFrame(rows)
+            _csv = dff.to_csv(index=False, encoding='utf-8')
+            _csv = urllib.parse.quote(_csv)
+            _csv = "data:text/csv;charset=utf-8,%EF%BB%BF" + _csv
+            return _csv
+
+        @app.callback(
+            Output('csv-stats', 'href'),
+            [Input('datatable-stats', 'rows')])
+        def update_csv_stats(rows):
+            dff = pd.DataFrame(rows)
+            _csv = dff.to_csv(index=False, encoding='utf-8')
+            _csv = urllib.parse.quote(_csv)
+            _csv = "data:text/csv;charset=utf-8,%EF%BB%BF" + _csv
+            return _csv
 
         @app.callback(
             Output('download-link', 'href'),
@@ -1726,7 +2017,6 @@ write_report(projects, atypes, stypes, datafile)
             Output('update-text', 'children'),
             [Input('update-button', 'n_clicks')])
         def update_button_click(n_clicks):
-            print('update_button_click', n_clicks)
             if n_clicks > 0:
                 print('INFO:UPDATING DATA')
                 self.update_data()
@@ -1734,44 +2024,302 @@ write_report(projects, atypes, stypes, datafile)
             return ['{}    '.format(self.dashdata.updatetime)]
 
         @app.callback(
-            Output('graph-edat', 'figure'),
-            [Input('datatable-edat', 'rows'),
-             Input('datatable-edat', 'selected_row_indices')])
-        def update_figure_edat(rows, selected_row_indices):
+            Output('graph-stats', 'figure'),
+            [Input('datatable-stats', 'rows'),
+             Input('datatable-stats', 'selected_row_indices'),
+             Input('dropdown-stats-scantype', 'value')],
+            [State('dropdown-stats-proctype', 'value')])
+        def update_figure_stats(
+                rows,
+                selected_row_indices, selected_scantype, selected_proctype):
+
             # Load data from input
             dff = pd.DataFrame(rows)
 
-            # Make a 1x3 figure
-            fig = plotly.tools.make_subplots(rows=1, cols=3)
+            # Make a 1x1 figure
+            fig = plotly.tools.make_subplots(rows=1, cols=1)
 
             # Check for empty data
             if len(dff) == 0:
                 return fig
 
-            # Add traces to figure
-            fig.append_trace(
-                go.Box(
-                    y=dff.acc_mean,
-                    name='acc_mean',
-                    boxpoints='all',
-                    text=dff.label,
-                ), 1, 1)
+            # Filter by scan type
+            if selected_scantype and ('scan_type' in dff):
+                dff = dff[dff['scan_type'].isin(selected_scantype)]
 
-            fig.append_trace(
-                go.Box(
-                    y=dff.rt_mean,
-                    name='rt_mean',
-                    boxpoints='all',
-                    text=dff.label,
-                ), 1, 2)
+            if selected_proctype == 'LST_v1':
+                fig = plotly.tools.make_subplots(rows=1, cols=3)
 
-            fig.append_trace(
-                go.Box(
-                    y=dff.trial_count,
-                    name='trial_count',
-                    boxpoints='all',
-                    text=dff.label,
-                ), 1, 3)
+                # Add traces to figure
+                fig.append_trace(
+                    go.Box(
+                        y=dff.wml_volume,
+                        name='wml_volume',
+                        boxpoints='all',
+                        text=dff.label,
+                    ), 1, 2)
+
+            elif selected_proctype == 'EDATQA_v1':
+                # Make a 1x3 figure
+                fig = plotly.tools.make_subplots(rows=1, cols=3)
+
+                # Check for empty data
+                if len(dff) == 0:
+                    return fig
+
+                # Add traces to figure
+                fig.append_trace(
+                    go.Box(
+                        y=dff.acc_mean,
+                        name='acc_mean',
+                        boxpoints='all',
+                        text=dff.label,
+                    ), 1, 1)
+
+                fig.append_trace(
+                    go.Box(
+                        y=dff.rt_mean,
+                        name='rt_mean',
+                        boxpoints='all',
+                        text=dff.label,
+                    ), 1, 2)
+
+                fig.append_trace(
+                    go.Box(
+                        y=dff.trial_count,
+                        name='trial_count',
+                        boxpoints='all',
+                        text=dff.label,
+                    ), 1, 3)
+
+            elif selected_proctype == 'fMRIQA_v3':
+                # Make a 1x4 figure
+                fig = plotly.tools.make_subplots(rows=1, cols=4)
+
+                # Check for empty data
+                if len(dff) == 0:
+                    return fig
+
+                # Add traces to figure
+                fig.append_trace(
+                    go.Box(
+                        y=dff.displace_95,
+                        name='displace_95',
+                        boxpoints='all',
+                        text=dff.label,
+                    ), 1, 1)
+
+                fig.append_trace(
+                    go.Box(
+                        y=dff.displace_median,
+                        name='displace_median',
+                        boxpoints='all',
+                        text=dff.label,
+                    ), 1, 2)
+
+                fig.append_trace(
+                    go.Box(
+                        y=dff.displace_99,
+                        name='displace_99',
+                        boxpoints='all',
+                        text=dff.label,
+                    ), 1, 3)
+
+                fig.append_trace(
+                    go.Box(
+                        y=dff.sig_delta_95,
+                        name='sig_95',
+                        boxpoints='all',
+                        text=dff.label,
+                    ), 1, 4)
+
+            elif selected_proctype == 'fMRIQA_v4':
+                # Make a 1x4 figure
+                fig = plotly.tools.make_subplots(rows=1, cols=3)
+
+                # Check for empty data
+                if len(dff) == 0:
+                    return fig
+
+                # Add traces to figure
+                fig.append_trace(
+                    go.Box(
+                        y=dff.fd_mean,
+                        name='fd_mean',
+                        boxpoints='all',
+                        text=dff.label,
+                    ), 1, 1)
+
+                fig.append_trace(
+                    go.Box(
+                        y=dff.dvars_mean,
+                        name='dvars_mean',
+                        boxpoints='all',
+                        text=dff.label,
+                    ), 1, 2)
+
+                fig.append_trace(
+                    go.Box(
+                        y=dff.tsnr_robust_median,
+                        name='tsnr_robust_median',
+                        boxpoints='all',
+                        text=dff.label,
+                    ), 1, 3)
+
+            elif selected_proctype == 'RSFC_CONN_v1':
+                # Check for empty data
+                if len(dff) == 0:
+                    return None
+
+                # Make a 1x4 figure
+                fig = plotly.tools.make_subplots(rows=1, cols=6)
+
+                # Add traces to figure
+                fig.append_trace(
+                    go.Box(
+                        y=dff.lib_pct_outliers,
+                        name='lib_pct_outliers',
+                        boxpoints='all',
+                        text=dff.label,
+                    ), 1, 1)
+
+                fig.append_trace(
+                    go.Box(
+                        y=dff.med_pct_outliers,
+                        name='med_pct_outliers',
+                        boxpoints='all',
+                        text=dff.label,
+                    ), 1, 2)
+
+                fig.append_trace(
+                    go.Box(
+                        y=dff.con_pct_outliers,
+                        name='con_pct_outliers',
+                        boxpoints='all',
+                        text=dff.label,
+                    ), 1, 3)
+
+                fig.append_trace(
+                    go.Box(
+                        y=dff.lib_rem_min,
+                        name='lib_rem_min',
+                        boxpoints='all',
+                        text=dff.label,
+                    ), 1, 4)
+
+                fig.append_trace(
+                    go.Box(
+                        y=dff.med_rem_min,
+                        name='med_rem_min',
+                        boxpoints='all',
+                        text=dff.label,
+                    ), 1, 5)
+
+                fig.append_trace(
+                    go.Box(
+                        y=dff.con_rem_min,
+                        name='con_rem_min',
+                        boxpoints='all',
+                        text=dff.label,
+                    ), 1, 6)
+
+            elif selected_proctype == 'FS6_v1':
+                # Check for empty data
+                if len(dff) == 0:
+                    return None
+
+                # Make a 1x4 figure
+                fig = plotly.tools.make_subplots(rows=1, cols=7)
+
+                # Add traces to figure
+                fig.append_trace(
+                    go.Box(
+                        y=dff.etiv,
+                        name='etiv',
+                        boxpoints='all',
+                        text=dff.label,
+                    ), 1, 1)
+
+                fig.append_trace(
+                    go.Box(
+                        y=dff.lhpc,
+                        name='lhpc',
+                        boxpoints='all',
+                        text=dff.label,
+                    ), 1, 2)
+
+                fig.append_trace(
+                    go.Box(
+                        y=dff.rhpc,
+                        name='rhpc',
+                        boxpoints='all',
+                        text=dff.label,
+                    ), 1, 3)
+
+                fig.append_trace(
+                    go.Box(
+                        y=dff.lvent,
+                        name='lvent',
+                        boxpoints='all',
+                        text=dff.label,
+                    ), 1, 4)
+
+                fig.append_trace(
+                    go.Box(
+                        y=dff.rvent,
+                        name='rvent',
+                        boxpoints='all',
+                        text=dff.label,
+                    ), 1, 5)
+
+                fig.append_trace(
+                    go.Box(
+                        y=dff.lsupflobe,
+                        name='lsupflobe',
+                        boxpoints='all',
+                        text=dff.label,
+                    ), 1, 6)
+
+                fig.append_trace(
+                    go.Box(
+                        y=dff.rsupflobe,
+                        name='rsupflobe',
+                        boxpoints='all',
+                        text=dff.label,
+                    ), 1, 7)
+
+            elif selected_proctype == 'AMYVIDQA_v1':
+                # Check for empty data
+                if len(dff) == 0:
+                    return None
+
+                # Make a 1x4 figure
+                fig = plotly.tools.make_subplots(rows=1, cols=3)
+
+                # Add traces to figure
+                fig.append_trace(
+                    go.Box(
+                        y=dff.compgm,
+                        name='compgm',
+                        boxpoints='all',
+                        text=dff.label,
+                    ), 1, 1)
+
+                fig.append_trace(
+                    go.Box(
+                        y=dff.pcing,
+                        name='pcing',
+                        boxpoints='all',
+                        text=dff.label,
+                    ), 1, 2)
+
+                fig.append_trace(
+                    go.Box(
+                        y=dff.cortwm,
+                        name='cortwm',
+                        boxpoints='all',
+                        text=dff.label,
+                    ), 1, 3)
 
             # Customize figure
             fig['layout'].update(hovermode='closest', showlegend=True)
@@ -1779,26 +2327,307 @@ write_report(projects, atypes, stypes, datafile)
             return fig
 
         @app.callback(
-            Output('datatable-edat', 'rows'),
-            [Input('dropdown-edat-proj', 'value'),
-             Input('dropdown-edat-type', 'value'),
-             Input('dropdown-edat-stat', 'value')])
-        def update_rows_edat(selected_proj, selected_type, selected_stat):
-            dff = self.dashdata.edat_df
+            Output('datatable-stats', 'rows'),
+            [Input('dropdown-stats-proctype', 'value'),
+             Input('dropdown-stats-proj', 'value'),
+             Input('dropdown-stats-status', 'value'),
+             Input('dropdown-stats-scantype', 'value'),
+             Input('radio-stats-sesstype', 'value')])
+        def update_rows_stats(
+                selected_proctype, selected_proj,
+                selected_stat, selected_scantype, selected_sesstype):
+
+            if selected_proctype == 'LST_v1':
+                dff = self.dashdata.lst_df
+            elif selected_proctype == 'EDATQA_v1':
+                dff = self.dashdata.edat_df
+            # elif selected_proctype == 'fMRIQA_v3':
+            #     dff = self.dashdata.fmri3_df
+            elif selected_proctype == 'fMRIQA_v4':
+                dff = self.dashdata.fmri4_df
+            elif selected_proctype == 'RSFC_CONN_v1':
+                dff = self.dashdata.rsfc_df
+            elif selected_proctype == 'FS6_v1':
+                dff = self.dashdata.fs6_df
+            elif selected_proctype == 'AMYVIDQA_v1':
+                dff = self.dashdata.amyvid_df
+            else:
+                dff = pd.DataFrame()
 
             # Filter by project
             if selected_proj:
                 dff = dff[dff['project'].isin(selected_proj)]
 
-            # Filter by scan type
-            if selected_type:
-                dff = dff[dff['scan_type'].isin(selected_type)]
-
             # Filter by status
             if selected_stat:
+                print('selected_stat=', selected_stat)
                 dff = dff[dff['qcstatus'].isin(selected_stat)]
 
+            # Filter by scan type
+            if selected_scantype:
+                print('selected_scantype=', selected_scantype)
+                dff = dff[dff['scan_type'].isin(selected_scantype)]
+
+            # Filter by sess type
+            if selected_sesstype:
+                print('selected_sesstype=', selected_sesstype)
+                dff = self.filter_bysesstype(dff, selected_sesstype)
+
             return dff.to_dict('records')
+
+        @app.callback(
+            Output('dropdown-stats-scantype', 'options'),
+            [Input('dropdown-stats-proctype', 'value')])
+        def update_dropdown_stats_scantype(selected_proctype):
+            if selected_proctype == 'LST_v1':
+                dff = self.dashdata.lst_df
+            elif selected_proctype == 'EDATQA_v1':
+                dff = self.dashdata.edat_df
+            # elif selected_proctype == 'fMRIQA_v3':
+            #     dff = self.dashdata.fmri3_df
+            elif selected_proctype == 'fMRIQA_v4':
+                dff = self.dashdata.fmri4_df
+            elif selected_proctype == 'RSFC_CONN_v1':
+                dff = self.dashdata.rsfc_df
+            elif selected_proctype == 'FS6_v1':
+                dff = self.dashdata.fs6_df
+            elif selected_proctype == 'AMYVIDQA_v1':
+                dff = self.dashdata.amyvid_df
+
+            try:
+                return self.make_options(dff.scan_type.unique())
+            except AttributeError:
+                return {}
+
+        @app.callback(
+            Output('dropdown-stats-status', 'options'),
+            [Input('dropdown-stats-proctype', 'value')])
+        def update_dropdown_stats_status(selected_proctype):
+            if selected_proctype == 'LST_v1':
+                dff = self.dashdata.lst_df
+            elif selected_proctype == 'EDATQA_v1':
+                dff = self.dashdata.edat_df
+            # elif selected_proctype == 'fMRIQA_v3':
+            #     dff = self.dashdata.fmri3_df
+            elif selected_proctype == 'fMRIQA_v4':
+                dff = self.dashdata.fmri4_df
+            elif selected_proctype == 'RSFC_CONN_v1':
+                dff = self.dashdata.rsfc_df
+            elif selected_proctype == 'FS6_v1':
+                dff = self.dashdata.fs6_df
+            elif selected_proctype == 'AMYVIDQA_v1':
+                dff = self.dashdata.amyvid_df
+
+            try:
+                return self.make_options(dff.qcstatus.unique())
+            except AttributeError:
+                return {}
+
+        @app.callback(
+            Output('stats-content', 'children'),
+            [Input('dropdown-stats-proctype', 'value')])
+        def update_stats_content(selected_proctype):
+            if selected_proctype == 'LST_v1':
+                dff = self.dashdata.lst_df
+            elif selected_proctype == 'EDATQA_v1':
+                dff = self.dashdata.edat_df
+            # elif selected_proctype == 'fMRIQA_v3':
+            #     dff = self.dashdata.fmri3_df
+            elif selected_proctype == 'fMRIQA_v4':
+                dff = self.dashdata.fmri4_df
+            elif selected_proctype == 'RSFC_CONN_v1':
+                dff = self.dashdata.rsfc_df
+            elif selected_proctype == 'FS6_v1':
+                dff = self.dashdata.fs6_df
+            elif selected_proctype == 'AMYVIDQA_v1':
+                dff = self.dashdata.amyvid_df
+
+            return [dt.DataTable(
+                rows=dff.to_dict('records'),
+                columns=dff.columns,  # specifies order of columns
+                row_selectable=True,
+                filterable=True,
+                sortable=True,
+                editable=False,
+                id='datatable-stats')]
+
+        @app.callback(
+            Output('datatable-time', 'rows'),
+            [Input('dropdown-time-time', 'value'),
+             Input('dropdown-time-proj', 'value'),
+             Input('dropdown-time-site', 'value'),
+             Input('dropdown-time-scanner', 'value'),
+             Input('radio-time-sesstype', 'value')])
+        def update_rows_time(
+                selected_time, selected_proj, selected_site,
+                selected_scanner, selected_sesstype):
+
+            print('update_rows_time')
+
+            DFORMAT = self.DFORMAT
+            starttime = self.dashdata.updated_datetime()
+            _df = self.dashdata.time_df
+
+            # Filter by time
+            if selected_time == 0:
+                _prevtime = starttime - timedelta(days=1)
+                fdate = datetime.strftime(_prevtime, DFORMAT)
+            elif selected_time == 1:
+                _prevtime = starttime - timedelta(days=7)
+                fdate = datetime.strftime(_prevtime, DFORMAT)
+            elif selected_time == 2:
+                _prevtime = starttime - timedelta(days=30)
+                fdate = datetime.strftime(_prevtime, DFORMAT)
+            elif selected_time == 3:
+                _prevtime = starttime - timedelta(days=365)
+                fdate = datetime.strftime(_prevtime, DFORMAT)
+            else:
+                fdate = '1969-12-31'
+
+            dff = _df[(_df['scandate'] > fdate)]
+
+            # Filter by project
+            if selected_proj:
+                dff = dff[dff['project'].isin(selected_proj)]
+
+            # Filter by site
+            if selected_site:
+                print('selected_site=', selected_site)
+                dff = dff[dff['site'].isin(selected_site)]
+
+            # Filter by scanner
+            if selected_scanner:
+                print('selected_scanner=', selected_scanner)
+                dff = dff[dff['scanner'].isin(selected_scanner)]
+
+            # Filter by sesstype
+            if selected_sesstype:
+                print('selected_sesstype=', selected_sesstype)
+                dff = self.filter_bysesstype(dff, selected_sesstype)
+
+            # Finally return the filtered data
+            return dff.to_dict('records')
+
+        @app.callback(
+            Output('graph-time', 'figure'),
+            [Input('datatable-time', 'rows'),
+             Input('radio-time-groupby', 'value'),
+             Input('datatable-time', 'selected_row_indices')])
+        def update_figure_time(rows, selected_groupby, selected_row_indices):
+            print('update_figure_time')
+
+            # Load data from input
+            dff = pd.DataFrame(rows)
+
+            # Make a 1x1 figure
+            fig = plotly.tools.make_subplots(rows=1, cols=1)
+
+            # Customize figure
+            fig['layout'].update(
+                xaxis=dict(automargin=True), yaxis=dict(automargin=True))
+
+            # Check for empty data
+            if len(dff) == 0:
+                return fig
+
+            # Filter MR data
+            dft = dff[dff.modality == 'MR']
+
+            if selected_groupby == 'project':
+                ygroupby = dft['project']
+            else:
+                ygroupby = dft['site']
+
+            # Add trace for MRI to figure
+            fig.append_trace({
+                'name': '{} ({})'.format('MRI', len(dft)),
+                'x': dft['scandate'],
+                'y': ygroupby,
+                'text': dft['session'],
+                'mode': 'markers',
+                'marker': dict(size=10, line=dict(width=1), opacity=0.9)
+            }, 1, 1)
+
+            # Filter PET data
+            dft = dff[dff.modality == 'PT']
+
+            if selected_groupby == 'project':
+                ygroupby = dft['project']
+            else:
+                ygroupby = dft['site']
+
+            # Add PET
+            fig.append_trace({
+                'name': '{} ({})'.format('PET', len(dft)),
+                'x': dft['scandate'],
+                'y': ygroupby,
+                'text': dft['session'],
+                'mode': 'markers',
+                'marker': dict(size=10, line=dict(width=1), opacity=0.9)
+            }, 1, 1)
+
+            return fig
+
+    def script_running(self):
+        script_list = glob(self.datadir + '/*.py')
+        script_list.sort(key=os.path.getmtime, reverse=True)
+        for script in script_list:
+            data_file = os.path.splitext(script)[0] + '.json'
+            if not os.path.exists(data_file):
+                return script
+
+        return None
+
+    def script_running_content(self, script_file):
+        _rpt = os.path.splitext(os.path.basename(script_file))[0]
+        msg = 'A report is already being generated: {}'.format(_rpt)
+
+        return html.Div([
+            html.Div(id='generate-content'),
+            html.Br(), html.Br(),
+            html.Div([
+                # generate report header
+                html.Div([
+                    html.Span(
+                        html.H1("Generate New Report"),
+                        style={"fontWeight": "bold", "fontSize": "20"})],
+                    className="row",
+                    style={"borderBottom": "1px solid"},
+                ),
+                # generate report form
+                html.Div(children=[
+                    html.Br(),
+                    html.H3(msg),
+                    dcc.Link(html.Button('Go Back to Reports'), href='/'),
+                    dcc.Interval(
+                        id='interval-log',
+                        interval=5000,
+                        n_intervals=0
+                    ),
+                    html.Br(),
+                    html.P(
+                        children=['Loading log...'],
+                        id='content-log',
+                        style={'white-space': 'pre-wrap'}),
+                    html.Br(), html.Br()],
+                    id='generate-content',
+                    className="container")
+            ])
+        ])
+
+    def filter_bysesstype(self, df, sesstype):
+        if sesstype == 'baseline':
+            df = df[
+                df['session'].str.endswith('a') |
+                df['session'].str.endswith('_bl')]
+        elif sesstype == 'followup':
+            df = df[
+                ~df['session'].str.endswith('a') &
+                ~df['session'].str.endswith('_bl')]
+        else:
+            df = df
+
+        return df
 
     def get_app(self):
         return self.app
