@@ -404,7 +404,7 @@ xsiType=proc:genprocdata&columns=ID,xsiType,project,proc:genprocdata/proctype'
             # Load projects that have been checked as Favorite for current user
             print('INFO:Loading project list from XNAT')
             proj_list = [x['id'] for x in self.xnat._get_json(self.FAV_URI)]
-        elif isinstance(self.config['xnat_projects'], basestring):
+        elif isinstance(self.config['xnat_projects'], str):
             _str = self.config['xnat_projects']
             proj_list = [x.strip() for x in _str.split(',')]
         else:
