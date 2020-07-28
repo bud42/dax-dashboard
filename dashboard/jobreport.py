@@ -332,9 +332,12 @@ class DaxDashboard:
             STATUS_LIST = ['WAITING', 'PENDING', 'RUNNING', 'UPLOADING', 'UNKNOWN']
             COLOR_LIST = [RGB_GREY, RGB_YELLOW, RGB_GREEN, RGB_BLUE, RGB_RED]
             print('update_figure')
+            df = pd.DataFrame(data)
+
+            # Make a 1x1 figured
+            fig = plotly.subplots.make_subplots(rows=1, cols=1)
 
             if selected_groupby == 'PROCTYPE':
-                df = pd.DataFrame(data).sort_values('PROCTYPE')
                 yall = df.PROCTYPE.unique()
                 xgrey = df[df.STATUS == 'WAITING'].groupby('PROCTYPE')['LABEL'].count()
                 xyell = df[df.STATUS == 'PENDING'].groupby('PROCTYPE')['LABEL'].count()
@@ -344,9 +347,6 @@ class DaxDashboard:
 
                 print(yall)
                 print(xgree)
-
-                # Make a 1x1 figured
-                fig = plotly.subplots.make_subplots(rows=1, cols=1)
 
                 # Draw bar for each status, note these will be displayed
                 # in order left to right horizontally
@@ -380,27 +380,21 @@ class DaxDashboard:
                     marker=dict(color=RGB_RED),
                     opacity=0.9, orientation='h'), 1, 1)
 
-                # Customize figure
-                fig['layout'].update(barmode='stack', showlegend=True)
-
-                return fig
             elif selected_groupby == 'PROJECT':
-                df = pd.DataFrame(data).sort_values('PROJECT')
-                #yall = df.PROJECT.unique()
-                #xgrey = df[df.STATUS == 'WAITING'].groupby('PROJECT')['LABEL'].count()
-                #xyell = df[df.STATUS == 'PENDING'].groupby('PROJECT')['LABEL'].count()
-                #xgree = df[df.STATUS == 'RUNNING'].groupby('PROJECT')['LABEL'].count()
-                #xblue = df[df.STATUS == 'UPLOADING'].groupby('PROJECT')['LABEL'].count()
-                #xredd = df[df.STATUS == 'UNKNOWN'].groupby('PROJECT')['LABEL'].count()
-
-                # Make a 1x1 figured
-                fig = plotly.subplots.make_subplots(rows=1, cols=1)
-
                 # Draw bar for each status, these will be displayed in order
+                dfp = pd.pivot_table(
+                    df,
+                    index='PROJECT',
+                    values='LABEL',
+                    columns=['STATUS'],
+                    aggfunc='count',
+                    fill_value=0)
                 for status, color in zip(STATUS_LIST, COLOR_LIST):
-                    xdata = df[df.STATUS == status].groupby(
-                        pd.Categorical(df.PROJECT))['NAME'].count()
-                    ydata = df.PROJECT.unique(),
+                    # xdata = df[df.STATUS == status].groupby(
+                    #    pd.Categorical(df.PROJECT))['NAME'].count()
+                    # ydata = df.PROJECT.unique(),
+                    xdata = dfp['STATUS']
+                    ydata = dfp.index
                     print(xdata)
                     print(ydata)
                     fig.append_trace(go.Bar(
@@ -410,10 +404,6 @@ class DaxDashboard:
                         marker=dict(color=color),
                         opacity=0.9, orientation='h'), 1, 1)
 
-                # Customize figure
-                fig['layout'].update(barmode='stack', showlegend=True)
-
-                return fig
             else:
                 df = pd.DataFrame(data).sort_values('USER')
                 yall = df.USER.unique()
@@ -458,10 +448,9 @@ class DaxDashboard:
                     marker=dict(color=RGB_RED),
                     opacity=0.9, orientation='h'), 1, 1)
 
-                # Customize figure
-                fig['layout'].update(barmode='stack', showlegend=True)
-
-                return fig
+            # Customize figure
+            fig['layout'].update(barmode='stack', showlegend=True)
+            return fig
 
         @app.callback(
             Output('update-text', 'children'),
