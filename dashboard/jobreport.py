@@ -331,16 +331,66 @@ class DaxDashboard:
             print('update_figure')
 
             if selected_groupby == 'PROCTYPE':
-                pass
+                df = pd.DataFrame(data).sort_values('PROCTYPE')
+                yall = df.PROCTYPE.unique()
+                xgrey = df[df.STATUS == 'WAITING'].groupby('PROCTYPE')['LABEL'].count()
+                xyell = df[df.STATUS == 'PENDING'].groupby('PROCTYPE')['LABEL'].count()
+                xgree = df[df.STATUS == 'RUNNING'].groupby('PROCTYPE')['LABEL'].count()
+                xblue = df[df.STATUS == 'UPLOADING'].groupby('PROCTYPE')['LABEL'].count()
+                xredd = df[df.STATUS == 'UNKNOWN'].groupby('PROCTYPE')['LABEL'].count()
+
+                print(yall)
+                print(xgree)
+
+                # Make a 1x1 figured
+                fig = plotly.subplots.make_subplots(rows=1, cols=1)
+
+                # Draw bar for each status, note these will be displayed
+                # in order left to right horizontally
+                fig.append_trace(go.Bar(
+                    y=yall, x=xgrey,
+                    name='{} ({})'.format('WAITING', xgrey.sum()),
+                    marker=dict(color=RGB_GREY),
+                    opacity=0.9, orientation='h'), 1, 1)
+
+                fig.append_trace(go.Bar(
+                    y=yall, x=xyell,
+                    name='{} ({})'.format('PENDING', xyell.sum()),
+                    marker=dict(color=RGB_YELLOW),
+                    opacity=0.9, orientation='h'), 1, 1)
+
+                fig.append_trace(go.Bar(
+                    y=yall, x=xgree,
+                    name='{} ({})'.format('RUNNING', xgree.sum()),
+                    marker=dict(color=RGB_GREEN),
+                    opacity=0.9, orientation='h'), 1, 1)
+
+                fig.append_trace(go.Bar(
+                    y=yall, x=xblue,
+                    name='{} ({})'.format('UPLOADING', xblue.sum()),
+                    marker=dict(color=RGB_BLUE),
+                    opacity=0.9, orientation='h'), 1, 1)
+
+                fig.append_trace(go.Bar(
+                    y=yall, x=xredd,
+                    name='{} ({})'.format('UNKNOWN', xredd.sum()),
+                    marker=dict(color=RGB_RED),
+                    opacity=0.9, orientation='h'), 1, 1)
+
+                # Customize figure
+                fig['layout'].update(barmode='stack', showlegend=True)
+
+                return fig
             elif selected_groupby == 'PROJECT':
                 df = pd.DataFrame(data).sort_values('PROJECT')
                 yall = df.PROJECT.unique()
+                xgrey = df[df.STATUS == 'WAITING'].groupby('PROJECT')['LABEL'].count()
+                xyell = df[df.STATUS == 'PENDING'].groupby('PROJECT')['LABEL'].count()
                 xgree = df[df.STATUS == 'RUNNING'].groupby('PROJECT')['LABEL'].count()
                 xblue = df[df.STATUS == 'UPLOADING'].groupby('PROJECT')['LABEL'].count()
                 xredd = df[df.STATUS == 'UNKNOWN'].groupby('PROJECT')['LABEL'].count()
-                xyell = df[df.STATUS == 'PENDING'].groupby('PROJECT')['LABEL'].count()
-                xgrey = df[df.STATUS == 'WAITING'].groupby('PROJECT')['LABEL'].count()
 
+                print(yall)
                 print(xgree)
 
                 # Make a 1x1 figured
@@ -385,7 +435,6 @@ class DaxDashboard:
             else:
                 df = pd.DataFrame(data).sort_values('USER')
                 yall = df.USER.unique()
-                print(yall)
                 xgree = df[df.STATUS == 'RUNNING'].groupby('USER')['LABEL'].count()
                 xblue = df[df.STATUS == 'UPLOADING'].groupby('USER')['LABEL'].count()
                 xredd = df[df.STATUS == 'UNKNOWN'].groupby('USER')['LABEL'].count()
