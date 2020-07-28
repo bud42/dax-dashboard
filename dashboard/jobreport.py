@@ -60,11 +60,10 @@ RGB_GREY = 'rgb(200,200,200)'
 #    'PROCTYPE', 'submitdt', 'timeused', 'user']
 
 TASK_COLS = [
-    'LABEL', 'PROJECT', 'STATUS', 'PROCTYPE',  'USER']
+    'LABEL', 'PROJECT', 'STATUS', 'PROCTYPE', 'USER']
 
 SQUEUE_COLS = [
-    'NAME', 'USER', 'ACCOUNT', 'GROUP',
-    'ST', 'STATE', 'PRIORITY', 'JOBID', 'MIN_MEMORY',
+    'NAME', 'ST', 'STATE', 'PRIORITY', 'JOBID', 'MIN_MEMORY',
     'TIME', 'SUBMIT_TIME', 'START_TIME', 'TIME_LIMIT', 'TIME_LEFT']
 
 
