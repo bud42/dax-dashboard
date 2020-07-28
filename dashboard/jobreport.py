@@ -97,7 +97,6 @@ class DashboardData:
 
         print('cleaning data:parse assessor')
         #df = df.apply(self.parse_assessor, axis=1)
-        df = df.apply(self.parse_assessor, axis=1)
         df['PROJECT'] = df['NAME'].str.split('-x-', n=1, expand=True)[0]
         df['PROCTYPE'] = df['NAME'].str.split('-x-', n=4, expand=True)[3]
 
