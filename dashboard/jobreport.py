@@ -111,7 +111,7 @@ class DashboardData:
     def load_diskq_queue(self, status=None):
         task_list = list()
 
-        for d, u in UPLOAD_DIR, SQUEUE_USER:
+        for d, u in zip(UPLOAD_DIR, SQUEUE_USER):
             diskq_dir = os.path.join(d, 'DISKQ')
             batch_dir = os.path.join(diskq_dir, 'BATCH')
 
