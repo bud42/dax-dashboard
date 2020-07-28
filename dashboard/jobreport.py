@@ -402,7 +402,7 @@ class DaxDashboard:
                 for status, color in zip(STATUS_LIST, COLOR_LIST):
                     fig.append_trace(go.Bar(
                         x=df[df.STATUS == status],
-                        y=df.PROJECT.unique,
+                        y=df.PROJECT.unique(),
                         name=status,
                         marker=dict(color=color),
                         opacity=0.9, orientation='h'), 1, 1)
