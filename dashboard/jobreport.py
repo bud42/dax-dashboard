@@ -304,7 +304,7 @@ class DaxDashboard:
         @app.callback(
             Output('graph-task', 'figure'),
             [Input('datatable-task', 'data'),
-             Input('radio-scan-groupby', 'value')])
+             Input('radio-task-groupby', 'value')])
         def update_figure(data, selected_groupby):
             print('update_figure')
 
