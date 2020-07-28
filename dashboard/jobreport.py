@@ -475,6 +475,7 @@ class DaxDashboard:
         print('building interface')
         self.dashdata.load_data()
         df = self.dashdata.task_df
+        print(df.PROJECT.unique())
         proj_options = self.make_options(df.PROJECT.unique())
         job_columns = [{"name": i, "id": i} for i in df.columns]
         job_data = df.to_dict('rows')
