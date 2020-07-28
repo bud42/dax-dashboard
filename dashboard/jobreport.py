@@ -147,10 +147,11 @@ class DashboardData:
             cmd = SQUEUE_CMD
             result = subprocess.run([cmd], shell=True, stdout=subprocess.PIPE)
             data = result.stdout.decode('utf-8')
-
-        df = pd.read_csv(StringIO(data), delimiter='|', usecols=SQUEUE_COLS)
-        df['LABEL'] = df['NAME'].str.split('.slurm').str[0]
-        return df
+            df = pd.read_csv(StringIO(data), delimiter='|', usecols=SQUEUE_COLS)
+            df['LABEL'] = df['NAME'].str.split('.slurm').str[0]
+            return df
+        except pd.errors.EmptyDataError:
+            return pd.DataFrame()
 
     def get_diskq_attr(self, diskq, assr, attr):
         apath = os.path.join(diskq, attr, assr)
