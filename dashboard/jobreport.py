@@ -55,9 +55,12 @@ RGB_YELLOW = 'rgb(244,160,0)'
 RGB_RED = 'rgb(219,68,55)'
 RGB_GREY = 'rgb(200,200,200)'
 
+#TASK_COLS = [
+#    'label', 'project', 'SESSION', 'status', 'procstatus', 'ST',
+#    'PROCTYPE', 'submitdt', 'timeused', 'user']
+
 TASK_COLS = [
-    'label', 'project', 'SESSION', 'status', 'procstatus', 'ST',
-    'PROCTYPE', 'submitdt', 'timeused', 'user']
+    'LABEL', 'PROJECT', 'STATUS', 'PROCTYPE',  'USER']
 
 SQUEUE_COLS = [
     'NAME', 'USER', 'ACCOUNT', 'GROUP',
@@ -91,14 +94,17 @@ class DashboardData:
 
         print('merging data')
         # merge squeue data into task queue
-        df = pd.merge(diskq_df, squeue_df, how='outer', on='label')
+        df = pd.merge(diskq_df, squeue_df, how='outer', on='LABEL')
 
         # Apply the clean values
-        print('cleaning data:clean values')
-        df = df.apply(self.clean_values, axis=1)
+        print('cleaning data:set status')
+        df = df.apply(self.set_status, axis=1)
 
         print('cleaning data:parse assessor')
         df = df.apply(self.parse_assessor, axis=1)
+
+        #print('cleaning data:set time')
+        #df = df.apply(self.set_time, axis=1)
 
         print('finishing data')
         # Minimize columns
@@ -120,7 +126,7 @@ class DashboardData:
             for t in os.listdir(batch_dir):
                 assr = os.path.splitext(t)[0]
                 task = self.load_diskq_task(diskq_dir, assr)
-                task['user'] = u
+                task['USER'] = u
                 task_list.append(task)
 
         df = pd.DataFrame(task_list)
@@ -128,7 +134,7 @@ class DashboardData:
 
     def load_diskq_task(self, diskq, assr):
         return {
-            'label': assr,
+            'LABEL': assr,
             'procstatus': self.get_diskq_attr(diskq, assr, 'procstatus'),
             'jobid': self.get_diskq_attr(diskq, assr, 'jobid'),
             'jobnode': self.get_diskq_attr(diskq, assr, 'jobnode'),
@@ -144,7 +150,7 @@ class DashboardData:
             data = result.stdout.decode('utf-8')
 
         df = pd.read_csv(StringIO(data), delimiter='|', usecols=SQUEUE_COLS)
-        df['label'] = df['NAME'].str.split('.slurm').str[0]
+        df['LABEL'] = df['NAME'].str.split('.slurm').str[0]
         return df
 
     def get_diskq_attr(self, diskq, assr, attr):
@@ -157,10 +163,10 @@ class DashboardData:
             return f.read().strip()
 
     def parse_assessor(self, row):
-        labels = row['label'].split("-x-")
-        row['project'] = labels[0]
-        row['SUBJECT'] = labels[1]
-        row['SESSION'] = labels[2]
+        labels = row['LABEL'].split("-x-")
+        row['PROJECT'] = labels[0]
+        #row['SUBJECT'] = labels[1]
+        #row['SESSION'] = labels[2]
         row['PROCTYPE'] = labels[3]
         return row
 
@@ -201,9 +207,7 @@ class DashboardData:
     def formatted_time(self, curtime):
         return datetime.strftime(curtime, DFORMAT)
 
-    def clean_values(self, row):
-        #row['account'] = row['ACCOUNT']
-
+    def set_status(self, row):
         # Use diskq status and squeue status to make a single status
         # squeue states: CG,F, PR, S, ST
         # diskq statuses: JOB_RUNNING, JOB_FAILED, NEED_TO_RUN,
@@ -211,17 +215,25 @@ class DashboardData:
         dstatus = row['procstatus']
         sstatus = row['ST']
         if pd.isna(dstatus) and pd.isna(sstatus):
-            row['status'] = 'WAITING'
+            row['STATUS'] = 'WAITING'
         elif sstatus in ['R', 'CD', 'CG', 'F'] and dstatus == 'JOB_RUNNING':
-            row['status'] = 'RUNNING'
+            row['STATUS'] = 'RUNNING'
         elif pd.isna(sstatus) and dstatus == 'JOB_RUNNING':
             # TODO: determine if this is possible and correct? or does this
             # mean its ready to upload?
-            row['status'] = 'WAITING'
+            row['STATUS'] = 'WAITING'
         elif sstatus == 'PD' and dstatus == 'JOB_RUNNING':
-            row['status'] = 'PENDING'
+            row['STATUS'] = 'PENDING'
         else:
-            row['status'] = 'UNKNOWN'
+            row['STATUS'] = 'UNKNOWN'
+
+    def set_time(self, row):
+        if pd.notna(row['SUBMIT_TIME']):
+            startdt = datetime.strptime(
+                str(row['SUBMIT_TIME']), '%Y-%m-%dT%H:%M:%S')
+            row['submitdt'] = datetime.strftime(startdt, DFORMAT)
+
+        row['timeused'] = row['TIME']
 
         # Make time used to just be number of minutes
         # TODO: optimize this, if we need it
@@ -246,12 +258,6 @@ class DashboardData:
         #     except ValueError:
         #         print('ValueError:'+row['label'])
         #         row['timeused(min)'] = 1
-        if pd.notna(row['SUBMIT_TIME']):
-            startdt = datetime.strptime(
-                str(row['SUBMIT_TIME']), '%Y-%m-%dT%H:%M:%S')
-            row['submitdt'] = datetime.strftime(startdt, DFORMAT)
-
-        row['timeused'] = row['TIME']
         return row
 
 
@@ -310,7 +316,7 @@ class DaxDashboard:
 
             # Filter by project
             if selected_proj:
-                df = df[df['project'].isin(selected_proj)]
+                df = df[df['PROJECT'].isin(selected_proj)]
 
             return df.to_dict('records')
 
@@ -321,16 +327,16 @@ class DaxDashboard:
         def update_figure(data, selected_groupby):
             print('update_figure')
 
-            if selected_groupby == 'proctype':
+            if selected_groupby == 'PROCTYPE':
                 pass
-            elif selected_groupby == 'project':
+            elif selected_groupby == 'PROJECT':
                 df = pd.DataFrame(data)
-                yall = sorted(df.project.unique())
-                xgree = df[df.status == 'RUNNING'].groupby('project')['label'].count()
-                xblue = df[df.status == 'UPLOADING'].groupby('project')['label'].count()
-                xredd = df[df.status == 'UNKNOWN'].groupby('project')['label'].count()
-                xyell = df[df.status == 'PENDING'].groupby('project')['label'].count()
-                xgrey = df[df.status == 'WAITING'].groupby('project')['label'].count()
+                yall = sorted(df.PROJECT.unique())
+                xgree = df[df.STATUS == 'RUNNING'].groupby('PROJECT')['LABEL'].count()
+                xblue = df[df.STATUS == 'UPLOADING'].groupby('PROJECT')['LABEL'].count()
+                xredd = df[df.STATUS == 'UNKNOWN'].groupby('PROJECT')['LABEL'].count()
+                xyell = df[df.STATUS == 'PENDING'].groupby('PROJECT')['LABEL'].count()
+                xgrey = df[df.STATUS == 'WAITING'].groupby('PROJECT')['LABEL'].count()
 
                 # Make a 1x1 figured
                 fig = plotly.subplots.make_subplots(rows=1, cols=1)
@@ -369,13 +375,13 @@ class DaxDashboard:
                 return fig
             else:
                 df = pd.DataFrame(data)
-                yall = sorted(df.user.unique())
+                yall = sorted(df.USER.unique())
                 print(yall)
-                xgree = df[df.status == 'RUNNING'].groupby('user')['label'].count()
-                xblue = df[df.status == 'UPLOADING'].groupby('user')['label'].count()
-                xredd = df[df.status == 'UNKNOWN'].groupby('user')['label'].count()
-                xyell = df[df.status == 'PENDING'].groupby('user')['label'].count()
-                xgrey = df[df.status == 'WAITING'].groupby('user')['label'].count()
+                xgree = df[df.STATUS == 'RUNNING'].groupby('USER')['LABEL'].count()
+                xblue = df[df.STATUS == 'UPLOADING'].groupby('USER')['LABEL'].count()
+                xredd = df[df.STATUS == 'UNKNOWN'].groupby('USER')['LABEL'].count()
+                xyell = df[df.STATUS == 'PENDING'].groupby('USER')['LABEL'].count()
+                xgrey = df[df.STATUS == 'WAITING'].groupby('USER')['LABEL'].count()
 
                 # Make a 1x1 figured
                 fig = plotly.subplots.make_subplots(rows=1, cols=1)
@@ -433,7 +439,7 @@ class DaxDashboard:
         print('building interface')
         self.dashdata.load_data()
         df = self.dashdata.task_df
-        proj_options = self.make_options(df.project.unique())
+        proj_options = self.make_options(df.PROJECT.unique())
         job_columns = [
             {"name": i, "id": i} for i in self.dashdata.task_df.columns]
         job_data = self.dashdata.task_df.to_dict('rows')
@@ -445,9 +451,9 @@ class DaxDashboard:
                         id='graph-task'),
                     dcc.RadioItems(
                         options=[
-                            {'label': 'By User', 'value': 'user'},
-                            {'label': 'By Project', 'value': 'project'},
-                            {'label': 'By Proc Type', 'value': 'proctype'}],
+                            {'label': 'By USER', 'value': 'USER'},
+                            {'label': 'By PROJECT', 'value': 'PROJECT'},
+                            {'label': 'By PROCTYPE', 'value': 'PROCTYPE'}],
                         value='user',
                         id='radio-task-groupby',
                         labelStyle={'display': 'inline-block'}),
