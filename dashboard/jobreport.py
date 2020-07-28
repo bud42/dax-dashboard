@@ -93,9 +93,11 @@ class DashboardData:
         # merge squeue data into task queue
         df = pd.merge(diskq_df, squeue_df, how='outer', on='label')
 
-        print('cleaning data')
         # Apply the clean values
+        print('cleaning data:clean values')
         df = df.apply(self.clean_values, axis=1)
+
+        print('cleaning data:parse assessor')
         df = df.apply(self.parse_assessor, axis=1)
 
         print('finishing data')
@@ -200,7 +202,7 @@ class DashboardData:
         return datetime.strftime(curtime, DFORMAT)
 
     def clean_values(self, row):
-        row['account'] = row['ACCOUNT']
+        #row['account'] = row['ACCOUNT']
 
         # Use diskq status and squeue status to make a single status
         # squeue states: CG,F, PR, S, ST
@@ -210,11 +212,13 @@ class DashboardData:
         sstatus = row['ST']
         if pd.isna(dstatus) and pd.isna(sstatus):
             row['status'] = 'WAITING'
-        elif dstatus == 'JOB_RUNNING' and sstatus in ['R', 'CD', 'CG', 'F']:
+        elif sstatus in ['R', 'CD', 'CG', 'F'] and dstatus == 'JOB_RUNNING':
             row['status'] = 'RUNNING'
-        elif dstatus == 'JOB_RUNNING' and not sstatus:
+        elif pd.isna(sstatus) and dstatus == 'JOB_RUNNING':
+            # TODO: determine if this is possible and correct? or does this
+            # mean its ready to upload?
             row['status'] = 'WAITING'
-        elif dstatus == 'JOB_RUNNING' and sstatus == 'PD':
+        elif sstatus == 'PD' and dstatus == 'JOB_RUNNING':
             row['status'] = 'PENDING'
         else:
             row['status'] = 'UNKNOWN'
