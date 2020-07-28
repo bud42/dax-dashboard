@@ -96,12 +96,12 @@ class DashboardData:
         # merge squeue data into task queue
         df = pd.merge(diskq_df, squeue_df, how='outer', on='LABEL')
 
+        print('cleaning data:parse assessor')
+        df = df.apply(self.parse_assessor, axis=1)
+
         # Apply the clean values
         print('cleaning data:set status')
         df = df.apply(self.set_status, axis=1)
-
-        print('cleaning data:parse assessor')
-        df = df.apply(self.parse_assessor, axis=1)
 
         #print('cleaning data:set time')
         #df = df.apply(self.set_time, axis=1)
@@ -212,7 +212,7 @@ class DashboardData:
         # squeue states: CG,F, PR, S, ST
         # diskq statuses: JOB_RUNNING, JOB_FAILED, NEED_TO_RUN,
         # UPLOADING, READY_TO_COMPLETE, READY_TO_UPLOAD
-        print(row['label'])
+        print(row['LABEL'])
         dstatus = row['procstatus']
         sstatus = row['ST']
         if pd.isna(dstatus) and pd.isna(sstatus):
@@ -227,6 +227,8 @@ class DashboardData:
             row['STATUS'] = 'PENDING'
         else:
             row['STATUS'] = 'UNKNOWN'
+
+        return row
 
     def set_time(self, row):
         if pd.notna(row['SUBMIT_TIME']):
