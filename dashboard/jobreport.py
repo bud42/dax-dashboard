@@ -17,6 +17,9 @@ import dash_table as dt
 from dash.dependencies import Input, Output
 from dax import XnatUtils
 
+# LATER: look at this:
+#https://dash-bootstrap-components.opensource.faculty.ai/examples/iris/
+
 # NEXT: radio buttons to select group by User/Project/Processing Type
 # load an addition queue (from disk by listing subdirs in the upload dir)
 # as the upload queue and display them as
@@ -35,12 +38,15 @@ from dax import XnatUtils
 pd.set_option('display.max_colwidth', None)
 
 #SQUEUE_CMD = 'ssh sideshowb squeue -u vuiis_archive_singularity --format="%all"'
-SQUEUE_CMD = 'squeue -u vuiis_archive_singularity --format="%all"'
+SQUEUE_USER = 'vuiis_archive_singularity,vuiis_daily_singularity'
+SQUEUE_CMD = 'squeue -u '+SQUEUE_USER+' --format="%all"'
 DFORMAT = '%Y-%m-%d %H:%M:%S'
 TIMEZONE = 'US/Central'
 XNAT_USER = 'boydb1'
 #UPLOAD_DIR = '/Users/boydb1/RESULTS_XNAT_SPIDER'
-UPLOAD_DIR = '/scratch/vuiis_archive_singularity/Spider_Upload_Dir'
+UPLOAD_DIR = [
+    '/scratch/vuiis_archive_singularity/Spider_Upload_Dir',
+    '/scratch/vuiis_daily_singularity/Spider_Upload_Dir']
 RGB_DKBLUE = 'rgb(59,89,152)'
 RGB_BLUE = 'rgb(66,133,244)'
 RGB_GREEN = 'rgb(15,157,88)'
@@ -103,14 +109,15 @@ class DashboardData:
         self.load_data()
 
     def load_diskq_queue(self, status=None):
-        diskq_dir = os.path.join(UPLOAD_DIR, 'DISKQ')
-        batch_dir = os.path.join(diskq_dir, 'BATCH')
         task_list = list()
-        batch_list = os.listdir(batch_dir)
 
-        for t in batch_list:
-            assr = os.path.splitext(t)[0]
-            task_list.append(self.load_diskq_task(diskq_dir, assr))
+        for u in UPLOAD_DIR:
+            diskq_dir = os.path.join(u, 'DISKQ')
+            batch_dir = os.path.join(diskq_dir, 'BATCH')
+
+            for t in os.listdir(batch_dir):
+                assr = os.path.splitext(t)[0]
+                task_list.append(self.load_diskq_task(diskq_dir, assr))
 
         df = pd.DataFrame(task_list)
         return df
