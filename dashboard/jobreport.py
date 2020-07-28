@@ -64,6 +64,7 @@ class DashboardData:
         self.task_df = None
         self.timezone = TIMEZONE
         self.xnat_user = XNAT_USER
+        self.updatetime = ''
 
         # Determine project list
         proj_list = self.get_project_names()
