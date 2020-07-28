@@ -341,6 +341,8 @@ class DaxDashboard:
                 xyell = df[df.STATUS == 'PENDING'].groupby('PROJECT')['LABEL'].count()
                 xgrey = df[df.STATUS == 'WAITING'].groupby('PROJECT')['LABEL'].count()
 
+                print(xgree)
+
                 # Make a 1x1 figured
                 fig = plotly.subplots.make_subplots(rows=1, cols=1)
 
@@ -353,22 +355,26 @@ class DaxDashboard:
                     opacity=0.9, orientation='h'), 1, 1)
 
                 fig.append_trace(go.Bar(
-                    y=yall, x=xyell, name='PENDING',
+                    y=yall, x=xyell,
+                    name='{} ({})'.format('PENDING', xyell.sum()),
                     marker=dict(color=RGB_YELLOW),
                     opacity=0.9, orientation='h'), 1, 1)
 
                 fig.append_trace(go.Bar(
-                    y=yall, x=xgree, name='RUNNING',
+                    y=yall, x=xgree,
+                    name='{} ({})'.format('RUNNING', xgree.sum()),
                     marker=dict(color=RGB_GREEN),
                     opacity=0.9, orientation='h'), 1, 1)
 
                 fig.append_trace(go.Bar(
-                    y=yall, x=xblue, name='UPLOADING',
+                    y=yall, x=xblue,
+                    name='{} ({})'.format('UPLOADING', xblue.sum()),
                     marker=dict(color=RGB_BLUE),
                     opacity=0.9, orientation='h'), 1, 1)
 
                 fig.append_trace(go.Bar(
-                    y=yall, x=xredd, name='UNKNOWN',
+                    y=yall, x=xredd,
+                    name='{} ({})'.format('UNKNOWN', xredd.sum()),
                     marker=dict(color=RGB_RED),
                     opacity=0.9, orientation='h'), 1, 1)
 
