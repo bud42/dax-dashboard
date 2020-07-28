@@ -329,122 +329,35 @@ class DaxDashboard:
             [Input('datatable-task', 'data'),
              Input('radio-task-groupby', 'value')])
         def update_figure(data, selected_groupby):
+            print('updating figure')
             STATUS_LIST = ['WAITING', 'PENDING', 'RUNNING', 'UPLOADING', 'UNKNOWN']
             COLOR_LIST = [RGB_GREY, RGB_YELLOW, RGB_GREEN, RGB_BLUE, RGB_RED]
-            print('update_figure')
+
+            # Load table data into a dataframe for easy manipulation
             df = pd.DataFrame(data)
 
-            # Make a 1x1 figured
+            # Make a 1x1 figure (I dunno why, this is from doing multi plots)
             fig = plotly.subplots.make_subplots(rows=1, cols=1)
 
-            if selected_groupby == 'PROCTYPE':
-                yall = df.PROCTYPE.unique()
-                xgrey = df[df.STATUS == 'WAITING'].groupby('PROCTYPE')['LABEL'].count()
-                xyell = df[df.STATUS == 'PENDING'].groupby('PROCTYPE')['LABEL'].count()
-                xgree = df[df.STATUS == 'RUNNING'].groupby('PROCTYPE')['LABEL'].count()
-                xblue = df[df.STATUS == 'UPLOADING'].groupby('PROCTYPE')['LABEL'].count()
-                xredd = df[df.STATUS == 'UNKNOWN'].groupby('PROCTYPE')['LABEL'].count()
+            # What index are we pivoting on to count statuses
+            PINDEX = selected_groupby
 
-                print(yall)
-                print(xgree)
-
-                # Draw bar for each status, note these will be displayed
-                # in order left to right horizontally
-                fig.append_trace(go.Bar(
-                    y=yall, x=xgrey,
-                    name='{} ({})'.format('WAITING', xgrey.sum()),
-                    marker=dict(color=RGB_GREY),
-                    opacity=0.9, orientation='h'), 1, 1)
+            # Draw bar for each status, these will be displayed in order
+            dfp = pd.pivot_table(
+                df, index=PINDEX, values='LABEL', columns=['STATUS'],
+                aggfunc='count', fill_value=0)
+            for status, color in zip(STATUS_LIST, COLOR_LIST):
+                ydata = dfp.index
+                if status not in dfp:
+                    xdata = [0] * len(dfp.index)
+                else:
+                    xdata = dfp[status]
 
                 fig.append_trace(go.Bar(
-                    y=yall, x=xyell,
-                    name='{} ({})'.format('PENDING', xyell.sum()),
-                    marker=dict(color=RGB_YELLOW),
-                    opacity=0.9, orientation='h'), 1, 1)
-
-                fig.append_trace(go.Bar(
-                    y=yall, x=xgree,
-                    name='{} ({})'.format('RUNNING', xgree.sum()),
-                    marker=dict(color=RGB_GREEN),
-                    opacity=0.9, orientation='h'), 1, 1)
-
-                fig.append_trace(go.Bar(
-                    y=yall, x=xblue,
-                    name='{} ({})'.format('UPLOADING', xblue.sum()),
-                    marker=dict(color=RGB_BLUE),
-                    opacity=0.9, orientation='h'), 1, 1)
-
-                fig.append_trace(go.Bar(
-                    y=yall, x=xredd,
-                    name='{} ({})'.format('UNKNOWN', xredd.sum()),
-                    marker=dict(color=RGB_RED),
-                    opacity=0.9, orientation='h'), 1, 1)
-
-            elif selected_groupby == 'PROJECT':
-                # Draw bar for each status, these will be displayed in order
-                dfp = pd.pivot_table(
-                    df,
-                    index='PROJECT',
-                    values='LABEL',
-                    columns=['STATUS'],
-                    aggfunc='count',
-                    fill_value=0)
-                for status, color in zip(STATUS_LIST, COLOR_LIST):
-                    ydata = dfp.index
-                    if status not in dfp:
-                        xdata = [0] * len(dfp.index)
-                    else:
-                        xdata = dfp[status]
-
-                    fig.append_trace(go.Bar(
-                        x=xdata,
-                        y=ydata,
-                        name=status,
-                        marker=dict(color=color),
-                        opacity=0.9, orientation='h'), 1, 1)
-
-            else:
-                df = pd.DataFrame(data).sort_values('USER')
-                yall = df.USER.unique()
-                xgree = df[df.STATUS == 'RUNNING'].groupby('USER')['LABEL'].count()
-                xblue = df[df.STATUS == 'UPLOADING'].groupby('USER')['LABEL'].count()
-                xredd = df[df.STATUS == 'UNKNOWN'].groupby('USER')['LABEL'].count()
-                xyell = df[df.STATUS == 'PENDING'].groupby('USER')['LABEL'].count()
-                xgrey = df[df.STATUS == 'WAITING'].groupby('USER')['LABEL'].count()
-
-                # Make a 1x1 figured
-                fig = plotly.subplots.make_subplots(rows=1, cols=1)
-
-                # Draw bar for each status, note these will be displayed
-                # in order left to right horizontally
-                fig.append_trace(go.Bar(
-                    y=yall, x=xgrey,
-                    name='{} ({})'.format('WAITING', xgrey.sum()),
-                    marker=dict(color=RGB_GREY),
-                    opacity=0.9, orientation='h'), 1, 1)
-
-                fig.append_trace(go.Bar(
-                    y=yall, x=xyell,
-                    name='{} ({})'.format('PENDING', xyell.sum()),
-                    marker=dict(color=RGB_YELLOW),
-                    opacity=0.9, orientation='h'), 1, 1)
-
-                fig.append_trace(go.Bar(
-                    y=yall, x=xgree,
-                    name='{} ({})'.format('RUNNING', xgree.sum()),
-                    marker=dict(color=RGB_GREEN),
-                    opacity=0.9, orientation='h'), 1, 1)
-
-                fig.append_trace(go.Bar(
-                    y=yall, x=xblue,
-                    name='{} ({})'.format('UPLOADING', xblue.sum()),
-                    marker=dict(color=RGB_BLUE),
-                    opacity=0.9, orientation='h'), 1, 1)
-
-                fig.append_trace(go.Bar(
-                    y=yall, x=xredd,
-                    name='{} ({})'.format('UNKNOWN', xredd.sum()),
-                    marker=dict(color=RGB_RED),
+                    x=xdata,
+                    y=ydata,
+                    name=status,
+                    marker=dict(color=color),
                     opacity=0.9, orientation='h'), 1, 1)
 
             # Customize figure
