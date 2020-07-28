@@ -356,7 +356,7 @@ class DaxDashboard:
                 fig.append_trace(go.Bar(
                     x=xdata,
                     y=ydata,
-                    name=status,
+                    name='{} ({})'.format(status, xdata.sum()),
                     marker=dict(color=color),
                     opacity=0.9, orientation='h'), 1, 1)
 
