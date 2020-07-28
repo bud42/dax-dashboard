@@ -117,8 +117,9 @@ class DashboardData:
 
             for t in os.listdir(batch_dir):
                 assr = os.path.splitext(t)[0]
-                task_list.append(self.load_diskq_task(
-                    diskq_dir, assr).update({'user': u}))
+                task = self.load_diskq_task(diskq_dir, assr)
+                task['user'] = u
+                task_list.append(task)
 
         df = pd.DataFrame(task_list)
         return df
