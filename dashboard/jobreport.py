@@ -96,7 +96,10 @@ class DashboardData:
         df = pd.merge(diskq_df, squeue_df, how='outer', on='LABEL')
 
         print('cleaning data:parse assessor')
+        #df = df.apply(self.parse_assessor, axis=1)
         df = df.apply(self.parse_assessor, axis=1)
+        df['PROJECT'] = df['NAME'].str.split('-x-', n=1, expand=True)[0]
+        df['PROCTYPE'] = df['NAME'].str.split('-x-', n=4, expand=True)[3]
 
         # Apply the clean values
         print('cleaning data:set status')
@@ -328,6 +331,8 @@ class DaxDashboard:
             [Input('datatable-task', 'data'),
              Input('radio-task-groupby', 'value')])
         def update_figure(data, selected_groupby):
+            STATUS_LIST = ['WAITING', 'PENDING', 'RUNNING', 'UPLOADING', 'UNKNOWN']
+            COLOR_LIST = [RGB_GREY, RGB_YELLOW, RGB_GREEN, RGB_BLUE, RGB_RED]
             print('update_figure')
 
             if selected_groupby == 'PROCTYPE':
@@ -383,50 +388,24 @@ class DaxDashboard:
                 return fig
             elif selected_groupby == 'PROJECT':
                 df = pd.DataFrame(data).sort_values('PROJECT')
-                yall = df.PROJECT.unique()
-                xgrey = df[df.STATUS == 'WAITING'].groupby('PROJECT')['LABEL'].count()
-                xyell = df[df.STATUS == 'PENDING'].groupby('PROJECT')['LABEL'].count()
-                xgree = df[df.STATUS == 'RUNNING'].groupby('PROJECT')['LABEL'].count()
-                xblue = df[df.STATUS == 'UPLOADING'].groupby('PROJECT')['LABEL'].count()
-                xredd = df[df.STATUS == 'UNKNOWN'].groupby('PROJECT')['LABEL'].count()
-
-                print(yall)
-                print(xgree)
+                #yall = df.PROJECT.unique()
+                #xgrey = df[df.STATUS == 'WAITING'].groupby('PROJECT')['LABEL'].count()
+                #xyell = df[df.STATUS == 'PENDING'].groupby('PROJECT')['LABEL'].count()
+                #xgree = df[df.STATUS == 'RUNNING'].groupby('PROJECT')['LABEL'].count()
+                #xblue = df[df.STATUS == 'UPLOADING'].groupby('PROJECT')['LABEL'].count()
+                #xredd = df[df.STATUS == 'UNKNOWN'].groupby('PROJECT')['LABEL'].count()
 
                 # Make a 1x1 figured
                 fig = plotly.subplots.make_subplots(rows=1, cols=1)
 
-                # Draw bar for each status, note these will be displayed
-                # in order left to right horizontally
-                fig.append_trace(go.Bar(
-                    y=yall, x=xgrey,
-                    name='{} ({})'.format('WAITING', xgrey.sum()),
-                    marker=dict(color=RGB_GREY),
-                    opacity=0.9, orientation='h'), 1, 1)
-
-                fig.append_trace(go.Bar(
-                    y=yall, x=xyell,
-                    name='{} ({})'.format('PENDING', xyell.sum()),
-                    marker=dict(color=RGB_YELLOW),
-                    opacity=0.9, orientation='h'), 1, 1)
-
-                fig.append_trace(go.Bar(
-                    y=yall, x=xgree,
-                    name='{} ({})'.format('RUNNING', xgree.sum()),
-                    marker=dict(color=RGB_GREEN),
-                    opacity=0.9, orientation='h'), 1, 1)
-
-                fig.append_trace(go.Bar(
-                    y=yall, x=xblue,
-                    name='{} ({})'.format('UPLOADING', xblue.sum()),
-                    marker=dict(color=RGB_BLUE),
-                    opacity=0.9, orientation='h'), 1, 1)
-
-                fig.append_trace(go.Bar(
-                    y=yall, x=xredd,
-                    name='{} ({})'.format('UNKNOWN', xredd.sum()),
-                    marker=dict(color=RGB_RED),
-                    opacity=0.9, orientation='h'), 1, 1)
+                # Draw bar for each status, these will be displayed in order
+                for status, color in zip(STATUS_LIST, COLOR_LIST):
+                    fig.append_trace(go.Bar(
+                        x=df[df.STATUS == status],
+                        y=df.PROJECT.unique,
+                        name=status,
+                        marker=dict(color=color),
+                        opacity=0.9, orientation='h'), 1, 1)
 
                 # Customize figure
                 fig['layout'].update(barmode='stack', showlegend=True)
