@@ -333,8 +333,8 @@ class DaxDashboard:
             if selected_groupby == 'PROCTYPE':
                 pass
             elif selected_groupby == 'PROJECT':
-                df = pd.DataFrame(data)
-                yall = sorted(df.PROJECT.unique())
+                df = pd.DataFrame(data).sort_values('PROJECT')
+                yall = df.PROJECT.unique()
                 xgree = df[df.STATUS == 'RUNNING'].groupby('PROJECT')['LABEL'].count()
                 xblue = df[df.STATUS == 'UPLOADING'].groupby('PROJECT')['LABEL'].count()
                 xredd = df[df.STATUS == 'UNKNOWN'].groupby('PROJECT')['LABEL'].count()
@@ -377,8 +377,8 @@ class DaxDashboard:
 
                 return fig
             else:
-                df = pd.DataFrame(data)
-                yall = sorted(df.USER.unique())
+                df = pd.DataFrame(data).sort_values('USER')
+                yall = df.USER.unique()
                 print(yall)
                 xgree = df[df.STATUS == 'RUNNING'].groupby('USER')['LABEL'].count()
                 xblue = df[df.STATUS == 'UPLOADING'].groupby('USER')['LABEL'].count()
