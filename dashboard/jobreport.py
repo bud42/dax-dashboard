@@ -212,6 +212,7 @@ class DashboardData:
         # squeue states: CG,F, PR, S, ST
         # diskq statuses: JOB_RUNNING, JOB_FAILED, NEED_TO_RUN,
         # UPLOADING, READY_TO_COMPLETE, READY_TO_UPLOAD
+        print(row['label'])
         dstatus = row['procstatus']
         sstatus = row['ST']
         if pd.isna(dstatus) and pd.isna(sstatus):
