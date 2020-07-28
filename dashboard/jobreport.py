@@ -151,7 +151,7 @@ class DashboardData:
             df['LABEL'] = df['NAME'].str.split('.slurm').str[0]
             return df
         except pd.errors.EmptyDataError:
-            return pd.DataFrame()
+            return None
 
     def get_diskq_attr(self, diskq, assr, attr):
         apath = os.path.join(diskq, attr, assr)
@@ -390,12 +390,11 @@ class DaxDashboard:
                     aggfunc='count',
                     fill_value=0)
                 for status, color in zip(STATUS_LIST, COLOR_LIST):
+                    ydata = dfp.index
                     if status not in dfp:
-                        xdata = 0
-                        ydata = dfp.index
+                        xdata = [0] * len(dfp.index)
                     else:
                         xdata = dfp[status]
-                        ydata = dfp.index
 
                     fig.append_trace(go.Bar(
                         x=xdata,
