@@ -212,7 +212,6 @@ class DashboardData:
         # squeue states: CG,F, PR, S, ST
         # diskq statuses: JOB_RUNNING, JOB_FAILED, NEED_TO_RUN,
         # UPLOADING, READY_TO_COMPLETE, READY_TO_UPLOAD
-        print(row['LABEL'])
         dstatus = row['procstatus']
         sstatus = row['ST']
         if pd.isna(dstatus) and pd.isna(sstatus):
@@ -457,7 +456,7 @@ class DaxDashboard:
                             {'label': 'By USER', 'value': 'USER'},
                             {'label': 'By PROJECT', 'value': 'PROJECT'},
                             {'label': 'By PROCTYPE', 'value': 'PROCTYPE'}],
-                        value='user',
+                        value='USER',
                         id='radio-task-groupby',
                         labelStyle={'display': 'inline-block'}),
                     dcc.Dropdown(
