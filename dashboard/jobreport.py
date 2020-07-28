@@ -471,7 +471,6 @@ class DaxDashboard:
                         sort_action='native',
                         id='datatable-task',
                         fixed_rows={'headers': True},
-                        fixed_columns={'headers': True},
                         style_cell={'textAlign': 'left'}),
                     ], className="container", style={"max-width": "none"})
                 ),
