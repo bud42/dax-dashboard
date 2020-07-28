@@ -142,9 +142,8 @@ class DashboardData:
             'memused': self.get_diskq_attr(diskq, assr, 'memused'),
             'walltimeused': self.get_diskq_attr(diskq, assr, 'walltimeused')}
 
-    def load_slurm_queue(self, data=None):
-
-        if data is None:
+    def load_slurm_queue(self):
+        try:
             cmd = SQUEUE_CMD
             result = subprocess.run([cmd], shell=True, stdout=subprocess.PIPE)
             data = result.stdout.decode('utf-8')
@@ -390,13 +389,13 @@ class DaxDashboard:
                     aggfunc='count',
                     fill_value=0)
                 for status, color in zip(STATUS_LIST, COLOR_LIST):
-                    # xdata = df[df.STATUS == status].groupby(
-                    #    pd.Categorical(df.PROJECT))['NAME'].count()
-                    # ydata = df.PROJECT.unique(),
-                    xdata = dfp[status]
-                    ydata = dfp.index
-                    print(xdata)
-                    print(ydata)
+                    if status not in dfp:
+                        xdata = 0
+                        ydata = dfp.index
+                    else:
+                        xdata = dfp[status]
+                        ydata = dfp.index
+
                     fig.append_trace(go.Bar(
                         x=xdata,
                         y=ydata,
