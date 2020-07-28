@@ -96,9 +96,8 @@ class DashboardData:
         df = pd.merge(diskq_df, squeue_df, how='outer', on='LABEL')
 
         print('cleaning data:parse assessor')
-        #df = df.apply(self.parse_assessor, axis=1)
-        df['PROJECT'] = df['NAME'].str.split('-x-', n=1, expand=True)[0]
-        df['PROCTYPE'] = df['NAME'].str.split('-x-', n=4, expand=True)[3]
+        df['PROJECT'] = df['LABEL'].str.split('-x-', n=1, expand=True)[0]
+        df['PROCTYPE'] = df['LABEL'].str.split('-x-', n=4, expand=True)[3]
 
         # Apply the clean values
         print('cleaning data:set status')
@@ -399,9 +398,14 @@ class DaxDashboard:
 
                 # Draw bar for each status, these will be displayed in order
                 for status, color in zip(STATUS_LIST, COLOR_LIST):
+                    xdata = df[df.STATUS == status].groupby(
+                        pd.Categorical(df.PROJECT))['NAME'].count()
+                    ydata = df.PROJECT.unique(),
+                    print(xdata)
+                    print(ydata)
                     fig.append_trace(go.Bar(
-                        x=df[df.STATUS == status],
-                        y=df.PROJECT.unique(),
+                        x=xdata,
+                        y=ydata,
                         name=status,
                         marker=dict(color=color),
                         opacity=0.9, orientation='h'), 1, 1)
