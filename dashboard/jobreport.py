@@ -18,7 +18,7 @@ from dash.dependencies import Input, Output
 from dax import XnatUtils
 
 # LATER: look at this:
-#https://dash-bootstrap-components.opensource.faculty.ai/examples/iris/
+# https://dash-bootstrap-components.opensource.faculty.ai/examples/iris/
 
 # NEXT: radio buttons to select group by User/Project/Processing Type
 # load an addition queue (from disk by listing subdirs in the upload dir)
@@ -37,16 +37,17 @@ from dax import XnatUtils
 
 pd.set_option('display.max_colwidth', None)
 
-#SQUEUE_CMD = 'ssh sideshowb squeue -u vuiis_archive_singularity --format="%all"'
-SQUEUE_USER = 'vuiis_archive_singularity,vuiis_daily_singularity'
-SQUEUE_CMD = 'squeue -u '+SQUEUE_USER+' --format="%all"'
-DFORMAT = '%Y-%m-%d %H:%M:%S'
-TIMEZONE = 'US/Central'
-XNAT_USER = 'boydb1'
-#UPLOAD_DIR = '/Users/boydb1/RESULTS_XNAT_SPIDER'
+# SQUEUE_CMD = 'ssh sideshowb squeue -u '+SQUEUE_USER+' --format="%all"'
+SQUEUE_USER = ['vuiis_archive_singularity', 'vuiis_daily_singularity']
 UPLOAD_DIR = [
     '/scratch/vuiis_archive_singularity/Spider_Upload_Dir',
     '/scratch/vuiis_daily_singularity/Spider_Upload_Dir']
+SQUEUE_CMD = 'squeue -u '+','.join(SQUEUE_USER)+' --format="%all"'
+DFORMAT = '%Y-%m-%d %H:%M:%S'
+TIMEZONE = 'US/Central'
+XNAT_USER = 'boydb1'
+# UPLOAD_DIR = '/Users/boydb1/RESULTS_XNAT_SPIDER'
+
 RGB_DKBLUE = 'rgb(59,89,152)'
 RGB_BLUE = 'rgb(66,133,244)'
 RGB_GREEN = 'rgb(15,157,88)'
@@ -56,7 +57,7 @@ RGB_GREY = 'rgb(200,200,200)'
 
 TASK_COLS = [
     'label', 'project', 'SESSION', 'status', 'procstatus', 'ST',
-    'PROCTYPE', 'submitdt', 'timeused', 'USER']
+    'PROCTYPE', 'submitdt', 'timeused', 'user']
 
 SQUEUE_COLS = [
     'NAME', 'USER', 'ACCOUNT', 'GROUP',
@@ -110,13 +111,14 @@ class DashboardData:
     def load_diskq_queue(self, status=None):
         task_list = list()
 
-        for u in UPLOAD_DIR:
-            diskq_dir = os.path.join(u, 'DISKQ')
+        for d, u in UPLOAD_DIR, SQUEUE_USER:
+            diskq_dir = os.path.join(d, 'DISKQ')
             batch_dir = os.path.join(diskq_dir, 'BATCH')
 
             for t in os.listdir(batch_dir):
                 assr = os.path.splitext(t)[0]
-                task_list.append(self.load_diskq_task(diskq_dir, assr))
+                task_list.append(self.load_diskq_task(
+                    diskq_dir, assr).update({'user': u}))
 
         df = pd.DataFrame(task_list)
         return df
@@ -362,13 +364,13 @@ class DaxDashboard:
                 return fig
             else:
                 df = pd.DataFrame(data)
-                yall = sorted(df.USER.unique())
+                yall = sorted(df.user.unique())
                 print(yall)
-                xgree = df[df.status == 'RUNNING'].groupby('USER')['label'].count()
-                xblue = df[df.status == 'UPLOADING'].groupby('USER')['label'].count()
-                xredd = df[df.status == 'UNKNOWN'].groupby('USER')['label'].count()
-                xyell = df[df.status == 'PENDING'].groupby('USER')['label'].count()
-                xgrey = df[df.status == 'WAITING'].groupby('USER')['label'].count()
+                xgree = df[df.status == 'RUNNING'].groupby('user')['label'].count()
+                xblue = df[df.status == 'UPLOADING'].groupby('user')['label'].count()
+                xredd = df[df.status == 'UNKNOWN'].groupby('user')['label'].count()
+                xyell = df[df.status == 'PENDING'].groupby('user')['label'].count()
+                xgrey = df[df.status == 'WAITING'].groupby('user')['label'].count()
 
                 # Make a 1x1 figured
                 fig = plotly.subplots.make_subplots(rows=1, cols=1)
