@@ -56,7 +56,7 @@ RGB_GREY = 'rgb(200,200,200)'
 
 TASK_COLS = [
     'label', 'project', 'session', 'status', 'procstatus', 'ST',
-    'proctype', 'submitdt', 'timeused', 'user']
+    'proctype', 'submitdt', 'timeused', 'USER']
 
 SQUEUE_COLS = [
     'NAME', 'USER', 'ACCOUNT', 'GROUP',
@@ -96,7 +96,6 @@ class DashboardData:
         # Apply the clean values
         df = df.apply(self.clean_values, axis=1)
         df = df.apply(self.parse_assessor, axis=1)
-        df['user'] = 'vuiis_archive_singularity'
 
         print('finishing data')
         # Minimize columns
@@ -365,11 +364,11 @@ class DaxDashboard:
                 df = pd.DataFrame(data)
                 yall = sorted(df.user.unique())
                 print(yall)
-                xgree = df[df.status == 'RUNNING'].groupby('user')['label'].count()
-                xblue = df[df.status == 'UPLOADING'].groupby('user')['label'].count()
-                xredd = df[df.status == 'UNKNOWN'].groupby('user')['label'].count()
-                xyell = df[df.status == 'PENDING'].groupby('user')['label'].count()
-                xgrey = df[df.status == 'WAITING'].groupby('user')['label'].count()
+                xgree = df[df.status == 'RUNNING'].groupby('USER')['label'].count()
+                xblue = df[df.status == 'UPLOADING'].groupby('USER')['label'].count()
+                xredd = df[df.status == 'UNKNOWN'].groupby('USER')['label'].count()
+                xyell = df[df.status == 'PENDING'].groupby('USER')['label'].count()
+                xgrey = df[df.status == 'WAITING'].groupby('USER')['label'].count()
 
                 # Make a 1x1 figured
                 fig = plotly.subplots.make_subplots(rows=1, cols=1)
