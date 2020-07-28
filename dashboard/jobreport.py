@@ -96,6 +96,12 @@ class DashboardData:
         # Minimize columns
         self.task_df = df[TASK_COLS]
 
+    def update_data(self):
+        self.updatetime = self.formatted_time(datetime.now())
+
+        # Reload data
+        self.load_data()
+
     def load_diskq_queue(self, status=None):
         diskq_dir = os.path.join(UPLOAD_DIR, 'DISKQ')
         batch_dir = os.path.join(diskq_dir, 'BATCH')
@@ -252,11 +258,10 @@ class DaxDashboard:
         # Make the main dash app
         app = dash.Dash(__name__)
 
-        app.css.config.serve_locally = False
+        #app.css.config.serve_locally = False
 
-        # Dash CSS
-        app.css.append_css(
-            {"external_url": "https://codepen.io/chriddyp/pen/bWLwgP.css"})
+        app.css.append_css({
+            "external_url": "https://codepen.io/chriddyp/pen/bWLwgP.css"})
 
         # Note: other css is loaded from assets folder
 
@@ -467,6 +472,9 @@ class DaxDashboard:
                 ], style={'float': 'right', 'display': 'inline-block'}),
             ], style={'display': 'inline-block'}),
             html.Div(children=report_content, id='report-content')])
+
+    def update_data(self):
+        self.dashdata.update_data()
 
     def get_app(self):
         return self.app
