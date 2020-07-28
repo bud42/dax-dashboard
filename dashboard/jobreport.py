@@ -162,11 +162,13 @@ class DashboardData:
             return f.read().strip()
 
     def parse_assessor(self, row):
-        labels = row['LABEL'].split("-x-")
-        row['PROJECT'] = labels[0]
+        #labels = row['LABEL'].split("-x-")
+        #row['PROJECT'] = labels[0]
         #row['SUBJECT'] = labels[1]
         #row['SESSION'] = labels[2]
-        row['PROCTYPE'] = labels[3]
+        #row['PROCTYPE'] = labels[3]
+        row['PROJECT'] = row['LABEL'].split("-x-")[0]
+        row['PROCTYPE'] = row['LABEL'].split("-x-")[3]
         return row
 
     def get_json(self, xnat, uri):
@@ -220,7 +222,7 @@ class DashboardData:
         elif pd.isna(sstatus) and dstatus == 'JOB_RUNNING':
             # TODO: determine if this is possible and correct? or does this
             # mean its ready to upload?
-            row['STATUS'] = 'WAITING'
+            row['STATUS'] = 'UPLOADING'
         elif sstatus == 'PD' and dstatus == 'JOB_RUNNING':
             row['STATUS'] = 'PENDING'
         else:
@@ -441,9 +443,8 @@ class DaxDashboard:
         self.dashdata.load_data()
         df = self.dashdata.task_df
         proj_options = self.make_options(df.PROJECT.unique())
-        job_columns = [
-            {"name": i, "id": i} for i in self.dashdata.task_df.columns]
-        job_data = self.dashdata.task_df.to_dict('rows')
+        job_columns = [{"name": i, "id": i} for i in df.columns]
+        job_data = df.to_dict('rows')
 
         job_tab_content = [
                 html.Div(
@@ -468,7 +469,10 @@ class DaxDashboard:
                         filter_action='native',
                         page_action='none',
                         sort_action='native',
-                        id='datatable-task'),
+                        id='datatable-task',
+                        fixed_rows={'headers': True, 'data': 0},
+                        fixed_columns={'headers': True, 'data': 1},
+                        style_cell={'textAlign': 'left'}),
                     ], className="container", style={"max-width": "none"})
                 ),
                 html.Div(dt.DataTable(data=[{}]), style={'display': 'none'})]
