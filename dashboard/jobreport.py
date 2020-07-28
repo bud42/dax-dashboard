@@ -258,7 +258,7 @@ class DaxDashboard:
         # Make the main dash app
         app = dash.Dash(__name__)
 
-        #app.css.config.serve_locally = False
+        app.css.config.serve_locally = False
 
         app.css.append_css({
             "external_url": "https://codepen.io/chriddyp/pen/bWLwgP.css"})
@@ -303,11 +303,10 @@ class DaxDashboard:
 
         @app.callback(
             Output('graph-task', 'figure'),
-            [Input('datatable-task', 'data')])
-        def update_figure(data):
+            [Input('datatable-task', 'data'),
+             Input('radio-scan-groupby', 'value')])
+        def update_figure(data, selected_groupby):
             print('update_figure')
-
-            selected_groupby = 'none'
 
             if selected_groupby == 'proctype':
                 pass
@@ -431,6 +430,14 @@ class DaxDashboard:
                   html.Div([
                     dcc.Graph(
                         id='graph-task'),
+                    dcc.RadioItems(
+                        options=[
+                            {'label': 'By User', 'value': 'user'},
+                            {'label': 'By Project', 'value': 'project'},
+                            {'label': 'By Proc Type', 'value': 'proctype'}],
+                        value='user',
+                        id='radio-task-groupby',
+                        labelStyle={'display': 'inline-block'}),
                     dcc.Dropdown(
                         id='dropdown-task-proj', multi=True,
                         options=proj_options,
