@@ -393,7 +393,7 @@ class DaxDashboard:
                     # xdata = df[df.STATUS == status].groupby(
                     #    pd.Categorical(df.PROJECT))['NAME'].count()
                     # ydata = df.PROJECT.unique(),
-                    xdata = dfp['STATUS']
+                    xdata = dfp[status]
                     ydata = dfp.index
                     print(xdata)
                     print(ydata)
