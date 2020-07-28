@@ -55,8 +55,8 @@ RGB_RED = 'rgb(219,68,55)'
 RGB_GREY = 'rgb(200,200,200)'
 
 TASK_COLS = [
-    'label', 'project', 'session', 'status', 'procstatus', 'ST',
-    'proctype', 'submitdt', 'timeused', 'USER']
+    'label', 'project', 'SESSION', 'status', 'procstatus', 'ST',
+    'PROCTYPE', 'submitdt', 'timeused', 'USER']
 
 SQUEUE_COLS = [
     'NAME', 'USER', 'ACCOUNT', 'GROUP',
@@ -154,9 +154,9 @@ class DashboardData:
     def parse_assessor(self, row):
         labels = row['label'].split("-x-")
         row['project'] = labels[0]
-        row['subject'] = labels[1]
-        row['session'] = labels[2]
-        row['proctype'] = labels[3]
+        row['SUBJECT'] = labels[1]
+        row['SESSION'] = labels[2]
+        row['PROCTYPE'] = labels[3]
         return row
 
     def get_json(self, xnat, uri):
@@ -362,7 +362,7 @@ class DaxDashboard:
                 return fig
             else:
                 df = pd.DataFrame(data)
-                yall = sorted(df.user.unique())
+                yall = sorted(df.USER.unique())
                 print(yall)
                 xgree = df[df.status == 'RUNNING'].groupby('USER')['label'].count()
                 xblue = df[df.status == 'UPLOADING'].groupby('USER')['label'].count()
