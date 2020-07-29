@@ -391,10 +391,9 @@ class DaxDashboard:
                 html.Div(
                   html.Div([
                     dcc.Graph(
-                        id='graph-task',
-                        figure={'layout': go.Layout(
-                            xaxis={'showgrid': False, 'zeroline': False},
-                            yaxis={'showgrid': False, 'zeroline': False})}),
+                        id='graph-task', figure={'layout': go.Layout(
+                            xaxis={'showgrid': False, 'zeroline': False, 'showline': False},
+                            yaxis={'showgrid': False, 'zeroline': False, 'showline': False})}),
                     dcc.RadioItems(
                         options=[
                             {'label': 'By USER', 'value': 'USER'},
