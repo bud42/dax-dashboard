@@ -337,7 +337,7 @@ class DaxDashboard:
             df = pd.DataFrame(data)
 
             # Make a 1x1 figure (I dunno why, this is from doing multi plots)
-            fig = plotly.subplots.make_subplots(rows=1, cols=1)
+            fig = plotly.subplots.make_subplots(rows=1, cols=1, zeroline=False)
 
             # What index are we pivoting on to count statuses
             PINDEX = selected_groupby
@@ -356,7 +356,7 @@ class DaxDashboard:
                 fig.append_trace(go.Bar(
                     x=xdata,
                     y=ydata,
-                    name='{} ({})'.format(status, xdata.sum()),
+                    name='{} ({})'.format(status, sum(xdata)),
                     marker=dict(color=color),
                     opacity=0.9, orientation='h'), 1, 1)
 
