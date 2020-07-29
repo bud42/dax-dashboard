@@ -386,7 +386,7 @@ class DaxDashboard:
         proc_options = self.make_options(df.PROCTYPE.unique())
         job_columns = [{"name": i, "id": i} for i in df.columns]
         job_data = df.to_dict('rows')
-        job_hidden = ['USER', 'PROJECT', 'PROCTYPE']
+        job_hidden = ['USER', 'PROJECT', 'PROCTYPE', 'TIME_LEFT']
 
         job_tab_content = [
                 html.Div(
@@ -438,8 +438,7 @@ class DaxDashboard:
             html.H3('COMPLETE=job has finished and will be uploaded.'),
             html.H3('UNKNOWN=status is ambiguous or incomplete.'),
             html.Div([
-                html.P('DAX Dashboard'),
-                html.P('by BDB')])]
+                html.P('DAX Dashboard by BDB')])]
 
         return html.Div([
             dcc.Location(id='url', refresh=False),
