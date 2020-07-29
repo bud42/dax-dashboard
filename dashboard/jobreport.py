@@ -75,12 +75,14 @@ RGB_YELLOW = 'rgb(244,160,0)'
 RGB_RED = 'rgb(219,68,55)'
 RGB_GREY = 'rgb(200,200,200)'
 
+STATUS_LIST = ['WAITING', 'PENDING', 'RUNNING', 'UPLOADING', 'UNKNOWN']
+COLOR_LIST = [RGB_GREY, RGB_YELLOW, RGB_GREEN, RGB_BLUE, RGB_RED]
+
 #TASK_COLS = [
 #    'label', 'project', 'SESSION', 'status', 'procstatus', 'ST',
 #    'PROCTYPE', 'submitdt', 'timeused', 'user']
 
-TASK_COLS = [
-    'LABEL', 'PROJECT', 'STATUS', 'PROCTYPE', 'USER', 'psST']
+TASK_COLS = ['LABEL', 'PROJECT', 'STATUS', 'PROCTYPE', 'USER']
 
 SQUEUE_COLS = [
     'NAME', 'ST', 'STATE', 'PRIORITY', 'JOBID', 'MIN_MEMORY',
@@ -302,14 +304,19 @@ class DaxDashboard:
         # ===================================================================
         @app.callback(
             Output('datatable-task', 'data'),
-            [Input('dropdown-task-proj', 'value')])
-        def update_rows(selected_proj):
+            [Input('dropdown-task-proj', 'value'),
+             Input('dropdown-task-user', 'value'),
+             Input('dropdown-task-proc', 'value')])
+        def update_rows(selected_proj, selected_user, selected_proc):
             print('update_rows_task')
             df = self.dashdata.task_df
 
             # Filter by project
             if selected_proj:
                 df = df[df['PROJECT'].isin(selected_proj)]
+
+            if selected_proc:
+                df = df[df['PRODCTYPE'].isin(selected_proc)]
 
             return df.to_dict('records')
 
@@ -319,8 +326,6 @@ class DaxDashboard:
              Input('radio-task-groupby', 'value')])
         def update_figure(data, selected_groupby):
             print('updating figure')
-            STATUS_LIST = ['WAITING', 'PENDING', 'RUNNING', 'UPLOADING', 'UNKNOWN']
-            COLOR_LIST = [RGB_GREY, RGB_YELLOW, RGB_GREEN, RGB_BLUE, RGB_RED]
 
             # Load table data into a dataframe for easy manipulation
             df = pd.DataFrame(data)
@@ -367,10 +372,13 @@ class DaxDashboard:
 
     def get_layout(self):
         print('building interface')
+
         self.dashdata.load_data()
         df = self.dashdata.task_df
         print(df.PROJECT.unique())
         proj_options = self.make_options(df.PROJECT.unique())
+        user_options = self.make_options(df.USER.unique())
+        proc_options = self.make_options(df.PROCTYPE.unique())
         job_columns = [{"name": i, "id": i} for i in df.columns]
         job_data = df.to_dict('rows')
 
@@ -391,6 +399,14 @@ class DaxDashboard:
                         id='dropdown-task-proj', multi=True,
                         options=proj_options,
                         placeholder='Select Project(s)'),
+                    dcc.Dropdown(
+                        id='dropdown-task-user', multi=True,
+                        options=user_options,
+                        placeholder='Select User(s)'),
+                    dcc.Dropdown(
+                        id='dropdown-task-proc', multi=True,
+                        options=proc_options,
+                        placeholder='Select Processing Type(s)'),
                     dt.DataTable(
                         columns=job_columns,
                         data=job_data,
