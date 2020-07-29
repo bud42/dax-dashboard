@@ -56,6 +56,15 @@ TIMEZONE = 'US/Central'
 XNAT_USER = 'boydb1'
 # UPLOAD_DIR = '/Users/boydb1/RESULTS_XNAT_SPIDER'
 
+STATUS_MAP = {
+    '-': 'WAITING',
+    'CD-JOB_RUNNING': 'RUNNING',
+    'CG-JOB_RUNNING': 'RUNNING',
+    'F-JOB_RUNNING': 'RUNNING',
+    'R-JOB_RUNNING': 'RUNNING',
+    '-JOB_RUNNING': 'UPLOADING',
+    'PD-JOB_RUNNING': 'PENDING'}
+
 RGB_DKBLUE = 'rgb(59,89,152)'
 RGB_BLUE = 'rgb(66,133,244)'
 RGB_GREEN = 'rgb(15,157,88)'
@@ -110,9 +119,9 @@ class DashboardData:
         df['PROJECT'] = df['LABEL'].str.split('-x-', n=1, expand=True)[0]
         df['PROCTYPE'] = df['LABEL'].str.split('-x-', n=4, expand=True)[3]
 
-        # Apply the clean values
         print('cleaning data:set status')
-        df = df.apply(self.set_status, axis=1)
+        df['procstatus_ST'] == df['procstatus'] + '-' + dt['ST']
+        df['STATUS'] = df['procstatus_ST'].map(STATUS_MAP).fillna('UNKNOWN')
 
         #print('cleaning data:set time')
         #df = df.apply(self.set_time, axis=1)
