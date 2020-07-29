@@ -55,6 +55,10 @@ DFORMAT = '%Y-%m-%d %H:%M:%S'
 TIMEZONE = 'US/Central'
 XNAT_USER = 'boydb1'
 
+ # we diskq status and squeue status to make a single status
+# squeue states: CG,F, PR, S, ST
+# diskq statuses: JOB_RUNNING, JOB_FAILED, NEED_TO_RUN,
+# UPLOADING, READY_TO_COMPLETE, READY_TO_UPLOAD
 STATUS_MAP = {
     'NONENONE': 'WAITING',
     'JOB_RUNNINGCD': 'RUNNING',
@@ -121,9 +125,6 @@ class DashboardData:
         print('cleaning data:set status')
         df['psST'] = df['procstatus'].fillna('NONE') + df['ST'].fillna('NONE')
         df['STATUS'] = df['psST'].map(STATUS_MAP).fillna('UNKNOWN')
-
-        #print('cleaning data:set time')
-        #df = df.apply(self.set_time, axis=1)
 
         print('finishing data')
         # Minimize columns
@@ -218,28 +219,6 @@ class DashboardData:
 
     def formatted_time(self, curtime):
         return datetime.strftime(curtime, DFORMAT)
-
-    def set_status(self, row):
-        # Use diskq status and squeue status to make a single status
-        # squeue states: CG,F, PR, S, ST
-        # diskq statuses: JOB_RUNNING, JOB_FAILED, NEED_TO_RUN,
-        # UPLOADING, READY_TO_COMPLETE, READY_TO_UPLOAD
-        dstatus = row['procstatus']
-        sstatus = row['ST']
-        if pd.isna(dstatus) and pd.isna(sstatus):
-            row['STATUS'] = 'WAITING'
-        elif sstatus in ['R', 'CD', 'CG', 'F'] and dstatus == 'JOB_RUNNING':
-            row['STATUS'] = 'RUNNING'
-        elif pd.isna(sstatus) and dstatus == 'JOB_RUNNING':
-            # TODO: determine if this is possible and correct? or does this
-            # mean its ready to upload?
-            row['STATUS'] = 'UPLOADING'
-        elif sstatus == 'PD' and dstatus == 'JOB_RUNNING':
-            row['STATUS'] = 'PENDING'
-        else:
-            row['STATUS'] = 'UNKNOWN'
-
-        return row
 
     def set_time(self, row):
         if pd.notna(row['SUBMIT_TIME']):
