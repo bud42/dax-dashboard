@@ -418,7 +418,6 @@ class DaxDashboard:
                         placeholder='Select Processing Type(s)'),
                     dt.DataTable(
                         columns=job_columns,
-                        hidden_columns=job_hidden,
                         data=job_data,
                         filter_action='native',
                         page_action='none',
@@ -435,11 +434,13 @@ class DaxDashboard:
             vertical=False),)]
 
         footer_content = [
+            html.H5(''),
             html.H5('WAITING: job has been built, but is not yet submitted'),
             html.H5('PENDING: job has submitted, but is not yet running'),
             html.H5('RUNNING: job is running on the cluster'),
             html.H5('COMPLETE: job has finished and will be uploaded'),
             html.H5('UNKNOWN: status is ambiguous or incomplete.'),
+            html.H5(''),
             html.Div([
                 html.P('DAX Dashboard by BDB')])]
 
