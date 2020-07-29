@@ -336,9 +336,7 @@ class DaxDashboard:
             df = pd.DataFrame(data)
 
             # Make a 1x1 figure (I dunno why, this is from doing multi plots)
-            #fig = plotly.subplots.make_subplots(rows=1, cols=1)
-            #fig = go.Figure(xaxis={'showgrid': False, 'zeroline': False})
-            fig = go.Figure()
+            fig = plotly.subplots.make_subplots(rows=1, cols=1)
 
             # What index are we pivoting on to count statuses
             PINDEX = selected_groupby
@@ -393,7 +391,10 @@ class DaxDashboard:
                 html.Div(
                   html.Div([
                     dcc.Graph(
-                        id='graph-task'),
+                        id='graph-task',
+                        figure={'layout': go.Layout(
+                            xaxis={'showgrid': False, 'zeroline': False},
+                            yaxis={'showgrid': False, 'zeroline': False})}),
                     dcc.RadioItems(
                         options=[
                             {'label': 'By USER', 'value': 'USER'},
