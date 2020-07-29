@@ -337,6 +337,7 @@ class DaxDashboard:
 
             # Make a 1x1 figure (I dunno why, this is from doing multi plots)
             fig = plotly.subplots.make_subplots(rows=1, cols=1)
+            fig.update_layout(margin=dict(l=20, r=20, t=20, b=20))
 
             # What index are we pivoting on to count statuses
             PINDEX = selected_groupby
