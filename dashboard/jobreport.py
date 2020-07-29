@@ -311,8 +311,11 @@ class DaxDashboard:
             if selected_proj:
                 df = df[df['PROJECT'].isin(selected_proj)]
 
+            if selected_user:
+                df = df[df['USER'].isin(selected_user)]
+
             if selected_proc:
-                df = df[df['PRODCTYPE'].isin(selected_proc)]
+                df = df[df['PROCTYPE'].isin(selected_proc)]
 
             return df.to_dict('records')
 
