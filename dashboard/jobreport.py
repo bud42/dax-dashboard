@@ -424,7 +424,10 @@ class DaxDashboard:
                         sort_action='native',
                         id='datatable-task',
                         fixed_rows={'headers': True},
-                        style_cell={'textAlign': 'left'}),
+                        style_cell={'textAlign': 'left'},
+                        export_format='xlsx',
+                        export_headers='names',
+                        export_columns='all'),
                     ], className="container", style={"max-width": "none"})
                 ),
                 html.Div(dt.DataTable(data=[{}]), style={'display': 'none'})]
