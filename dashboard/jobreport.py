@@ -89,6 +89,9 @@ class DashboardData:
         self.all_proj_list = proj_list
 
     def load_data(self):
+        # Cache update time
+        nowtime = datetime.now()
+
         # Load tasks in diskq
         print('loading diskq queue')
         diskq_df = self.load_diskq_queue()
@@ -118,9 +121,10 @@ class DashboardData:
         # Minimize columns
         self.task_df = df[TASK_COLS]
 
-    def update_data(self):
-        self.updatetime = self.formatted_time(datetime.now())
+        # Store updated time
+        self.updatetime = self.formatted_time(nowtime)
 
+    def update_data(self):
         # Reload data
         self.load_data()
 
@@ -169,16 +173,6 @@ class DashboardData:
 
         with open(apath, 'r') as f:
             return f.read().strip()
-
-    def parse_assessor(self, row):
-        #labels = row['LABEL'].split("-x-")
-        #row['PROJECT'] = labels[0]
-        #row['SUBJECT'] = labels[1]
-        #row['SESSION'] = labels[2]
-        #row['PROCTYPE'] = labels[3]
-        row['PROJECT'] = row['LABEL'].split("-x-")[0]
-        row['PROCTYPE'] = row['LABEL'].split("-x-")[3]
-        return row
 
     def get_json(self, xnat, uri):
         data = json.loads(xnat._exec(uri, 'GET'))
@@ -383,7 +377,6 @@ class DaxDashboard:
                 self.update_data()
 
             return ['{}    '.format(self.dashdata.updatetime)]
-            #,self.dashdata.updatetime_humanized())]
 
     def get_layout(self):
         print('building interface')
