@@ -57,13 +57,13 @@ XNAT_USER = 'boydb1'
 # UPLOAD_DIR = '/Users/boydb1/RESULTS_XNAT_SPIDER'
 
 STATUS_MAP = {
-    '-': 'WAITING',
-    'CD-JOB_RUNNING': 'RUNNING',
-    'CG-JOB_RUNNING': 'RUNNING',
-    'F-JOB_RUNNING': 'RUNNING',
-    'R-JOB_RUNNING': 'RUNNING',
-    '-JOB_RUNNING': 'UPLOADING',
-    'PD-JOB_RUNNING': 'PENDING'}
+    '': 'WAITING',
+    'CDJOB_RUNNING': 'RUNNING',
+    'CGJOB_RUNNING': 'RUNNING',
+    'FJOB_RUNNING': 'RUNNING',
+    'RJOB_RUNNING': 'RUNNING',
+    'JOB_RUNNING': 'UPLOADING',
+    'PDJOB_RUNNING': 'PENDING'}
 
 RGB_DKBLUE = 'rgb(59,89,152)'
 RGB_BLUE = 'rgb(66,133,244)'
@@ -120,7 +120,7 @@ class DashboardData:
         df['PROCTYPE'] = df['LABEL'].str.split('-x-', n=4, expand=True)[3]
 
         print('cleaning data:set status')
-        df['procstatus_ST'] = df['procstatus'] + '-' + dt['ST']
+        df['procstatus_ST'] = df['procstatus'] + dt['ST']
         df['STATUS'] = df['procstatus_ST'].map(STATUS_MAP).fillna('UNKNOWN')
 
         #print('cleaning data:set time')
