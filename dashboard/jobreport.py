@@ -383,9 +383,11 @@ class DaxDashboard:
         proj_options = self.make_options(df.PROJECT.unique())
         user_options = self.make_options(df.USER.unique())
         proc_options = self.make_options(df.PROCTYPE.unique())
-        job_columns = [{"name": i, "id": i} for i in df.columns]
+        # job_columns = [{"name": i, "id": i} for i in df.columns]
+        # job_hidden = ['USER', 'PROJECT', 'PROCTYPE', 'TIME_LEFT']
+        job_show = ['LABEL', 'STATUS', 'TIME']
+        job_columns = [{"name": i, "id": i} for i in job_show]
         job_data = df.to_dict('rows')
-        job_hidden = ['USER', 'PROJECT', 'PROCTYPE', 'TIME_LEFT']
 
         job_tab_content = [
                 html.Div(
@@ -433,11 +435,11 @@ class DaxDashboard:
             vertical=False),)]
 
         footer_content = [
-            html.H3('WAITING=job has been built, but is not yet submitted.'),
-            html.H3('PENDING=job has submitted, but is not yet running.'),
-            html.H3('RUNNING=job is running on the cluster.'),
-            html.H3('COMPLETE=job has finished and will be uploaded.'),
-            html.H3('UNKNOWN=status is ambiguous or incomplete.'),
+            html.H5('WAITING: job has been built, but is not yet submitted'),
+            html.H5('PENDING: job has submitted, but is not yet running'),
+            html.H5('RUNNING: job is running on the cluster'),
+            html.H5('COMPLETE: job has finished and will be uploaded'),
+            html.H5('UNKNOWN: status is ambiguous or incomplete.'),
             html.Div([
                 html.P('DAX Dashboard by BDB')])]
 
