@@ -55,7 +55,7 @@ DFORMAT = '%Y-%m-%d %H:%M:%S'
 TIMEZONE = 'US/Central'
 XNAT_USER = 'boydb1'
 
- # we diskq status and squeue status to make a single status
+# we concat diskq status and squeue status to make a single status
 # squeue states: CG,F, PR, S, ST
 # diskq statuses: JOB_RUNNING, JOB_FAILED, NEED_TO_RUN,
 # UPLOADING, READY_TO_COMPLETE, READY_TO_UPLOAD
@@ -77,10 +77,6 @@ RGB_GREY = 'rgb(200,200,200)'
 
 STATUS_LIST = ['WAITING', 'PENDING', 'RUNNING', 'UPLOADING', 'UNKNOWN']
 COLOR_LIST = [RGB_GREY, RGB_YELLOW, RGB_GREEN, RGB_BLUE, RGB_RED]
-
-#TASK_COLS = [
-#    'label', 'project', 'SESSION', 'status', 'procstatus', 'ST',
-#    'PROCTYPE', 'submitdt', 'timeused', 'user']
 
 TASK_COLS = ['LABEL', 'PROJECT', 'STATUS', 'PROCTYPE', 'USER']
 
@@ -342,7 +338,7 @@ class DaxDashboard:
                 df, index=PINDEX, values='LABEL', columns=['STATUS'],
                 aggfunc='count', fill_value=0)
             for status, color in zip(STATUS_LIST, COLOR_LIST):
-                ydata = dfp.index
+                ydata = sorted(dfp.index)
                 if status not in dfp:
                     xdata = [0] * len(dfp.index)
                 else:
