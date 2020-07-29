@@ -430,6 +430,16 @@ class DaxDashboard:
             dcc.Tab(label='Jobs', value=1, children=job_tab_content)],
             vertical=False),)]
 
+        footer_content = [
+            html.H3('WAITING=job has been built, but is not yet submitted.'),
+            html.H3('PENDING=job has submitted, but is not yet running.'),
+            html.H3('RUNNING=job is running on the cluster'.),
+            html.H3('COMPLETE=job has finished and will be uploaded'.),
+            html.H3('UNKNOWN=status is ambiguous or incomplete'.),
+            html.Div([
+                html.P('DAX Dashboard'),
+                html.P('by BDB')])]
+
         return html.Div([
             dcc.Location(id='url', refresh=False),
             html.Div([
@@ -451,7 +461,8 @@ class DaxDashboard:
                         n_clicks=0, style={'margin-right': '25px'}),
                 ], style={'float': 'right', 'display': 'inline-block'}),
             ], style={'display': 'inline-block'}),
-            html.Div(children=report_content, id='report-content')])
+            html.Div(children=report_content, id='report-content'),
+            html.Div(children=footer_content, id='footer-content')])
 
     def update_data(self):
         self.dashdata.update_data()
