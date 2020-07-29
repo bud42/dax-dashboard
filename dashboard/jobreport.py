@@ -433,9 +433,9 @@ class DaxDashboard:
         footer_content = [
             html.H3('WAITING=job has been built, but is not yet submitted.'),
             html.H3('PENDING=job has submitted, but is not yet running.'),
-            html.H3('RUNNING=job is running on the cluster'.),
-            html.H3('COMPLETE=job has finished and will be uploaded'.),
-            html.H3('UNKNOWN=status is ambiguous or incomplete'.),
+            html.H3('RUNNING=job is running on the cluster.'),
+            html.H3('COMPLETE=job has finished and will be uploaded.'),
+            html.H3('UNKNOWN=status is ambiguous or incomplete.'),
             html.Div([
                 html.P('DAX Dashboard'),
                 html.P('by BDB')])]
