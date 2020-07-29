@@ -120,7 +120,7 @@ class DashboardData:
         df['PROCTYPE'] = df['LABEL'].str.split('-x-', n=4, expand=True)[3]
 
         print('cleaning data:set status')
-        df['procstatus_ST'] = df['procstatus'] + dt['ST']
+        df['procstatus_ST'] = df['procstatus'] + df['ST']
         df['STATUS'] = df['procstatus_ST'].map(STATUS_MAP).fillna('UNKNOWN')
 
         #print('cleaning data:set time')
