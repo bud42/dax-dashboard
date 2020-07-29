@@ -54,16 +54,15 @@ SQUEUE_CMD = 'squeue -u '+','.join(SQUEUE_USER)+' --format="%all"'
 DFORMAT = '%Y-%m-%d %H:%M:%S'
 TIMEZONE = 'US/Central'
 XNAT_USER = 'boydb1'
-# UPLOAD_DIR = '/Users/boydb1/RESULTS_XNAT_SPIDER'
 
 STATUS_MAP = {
-    '': 'WAITING',
-    'CDJOB_RUNNING': 'RUNNING',
-    'CGJOB_RUNNING': 'RUNNING',
-    'FJOB_RUNNING': 'RUNNING',
-    'RJOB_RUNNING': 'RUNNING',
-    'JOB_RUNNING': 'UPLOADING',
-    'PDJOB_RUNNING': 'PENDING'}
+    'NONENONE': 'WAITING',
+    'JOB_RUNNINGCD': 'RUNNING',
+    'JOB_RUNNINGCG': 'RUNNING',
+    'JOB_RUNNINGF': 'RUNNING',
+    'JOB_RUNNINGR': 'RUNNING',
+    'JOB_RUNNINGNONE': 'UPLOADING',
+    'JOB_RUNNINGPD': 'PENDING'}
 
 RGB_DKBLUE = 'rgb(59,89,152)'
 RGB_BLUE = 'rgb(66,133,244)'
@@ -120,8 +119,8 @@ class DashboardData:
         df['PROCTYPE'] = df['LABEL'].str.split('-x-', n=4, expand=True)[3]
 
         print('cleaning data:set status')
-        df['procstatus_ST'] = df['procstatus'] + df['ST']
-        df['STATUS'] = df['procstatus_ST'].map(STATUS_MAP).fillna('UNKNOWN')
+        df['psST'] = df['procstatus'].fillna('NONE') + df['ST'].fillna('NONE')
+        df['STATUS'] = df['psST'].map(STATUS_MAP).fillna('UNKNOWN')
 
         #print('cleaning data:set time')
         #df = df.apply(self.set_time, axis=1)
