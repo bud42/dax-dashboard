@@ -20,6 +20,14 @@ from dax import XnatUtils
 # LATER: look at this:
 # https://dash-bootstrap-components.opensource.faculty.ai/examples/iris/
 
+# THEN: hide columns for project/proctype/user, since will have filters for
+# them
+# - finish filters as dropdowns for proctype/user/project, etc.
+# we only need columns for label/status, maybe project, and then make a
+# column for time that is displayed as a partially filled cell with colors,
+# we also might be able to calculate how long jobs have been pending or
+# waiting
+
 # NEXT: radio buttons to select group by User/Project/Processing Type
 # load an addition queue (from disk by listing subdirs in the upload dir)
 # as the upload queue and display them as
@@ -337,7 +345,8 @@ class DaxDashboard:
             df = pd.DataFrame(data)
 
             # Make a 1x1 figure (I dunno why, this is from doing multi plots)
-            fig = plotly.subplots.make_subplots(rows=1, cols=1, zeroline=False)
+            fig = plotly.subplots.make_subplots(rows=1, cols=1)
+            fig.update_layout(zeroline=0)
 
             # What index are we pivoting on to count statuses
             PINDEX = selected_groupby
