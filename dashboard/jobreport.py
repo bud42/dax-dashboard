@@ -17,6 +17,9 @@ import dash_table as dt
 from dash.dependencies import Input, Output
 from dax import XnatUtils
 
+# SOON: determine which projects are currentl buidling and how long they've
+# been running,and maybe even show recent log
+
 # LATER: look at this:
 # https://dash-bootstrap-components.opensource.faculty.ai/examples/iris/
 
@@ -42,6 +45,8 @@ from dax import XnatUtils
 # use elapsed time
 # Tab #2: jobs that are JOB_RUNNING on xnat but missing
 # Tab #3: finished jobs from xnat
+
+
 
 pd.set_option('display.max_colwidth', None)
 
@@ -380,6 +385,7 @@ class DaxDashboard:
         proc_options = self.make_options(df.PROCTYPE.unique())
         job_columns = [{"name": i, "id": i} for i in df.columns]
         job_data = df.to_dict('rows')
+        job_hidden = ['USER', 'PROJECT', 'PROCTYPE']
 
         job_tab_content = [
                 html.Div(
@@ -408,6 +414,7 @@ class DaxDashboard:
                         placeholder='Select Processing Type(s)'),
                     dt.DataTable(
                         columns=job_columns,
+                        hidden_columns=job_hidden,
                         data=job_data,
                         filter_action='native',
                         page_action='none',
