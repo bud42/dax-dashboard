@@ -17,6 +17,8 @@ import dash_table as dt
 from dash.dependencies import Input, Output
 from dax import XnatUtils
 
+# TODO: export more data by including columns that are in the data but hidden
+
 # SOON: determine which projects are currentl buidling and how long they've
 # been running,and maybe even show recent log
 
@@ -45,8 +47,6 @@ from dax import XnatUtils
 # use elapsed time
 # Tab #2: jobs that are JOB_RUNNING on xnat but missing
 # Tab #3: finished jobs from xnat
-
-
 
 pd.set_option('display.max_colwidth', None)
 
@@ -437,15 +437,15 @@ class DaxDashboard:
             vertical=False),)]
 
         footer_content = [
-            html.H5(''),
+            html.Hr(),
             html.H5('WAITING: job has been built, but is not yet submitted'),
             html.H5('PENDING: job has submitted, but is not yet running'),
             html.H5('RUNNING: job is running on the cluster'),
             html.H5('COMPLETE: job has finished and will be uploaded'),
             html.H5('UNKNOWN: status is ambiguous or incomplete.'),
-            html.H5(''),
+            html.Hr(),
             html.Div([
-                html.P('DAX Dashboard by BDB')])]
+                html.P('DAX Dashboard by BDB', style={'textAlign': 'right'})])]
 
         return html.Div([
             dcc.Location(id='url', refresh=False),
