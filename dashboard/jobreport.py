@@ -132,7 +132,7 @@ class DashboardData:
 
         print('finishing data')
         # Minimize columns
-        self.task_df = df[TASK_COLS]
+        self.task_df = df[TASK_COLS].sort_values('LABEL')
 
         # Store updated time
         self.updatetime = self.formatted_time(nowtime)
@@ -439,10 +439,10 @@ class DaxDashboard:
         footer_content = [
             html.Hr(),
             html.H5('WAITING: job has been built, but is not yet submitted'),
-            html.H5('PENDING: job has submitted, but is not yet running'),
+            html.H5('PENDING: job has been submitted, but is not yet running'),
             html.H5('RUNNING: job is running on the cluster'),
             html.H5('COMPLETE: job has finished and will be uploaded'),
-            html.H5('UNKNOWN: status is ambiguous or incomplete.'),
+            html.H5('UNKNOWN: status is ambiguous or incomplete'),
             html.Hr(),
             html.Div([
                 html.P('DAX Dashboard by BDB', style={'textAlign': 'right'})])]
