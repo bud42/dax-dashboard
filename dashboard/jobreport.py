@@ -388,52 +388,47 @@ class DaxDashboard:
         job_show = ['LABEL', 'STATUS', 'TIME']
         job_columns = [{"name": i, "id": i} for i in job_show]
         job_data = df.to_dict('rows')
-
-        job_tab_content = [html.Div([
-            dcc.Loading(
-                id='loading-task',
-                type='default',
-                children=[html.Div(html.Div([
-                    dcc.Graph(
-                        id='graph-task', figure={'layout': go.Layout(
-                            xaxis={
-                                'showgrid': False, 'zeroline': False,
-                                'showline': False, 'showticklabels': False},
-                            yaxis={
-                                'showgrid': False, 'zeroline': False,
-                                'showline': False, 'showticklabels': False})}),
-                    dcc.RadioItems(
-                        options=[
-                            {'label': 'By USER', 'value': 'USER'},
-                            {'label': 'By PROJECT', 'value': 'PROJECT'},
-                            {'label': 'By PROCTYPE', 'value': 'PROCTYPE'}],
-                        value='USER',
-                        id='radio-task-groupby',
-                        labelStyle={'display': 'inline-block'}),
-                    dcc.Dropdown(
-                        id='dropdown-task-proj', multi=True,
-                        options=proj_options,
-                        placeholder='Select Project(s)'),
-                    dcc.Dropdown(
-                        id='dropdown-task-user', multi=True,
-                        options=user_options,
-                        placeholder='Select User(s)'),
-                    dcc.Dropdown(
-                        id='dropdown-task-proc', multi=True,
-                        options=proc_options,
-                        placeholder='Select Processing Type(s)'),
-                    dt.DataTable(
-                        columns=job_columns,
-                        data=job_data,
-                        filter_action='native',
-                        page_action='none',
-                        sort_action='native',
-                        id='datatable-task',
-                        fixed_rows={'headers': True},
-                        style_cell={'textAlign': 'left'},
-                        export_format='xlsx',
-                        export_headers='names',
-                        export_columns='all')]))])])]
+        job_tab_content = [
+            dcc.Graph(
+                id='graph-task', figure={'layout': go.Layout(
+                    xaxis={
+                        'showgrid': False, 'zeroline': False,
+                        'showline': False, 'showticklabels': False},
+                    yaxis={
+                        'showgrid': False, 'zeroline': False,
+                        'showline': False, 'showticklabels': False})}),
+            dcc.RadioItems(
+                options=[
+                    {'label': 'By USER', 'value': 'USER'},
+                    {'label': 'By PROJECT', 'value': 'PROJECT'},
+                    {'label': 'By PROCTYPE', 'value': 'PROCTYPE'}],
+                value='USER',
+                id='radio-task-groupby',
+                labelStyle={'display': 'inline-block'}),
+            dcc.Dropdown(
+                id='dropdown-task-proj', multi=True,
+                options=proj_options,
+                placeholder='Select Project(s)'),
+            dcc.Dropdown(
+                id='dropdown-task-user', multi=True,
+                options=user_options,
+                placeholder='Select User(s)'),
+            dcc.Dropdown(
+                id='dropdown-task-proc', multi=True,
+                options=proc_options,
+                placeholder='Select Processing Type(s)'),
+            dt.DataTable(
+                columns=job_columns,
+                data=job_data,
+                filter_action='native',
+                page_action='none',
+                sort_action='native',
+                id='datatable-task',
+                fixed_rows={'headers': True},
+                style_cell={'textAlign': 'left'},
+                export_format='xlsx',
+                export_headers='names',
+                export_columns='all')]
 
         report_content = [html.Div(dcc.Tabs(id='tabs', value=1, children=[
             dcc.Tab(label='Jobs', value=1, children=job_tab_content)],
