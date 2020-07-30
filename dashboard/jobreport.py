@@ -390,13 +390,19 @@ class DaxDashboard:
         job_columns = [{"name": i, "id": i} for i in job_show]
         job_data = df.to_dict('rows')
 
-        job_tab_content = [
-                html.Div(
-                  html.Div([
+        job_tab_content = [html.Div([
+            dcc.Loading(
+                id='loading-task',
+                type='default',
+                children=[html.Div(html.Div([
                     dcc.Graph(
                         id='graph-task', figure={'layout': go.Layout(
-                            xaxis={'showgrid': False, 'zeroline': False, 'showline': False, 'showticklabels': False},
-                            yaxis={'showgrid': False, 'zeroline': False, 'showline': False, 'showticklabels': False})}),
+                            xaxis={
+                                'showgrid': False, 'zeroline': False,
+                                'showline': False, 'showticklabels': False},
+                            yaxis={
+                                'showgrid': False, 'zeroline': False,
+                                'showline': False, 'showticklabels': False})}),
                     dcc.RadioItems(
                         options=[
                             {'label': 'By USER', 'value': 'USER'},
@@ -428,14 +434,11 @@ class DaxDashboard:
                         style_cell={'textAlign': 'left'},
                         export_format='xlsx',
                         export_headers='names',
-                        export_columns='all'),
-                    ], className="container", style={"max-width": "none"})
-                ),
-                html.Div(dt.DataTable(data=[{}]), style={'display': 'none'})]
+                        export_columns='all')]))])])]
 
         report_content = [html.Div(dcc.Tabs(id='tabs', value=1, children=[
             dcc.Tab(label='Jobs', value=1, children=job_tab_content)],
-            vertical=False),)]
+            vertical=False))]
 
         footer_content = [
             html.Hr(),
