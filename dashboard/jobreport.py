@@ -337,7 +337,6 @@ class DaxDashboard:
 
             # Make a 1x1 figure (I dunno why, this is from doing multi plots)
             fig = plotly.subplots.make_subplots(rows=1, cols=1)
-            #fig.update_layout(margin=dict(l=0, r=0, t=40, b=40))
 
             # What index are we pivoting on to count statuses
             PINDEX = selected_groupby
@@ -451,7 +450,7 @@ class DaxDashboard:
             html.Div([
                 html.P('DAX Dashboard by BDB', style={'textAlign': 'right'})])]
 
-        return html.Div([
+        main_content = [
             dcc.Location(id='url', refresh=False),
             html.Div([
                 html.H1(
@@ -471,7 +470,10 @@ class DaxDashboard:
                         id='update-button',
                         n_clicks=0, style={'margin-right': '25px'}),
                 ], style={'float': 'right', 'display': 'inline-block'}),
-            ], style={'display': 'inline-block'}),
+            ], style={'display': 'inline-block'})]
+
+        return html.Div([
+            html.Div(children=main_content, id='main-content'),
             html.Div(children=report_content, id='report-content'),
             html.Div(children=footer_content, id='footer-content')])
 
