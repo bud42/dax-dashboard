@@ -24,6 +24,9 @@ from dax import XnatUtils
 
 # LATER: look at this:
 # https://dash-bootstrap-components.opensource.faculty.ai/examples/iris/
+#https://dash-bootstrap-components.opensource.faculty.ai/examples/graphs-in-tabs/
+#https://hackernoon.com/visualizing-bitcoin-prices-moving-averages-using-dash-aac93c994301
+#https://dash.plotly.com/datatable/conditional-formatting
 
 # THEN: hide columns for project/proctype/user, since will have filters for
 # them
@@ -84,7 +87,8 @@ STATUS_LIST = ['WAITING', 'PENDING', 'RUNNING', 'COMPLETE', 'UNKNOWN']
 COLOR_LIST = [RGB_GREY, RGB_YELLOW, RGB_GREEN, RGB_BLUE, RGB_RED]
 
 TASK_COLS = [
-    'LABEL', 'PROJECT', 'STATUS', 'PROCTYPE', 'USER', 'TIME', 'TIME_LEFT']
+    'LABEL', 'PROJECT', 'STATUS', 'PROCTYPE', 'USER', 'TIME', 'TIME_LEFT',
+    'JOBID']
 
 SQUEUE_COLS = [
     'NAME', 'ST', 'STATE', 'PRIORITY', 'JOBID', 'MIN_MEMORY',
@@ -263,8 +267,12 @@ class DashboardData:
 
 class DaxDashboard:
     def __init__(self, url_base_pathname=None):
-        print('DEBUG:connecting to XNAT')
-        self.xnat = XnatUtils.get_interface()
+        if False:
+            print('DEBUG:connecting to XNAT')
+            self.xnat = XnatUtils.get_interface()
+        else:
+            self.xnat = None
+
         self.dashdata = DashboardData(self.xnat)
         self.app = None
         self.url_base_pathname = url_base_pathname
@@ -389,13 +397,14 @@ class DaxDashboard:
         proc_options = self.make_options(df.PROCTYPE.unique())
         # job_columns = [{"name": i, "id": i} for i in df.columns]
         # job_hidden = ['USER', 'PROJECT', 'PROCTYPE', 'TIME_LEFT']
-        job_show = ['LABEL', 'STATUS', 'TIME']
+        job_show = ['LABEL', 'STATUS', 'TIME', 'JOBID']
         job_columns = [{"name": i, "id": i} for i in job_show]
         job_data = df.to_dict('rows')
         job_tab_content = [
             dcc.Loading(
                 id='loading-main',
                 type='default',
+                style={'backgroundColor': 'transparent'},
                 children=[dcc.Graph(
                     id='graph-task',
                     figure={'layout': go.Layout(
@@ -436,7 +445,7 @@ class DaxDashboard:
                 style_cell={'textAlign': 'left'},
                 export_format='xlsx',
                 export_headers='names',
-                export_columns='all')]
+                export_columns='display')]
 
         report_content = [html.Div(dcc.Tabs(id='tabs', value=1, children=[
             dcc.Tab(label='Jobs', value=1, children=job_tab_content)],
