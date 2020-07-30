@@ -474,7 +474,7 @@ class DaxDashboard:
 
         return html.Div([
             dcc.Loading(
-                id='loading-task',
+                id='loading-main',
                 type='default',
                 children=[
                     html.Div(children=main_content, id='main-content'),
