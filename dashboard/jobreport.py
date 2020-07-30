@@ -473,9 +473,13 @@ class DaxDashboard:
             ], style={'display': 'inline-block'})]
 
         return html.Div([
-            html.Div(children=main_content, id='main-content'),
-            html.Div(children=report_content, id='report-content'),
-            html.Div(children=footer_content, id='footer-content')])
+            dcc.Loading(
+                id='loading-task',
+                type='default',
+                children=[
+                    html.Div(children=main_content, id='main-content'),
+                    html.Div(children=report_content, id='report-content'),
+                    html.Div(children=footer_content, id='footer-content')])])
 
     def update_data(self):
         self.dashdata.update_data()
