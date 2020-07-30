@@ -123,10 +123,13 @@ class DashboardData:
         df = pd.merge(diskq_df, squeue_df, how='outer', on='LABEL')
 
         print('cleaning data:parse assessor')
+        # assessor label is delimited by "-x-", first element is project,
+        # fourth element is processing type
         df['PROJECT'] = df['LABEL'].str.split('-x-', n=1, expand=True)[0]
         df['PROCTYPE'] = df['LABEL'].str.split('-x-', n=4, expand=True)[3]
 
         print('cleaning data:set status')
+        # create a concanated status that maps to full status
         df['psST'] = df['procstatus'].fillna('NONE') + df['ST'].fillna('NONE')
         df['STATUS'] = df['psST'].map(STATUS_MAP).fillna('UNKNOWN')
 
@@ -337,6 +340,7 @@ class DaxDashboard:
 
             # Make a 1x1 figure (I dunno why, this is from doing multi plots)
             fig = plotly.subplots.make_subplots(rows=1, cols=1)
+            fig.update_layout(margin=dict(l=40, r=40, t=40, b=40))
 
             # What index are we pivoting on to count statuses
             PINDEX = selected_groupby
@@ -389,14 +393,18 @@ class DaxDashboard:
         job_columns = [{"name": i, "id": i} for i in job_show]
         job_data = df.to_dict('rows')
         job_tab_content = [
-            dcc.Graph(
-                id='graph-task', figure={'layout': go.Layout(
-                    xaxis={
-                        'showgrid': False, 'zeroline': False,
-                        'showline': False, 'showticklabels': False},
-                    yaxis={
-                        'showgrid': False, 'zeroline': False,
-                        'showline': False, 'showticklabels': False})}),
+            dcc.Loading(
+                id='loading-main',
+                type='default',
+                children=[dcc.Graph(
+                    id='graph-task',
+                    figure={'layout': go.Layout(
+                        xaxis={
+                            'showgrid': False, 'zeroline': False,
+                            'showline': False, 'showticklabels': False},
+                        yaxis={
+                            'showgrid': False, 'zeroline': False,
+                            'showline': False, 'showticklabels': False})})]),
             dcc.RadioItems(
                 options=[
                     {'label': 'By USER', 'value': 'USER'},
@@ -445,7 +453,7 @@ class DaxDashboard:
             html.Div([
                 html.P('DAX Dashboard by BDB', style={'textAlign': 'right'})])]
 
-        main_content = [
+        top_content = [
             dcc.Location(id='url', refresh=False),
             html.Div([
                 html.H1(
@@ -468,13 +476,9 @@ class DaxDashboard:
             ], style={'display': 'inline-block'})]
 
         return html.Div([
-            dcc.Loading(
-                id='loading-main',
-                type='default',
-                children=[
-                    html.Div(children=main_content, id='main-content'),
+                    html.Div(children=top_content, id='top-content'),
                     html.Div(children=report_content, id='report-content'),
-                    html.Div(children=footer_content, id='footer-content')])])
+                    html.Div(children=footer_content, id='footer-content')])
 
     def update_data(self):
         self.dashdata.update_data()
