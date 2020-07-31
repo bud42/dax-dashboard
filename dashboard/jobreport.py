@@ -443,6 +443,7 @@ class DaxDashboard:
                 id='datatable-task',
                 fixed_rows={'headers': True},
                 style_cell={'textAlign': 'left'},
+                fill_width=False,
                 export_format='xlsx',
                 export_headers='names',
                 export_columns='display')]
