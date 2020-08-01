@@ -326,6 +326,11 @@ class DaxDashboard:
                  selected_proj, selected_user, selected_proc,
                  modified_timestamp, data):
             print('update_rows_task')
+
+            if data is None:
+                print('update_rows PreventUpdate')
+                raise PreventUpdate
+
             #df = self.dashdata.task_df
             df = pd.DataFrame(data)
 
