@@ -418,9 +418,8 @@ class DaxDashboard:
 
             print('returning data')
             #data = self.dashdata.task_df.to_dict('records')
-            data = df.to_dict('records')
             print('update_button_click:len=', len(data))
-            return data
+            return df.to_dict('records')
 
     def get_layout(self):
         print('building interface')
