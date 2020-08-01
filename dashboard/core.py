@@ -328,7 +328,7 @@ class DaxDashboard:
             print('update_rows_task')
 
             if data is None:
-                print('update_rows PreventUpdate')
+                print('update_rows', 'PreventUpdate')
                 raise PreventUpdate
 
             #df = self.dashdata.task_df
@@ -356,8 +356,8 @@ class DaxDashboard:
             print('updating figure')
 
             if not data:
-                print('update_figure', 'no data')
-                return None
+                print('update_figure', 'PreventUpdate')
+                raise PreventUpdate
 
             # Load table data into a dataframe for easy manipulation
             df = pd.DataFrame(data)
@@ -423,7 +423,7 @@ class DaxDashboard:
 
             print('returning data')
             #data = self.dashdata.task_df.to_dict('records')
-            print('update_button_click:len=', len(data))
+            print('update_button_click:len=', len(df))
             return df.to_dict('records')
 
     def get_layout(self):
