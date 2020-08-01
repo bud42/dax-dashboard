@@ -359,11 +359,12 @@ class DaxDashboard:
 
         # add a click to the appropriate store.
         @app.callback(
-            Output('store', 'data'),
+            Output('local', 'data'),
             [Input('update-button', 'n_clicks')],
             [State('local', 'data')])
         def update_button_click(n_clicks, data):
             if n_clicks is None:
+                print('n_clicks PreventUpdate')
                 raise PreventUpdate
 
             print('update_button_click', n_clicks)
