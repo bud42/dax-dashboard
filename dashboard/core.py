@@ -362,11 +362,17 @@ class DaxDashboard:
             Output('store', 'data'),
             [Input('update-button', 'n_clicks')],
             [State('local', 'data')])
-        def on_click(n_clicks, data):
+        def update_button_click(n_clicks, data):
             if n_clicks is None:
                 raise PreventUpdate
 
+            print('update_button_click', n_clicks)
+
+            print('calling update_data')
+
             self.update_data()
+
+            print('returning data')
             data = self.dashdata.task_df.to_dict('records')
             return data
 
