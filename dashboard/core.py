@@ -113,6 +113,36 @@ class DashboardData:
         # Store updated time
         self.updatetime = self.formatted_time(nowtime)
 
+    def get_data(self):
+        # Load tasks in diskq
+        print('loading diskq queue')
+        diskq_df = self.load_diskq_queue()
+
+        # load squeue
+        print('loading slurm queue')
+        squeue_df = self.load_slurm_queue()
+
+        # TODO: load xnat if we want to identify lost jobs in a separate tab
+
+        print('merging data')
+        # merge squeue data into task queue
+        df = pd.merge(diskq_df, squeue_df, how='outer', on='LABEL')
+
+        print('cleaning data:parse assessor')
+        # assessor label is delimited by "-x-", first element is project,
+        # fourth element is processing type
+        df['PROJECT'] = df['LABEL'].str.split('-x-', n=1, expand=True)[0]
+        df['PROCTYPE'] = df['LABEL'].str.split('-x-', n=4, expand=True)[3]
+
+        print('cleaning data:set status')
+        # create a concanated status that maps to full status
+        df['psST'] = df['procstatus'].fillna('NONE') + df['ST'].fillna('NONE')
+        df['STATUS'] = df['psST'].map(STATUS_MAP).fillna('UNKNOWN')
+
+        print('finishing data')
+        # Minimize columns
+        return df[TASK_COLS].sort_values('LABEL')
+
     def update_data(self):
         # Reload data
         self.load_data()
@@ -375,10 +405,12 @@ class DaxDashboard:
 
             print('calling update_data')
 
-            self.update_data()
+            #self.update_data()
+            df = self.get_data()
 
             print('returning data')
-            data = self.dashdata.task_df.to_dict('records')
+            #data = self.dashdata.task_df.to_dict('records')
+            data = df.to_dict('records')
             return data
 
     def get_layout(self):
