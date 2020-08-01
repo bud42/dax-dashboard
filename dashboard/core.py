@@ -329,7 +329,7 @@ class DaxDashboard:
             #df = self.dashdata.task_df
             df = pd.DataFrame(data)
 
-            print('update_rows_task', len(df))
+            print('update_rows_task:len=', len(df))
 
             # Filter by project
             if selected_proj:
@@ -353,7 +353,7 @@ class DaxDashboard:
             # Load table data into a dataframe for easy manipulation
             df = pd.DataFrame(data)
 
-            print('update_figure', len(df))
+            print('update_figure:len=', len(df))
 
             # Make a 1x1 figure (I dunno why, this is from doing multi plots)
             fig = plotly.subplots.make_subplots(rows=1, cols=1)
@@ -415,7 +415,7 @@ class DaxDashboard:
             print('returning data')
             #data = self.dashdata.task_df.to_dict('records')
             data = df.to_dict('records')
-            print('update_button_click', len(data))
+            print('update_button_click:len=', len(data))
             return data
 
     def get_layout(self):
