@@ -448,6 +448,7 @@ class DaxDashboard:
                 style={'backgroundColor': 'transparent'},
                 children=[dcc.Graph(
                     id='graph-task',
+                    title='Job Queue',
                     figure={'layout': go.Layout(
                         xaxis={
                             'showgrid': False, 'zeroline': False,
