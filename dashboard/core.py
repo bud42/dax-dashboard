@@ -292,7 +292,9 @@ class DaxDashboard:
              Input('dropdown-task-proc', 'value'),
              Input('local', 'modified_timestamp')],
             [State('local', 'data')])
-        def update_rows(selected_proj, selected_user, selected_proc, data):
+        def update_rows(
+                 selected_proj, selected_user, selected_proc,
+                 modified_timestamp, data):
             print('update_rows_task')
             #df = self.dashdata.task_df
             df = pd.DataFrame(data)
