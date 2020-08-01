@@ -429,6 +429,10 @@ class DaxDashboard:
         job_data = df.to_dict('rows')
         job_tab_content = [
             dcc.Store(id='local', storage_type='local'),
+            html.Button(
+                        'Update',
+                        id='update-button',
+                        n_clicks=0, style={'margin-right': '25px'}),
             dcc.Loading(
                 id='loading-main',
                 type='default',
@@ -476,9 +480,11 @@ class DaxDashboard:
                 export_headers='names',
                 export_columns='display')]
 
-        report_content = [html.Div(dcc.Tabs(id='tabs', value=1, children=[
-            dcc.Tab(label='Jobs', value=1, children=job_tab_content)],
-            vertical=False))]
+        #report_content = [html.Div(dcc.Tabs(id='tabs', value=1, children=[
+        #    dcc.Tab(label='Jobs', value=1, children=job_tab_content)],
+        #    vertical=False))]
+
+        report_content = [job_tab_content]
 
         footer_content = [
             html.Hr(),
@@ -494,24 +500,11 @@ class DaxDashboard:
         top_content = [
             dcc.Location(id='url', refresh=False),
             html.Div([
-                html.H1(
+                html.H3(
                     'DAX Dashboard',
                     style={
                         'margin-right': '100px', 'display': 'inline-block'}),
-                html.P(children=[
-                    'Last updated: ',
-                    html.P(
-                        children=['{}     '.format(self.dashdata.updatetime)],
-                        id='update-text',
-                        style={
-                            'margin-right': '25px',
-                            'display': 'inline-block'}),
-                    html.Button(
-                        'Update',
-                        id='update-button',
-                        n_clicks=0, style={'margin-right': '25px'}),
-                ], style={'float': 'right', 'display': 'inline-block'}),
-            ], style={'display': 'inline-block'})]
+                ], style={'display': 'inline-block'})]
 
         return html.Div([
                     html.Div(children=top_content, id='top-content'),
