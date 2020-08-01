@@ -331,7 +331,6 @@ class DaxDashboard:
                 print('update_rows', 'PreventUpdate')
                 raise PreventUpdate
 
-            #df = self.dashdata.task_df
             df = pd.DataFrame(data)
 
             # Filter by project
@@ -398,22 +397,19 @@ class DaxDashboard:
             [Input('datatable-task', 'data'),
              Input('radio-task-groupby', 'value')])
         def update_figure(data, selected_groupby):
-            print('updating figure')
-
             if not data:
                 print('update_figure', 'PreventUpdate')
                 raise PreventUpdate
 
-            # Load table data into a dataframe for easy manipulation
-            df = pd.DataFrame(data)
-
-            print('update_figure:len=', len(df))
+            print('update_figure')
 
             # Make a 1x1 figure (I dunno why, this is from doing multi plots)
             fig = plotly.subplots.make_subplots(rows=1, cols=1)
-            #fig.update_layout(
-            #    title='Job Queue', margin=dict(l=40, r=40, t=40, b=40))
             fig.update_layout(margin=dict(l=40, r=40, t=40, b=40))
+
+            # Load table data into a dataframe for easy manipulation
+            df = pd.DataFrame(data)
+            print('update_figure:len=', len(df))
 
             # What index are we pivoting on to count statuses
             PINDEX = selected_groupby
@@ -440,17 +436,6 @@ class DaxDashboard:
             fig['layout'].update(barmode='stack', showlegend=True)
             return fig
 
-        #@app.callback(
-        #    Output('update-text', 'children'),
-        #    [Input('update-button', 'n_clicks')])
-        #def update_button_click(n_clicks):
-        #    print('update_button_click', n_clicks)
-        #    if n_clicks > 0:
-        #        print('INFO:UPDATING DATA')
-        #        self.update_data()
-        #
-        #    return ['{}    '.format(self.dashdata.updatetime)]
-
         # add a click to the appropriate store.
         @app.callback(
             Output('local', 'data'),
@@ -464,27 +449,17 @@ class DaxDashboard:
             print('update_button_click', n_clicks)
 
             print('calling update_data')
-
-            #self.update_data()
             df = self.get_data()
-
             print('returning data')
-            #data = self.dashdata.task_df.to_dict('records')
+
             print('update_button_click:len=', len(df))
             return df.to_dict('records')
 
     def get_layout(self):
         print('building interface')
 
-        ##self.dashdata.load_data()
-        #df = self.dashdata.task_df
-        #print(df.PROJECT.unique())
-        # job_columns = [{"name": i, "id": i} for i in df.columns]
-        # job_hidden = ['USER', 'PROJECT', 'PROCTYPE', 'TIME_LEFT']
         job_show = ['LABEL', 'STATUS', 'TIME', 'JOBID']
         job_columns = [{"name": i, "id": i} for i in job_show]
-        #job_data = df.to_dict('rows')
-        job_data = {}
         job_tab_content = [dcc.Loading(
             id='loading-main',
             type='default',
@@ -523,7 +498,7 @@ class DaxDashboard:
                     placeholder='Select Processing Type(s)'),
                 dt.DataTable(
                     columns=job_columns,
-                    data=job_data,
+                    data={},
                     filter_action='native',
                     page_action='none',
                     sort_action='native',
@@ -539,8 +514,6 @@ class DaxDashboard:
             dcc.Tab(label='Job Queue', value=1, children=job_tab_content)],
             vertical=False))]
 
-        #report_content = [html.Div(job_tab_content)]
-
         footer_content = [
             html.Hr(),
             html.H5('WAITING: job has been built, but is not yet submitted'),
@@ -552,14 +525,12 @@ class DaxDashboard:
             html.Div([
                 html.P('DAX Dashboard by BDB', style={'textAlign': 'right'})])]
 
-        top_content = [
-            dcc.Location(id='url', refresh=False),
-            html.Div([
-                html.H3(
-                    'DAX Dashboard',
-                    style={
-                        'margin-right': '100px', 'display': 'inline-block'}),
-                ], style={'display': 'inline-block'})]
+        top_content = [dcc.Location(id='url', refresh=False), html.Div([
+            html.H3(
+                'DAX Dashboard',
+                style={
+                    'margin-right': '100px', 'display': 'inline-block'}),
+            ], style={'display': 'inline-block'})]
 
         return html.Div([
                     html.Div(children=top_content, id='top-content'),
