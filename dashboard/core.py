@@ -521,6 +521,9 @@ class DaxDashboard:
     def update_data(self):
         return self.dashdata.update_data()
 
+    def get_data(self):
+        return self.dashdata.get_data()
+
     def get_app(self):
         return self.app
 
