@@ -72,42 +72,6 @@ class DashboardData:
         self.xnat_user = XNAT_USER
         self.updatetime = ''
 
-    def load_data(self):
-        # Cache update time
-        nowtime = datetime.now()
-
-        # Load tasks in diskq
-        print('loading diskq queue')
-        diskq_df = self.load_diskq_queue()
-
-        # load squeue
-        print('loading slurm queue')
-        squeue_df = self.load_slurm_queue()
-
-        # TODO: load xnat if we want to identify lost jobs in a separate tab
-
-        print('merging data')
-        # merge squeue data into task queue
-        df = pd.merge(diskq_df, squeue_df, how='outer', on='LABEL')
-
-        print('cleaning data:parse assessor')
-        # assessor label is delimited by "-x-", first element is project,
-        # fourth element is processing type
-        df['PROJECT'] = df['LABEL'].str.split('-x-', n=1, expand=True)[0]
-        df['PROCTYPE'] = df['LABEL'].str.split('-x-', n=4, expand=True)[3]
-
-        print('cleaning data:set status')
-        # create a concanated status that maps to full status
-        df['psST'] = df['procstatus'].fillna('NONE') + df['ST'].fillna('NONE')
-        df['STATUS'] = df['psST'].map(STATUS_MAP).fillna('UNKNOWN')
-
-        print('finishing data')
-        # Minimize columns
-        self.task_df = df[TASK_COLS].sort_values('LABEL')
-
-        # Store updated time
-        self.updatetime = self.formatted_time(nowtime)
-
     def get_data(self):
         # Load tasks in diskq
         print('loading diskq queue')
@@ -137,10 +101,6 @@ class DashboardData:
         print('finishing data')
         # Minimize columns
         return df[TASK_COLS].sort_values('LABEL')
-
-    def update_data(self):
-        # Reload data
-        self.load_data()
 
     def load_diskq_queue(self, status=None):
         task_list = list()
@@ -449,6 +409,7 @@ class DaxDashboard:
 
         job_show = ['LABEL', 'STATUS', 'TIME', 'JOBID']
         job_columns = [{"name": i, "id": i} for i in job_show]
+        job_data = pd.DataFrame(columns=job_show).to_dict('rows')
         job_tab_content = [dcc.Loading(
             id='loading-main',
             type='default',
@@ -477,17 +438,20 @@ class DaxDashboard:
                     id='radio-task-groupby',
                     labelStyle={'display': 'inline-block'}),
                 dcc.Dropdown(
+                    options=[{'label': 'NONE', 'value': 'NONE'}],
                     id='dropdown-task-proj', multi=True,
                     placeholder='Select Project(s)'),
                 dcc.Dropdown(
+                    options=[{'label': 'NONE', 'value': 'NONE'}],
                     id='dropdown-task-user', multi=True,
                     placeholder='Select User(s)'),
                 dcc.Dropdown(
+                    options=[{'label': 'NONE', 'value': 'NONE'}],
                     id='dropdown-task-proc', multi=True,
                     placeholder='Select Processing Type(s)'),
                 dt.DataTable(
                     columns=job_columns,
-                    data={},
+                    data=job_data,
                     filter_action='native',
                     page_action='none',
                     sort_action='native',
