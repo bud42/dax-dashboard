@@ -350,6 +350,10 @@ class DaxDashboard:
         def update_figure(data, selected_groupby):
             print('updating figure')
 
+            if not data:
+                print('update_figure', 'no data')
+                return None
+
             # Load table data into a dataframe for easy manipulation
             df = pd.DataFrame(data)
 
