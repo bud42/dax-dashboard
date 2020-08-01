@@ -334,8 +334,6 @@ class DaxDashboard:
             #df = self.dashdata.task_df
             df = pd.DataFrame(data)
 
-            print('update_rows_task:len=', len(df))
-
             # Filter by project
             if selected_proj:
                 df = df[df['PROJECT'].isin(selected_proj)]
@@ -345,6 +343,8 @@ class DaxDashboard:
 
             if selected_proc:
                 df = df[df['PROCTYPE'].isin(selected_proc)]
+
+            print('update_rows_task:len=', len(df))
 
             return df.to_dict('records')
 
@@ -442,10 +442,6 @@ class DaxDashboard:
         job_data = df.to_dict('rows')
         job_tab_content = [
             dcc.Store(id='local', storage_type='local'),
-            html.Button(
-                        'Update',
-                        id='update-button',
-                        n_clicks=0, style={'margin-right': '25px'}),
             dcc.Loading(
                 id='loading-main',
                 type='default',
@@ -459,6 +455,10 @@ class DaxDashboard:
                         yaxis={
                             'showgrid': False, 'zeroline': False,
                             'showline': False, 'showticklabels': False})})]),
+            html.Button(
+                'Update',
+                id='update-button',
+                n_clicks=0, style={'margin-right': '25px'}),
             dcc.RadioItems(
                 options=[
                     {'label': 'By USER', 'value': 'USER'},
@@ -497,7 +497,7 @@ class DaxDashboard:
         #    dcc.Tab(label='Jobs', value=1, children=job_tab_content)],
         #    vertical=False))]
 
-        report_content = [job_tab_content]
+        report_content = [html.Div(job_tab_content)]
 
         footer_content = [
             html.Hr(),
