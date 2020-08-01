@@ -360,6 +360,7 @@ class DaxDashboard:
 
             print('update_dropdown_projects')
             projects = pd.DataFrame(data).PROJECT.unique()
+            print(projects)
             return self.make_options(projects)
 
         @app.callback(
@@ -374,6 +375,7 @@ class DaxDashboard:
 
             print('update_dropdown_proc')
             procs = pd.DataFrame(data).PROCTYPE.unique()
+            print(procs)
             return self.make_options(procs)
 
         @app.callback(
@@ -388,6 +390,7 @@ class DaxDashboard:
 
             print('update_dropdown_user')
             users = pd.DataFrame(data).USER.unique()
+            print(users)
             return self.make_options(users)
 
         @app.callback(
@@ -516,7 +519,7 @@ class DaxDashboard:
                     id='dropdown-task-user', multi=True,
                     placeholder='Select User(s)'),
                 dcc.Dropdown(
-                    id='dropdown-tas-proc', multi=True,
+                    id='dropdown-task-proc', multi=True,
                     placeholder='Select Processing Type(s)'),
                 dt.DataTable(
                     columns=job_columns,
