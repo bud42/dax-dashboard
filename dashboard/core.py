@@ -336,50 +336,50 @@ class DaxDashboard:
 
             return df.to_dict('records')
 
-        @app.callback(
-            Output('dropdown-task-proj', 'options'),
-            [Input('local', 'modified_timestamp')],
-            [State('local', 'data')])
-        def update_dropdown_proj(modified_timestamp, data):
+        # @app.callback(
+        #     Output('dropdown-task-proj', 'options'),
+        #     [Input('local', 'modified_timestamp')],
+        #     [State('local', 'data')])
+        # def update_dropdown_proj(modified_timestamp, data):
 
-            if data is None:
-                print('update_dropdown_projects', 'PreventUpdate')
-                raise PreventUpdate
+        #     if data is None:
+        #         print('update_dropdown_projects', 'PreventUpdate')
+        #         raise PreventUpdate
 
-            print('update_dropdown_proj')
-            options = self.make_options(pd.DataFrame(data).PROJECT.unique())
-            print('update_dropdown_proj', options)
-            return options
+        #     print('update_dropdown_proj')
+        #     options = self.make_options(pd.DataFrame(data).PROJECT.unique())
+        #     print('update_dropdown_proj', options)
+        #     return options
 
-        @app.callback(
-            Output('dropdown-task-proc', 'options'),
-            [Input('local', 'modified_timestamp')],
-            [State('local', 'data')])
-        def update_dropdown_proc(modified_timestamp, data):
+        # @app.callback(
+        #     Output('dropdown-task-proc', 'options'),
+        #     [Input('local', 'modified_timestamp')],
+        #     [State('local', 'data')])
+        # def update_dropdown_proc(modified_timestamp, data):
 
-            if data is None:
-                print('update_dropdown_proc', 'PreventUpdate')
-                raise PreventUpdate
+        #     if data is None:
+        #         print('update_dropdown_proc', 'PreventUpdate')
+        #         raise PreventUpdate
 
-            print('update_dropdown_proc')
-            options = self.make_options(pd.DataFrame(data).PROCTYPE.unique())
-            print('update_dropdown_proc', options)
-            return options
+        #     print('update_dropdown_proc')
+        #     options = self.make_options(pd.DataFrame(data).PROCTYPE.unique())
+        #     print('update_dropdown_proc', options)
+        #     return options
 
-        @app.callback(
-            Output('dropdown-task-user', 'options'),
-            [Input('local', 'modified_timestamp')],
-            [State('local', 'data')])
-        def update_dropdown_user(modified_timestamp, data):
+        # @app.callback(
+        #     Output('dropdown-task-user', 'options'),
+        #     [Input('local', 'modified_timestamp')],
+        #     [State('local', 'data')])
+        # def update_dropdown_user(modified_timestamp, data):
 
-            if data is None:
-                print('update_dropdown_user', 'PreventUpdate')
-                raise PreventUpdate
+        #     if data is None:
+        #         print('update_dropdown_user', 'PreventUpdate')
+        #         raise PreventUpdate
 
-            print('update_dropdown_user')
-            options = self.make_options(pd.DataFrame(data).USER.unique())
-            print('update_dropdown_user', options)
-            return options
+        #     print('update_dropdown_user')
+        #     options = self.make_options(pd.DataFrame(data).USER.unique())
+        #     print('update_dropdown_user', options)
+        #     return options
 
         @app.callback(
             Output('graph-task', 'figure'),
