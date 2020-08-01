@@ -1,7 +1,6 @@
 import subprocess
 from io import StringIO
-import math
-from datetime import datetime, timedelta
+from datetime import datetime
 import pytz
 import json
 import os
@@ -19,32 +18,60 @@ from dax import XnatUtils
 
 # TODO: export more data by including columns that are in the data but hidden
 
+# v0.1 - this version loads the diskq files, runs squeue to get status of slurm
+# queue, merges the data and to display a table and stacked bar chart.
+# There is an update button but it doesn't really work. The formatting could
+# use some work too. The table/graph can be filtered by a set of dropdowns.
+# The graph can be filterd by clicking in the legend. The table can be filtered
+# by using the filter cells. The table can also be sorted by clicking
+# the arrows in the header. The Export button can be clicked to save
+# an .xlsx of the table as displayed. The hardcoded variables are currently
+# using vuiis_archive_singularity,vuiis_daily_singularity as the squeue users
+# and the corresonding Spider_Upload_Dir paths. This version does not query
+# XNAT at all, yet.
+
+
+# Next we will try to use dcc.Store to store the data and then connect other
+# callbacks to the store, including the update button.
+
+
 # SOON: determine which projects are currentl buidling and how long they've
 # been running,and maybe even show recent log
 
+
 # LATER: look at this:
 # https://dash-bootstrap-components.opensource.faculty.ai/examples/iris/
-#https://dash-bootstrap-components.opensource.faculty.ai/examples/graphs-in-tabs/
-#https://hackernoon.com/visualizing-bitcoin-prices-moving-averages-using-dash-aac93c994301
-#https://dash.plotly.com/datatable/conditional-formatting
+# https://dash-bootstrap-components.opensource.faculty.ai/examples/graphs-in-tabs/
+# https://hackernoon.com/visualizing-bitcoin-prices-moving-averages-using-dash-aac93c994301
+# https://dash.plotly.com/datatable/conditional-formatting
 
-# THEN: hide columns for project/proctype/user, since will have filters for
-# them
-# - finish filters as dropdowns for proctype/user/project, etc.
-# we only need columns for label/status, maybe project, and then make a
-# column for time that is displayed as a partially filled cell with colors,
-# we also might be able to calculate how long jobs have been pending or
-# waiting
 
-# NEXT: radio buttons to select group by User/Project/Processing Type
-# load an addition queue (from disk by listing subdirs in the upload dir)
-# as the upload queue and display them as
+# DONE: hide columns for project/proctype/user, since we have dropdowns
+
+
+# DONE: finish filters as dropdowns for proctype/user/project, etc.
+# we only need columns for label/status, maybe project
+
+
+# TODO: make a column for time that is displayed as a partially filled cell
+# with colors, we also might be able to calculate how long jobs have been
+# pending or waiting
+
+
+# DONE: radio buttons to select group by User/Project/Processing Type.
+
+
+# TODO: load an additional list (from disk by listing
+# in the upload dir) as the upload queue and display them as
 # "actually" uploading vs queued for upload
-# maybe add a dropdown to filter by status, so we can limit the table to
-# only inlcude specific status (this could be done by filter too, buy this
+
+
+# TODO: add a dropdown to filter by status, so we can limit the table to
+# only inlcude specific status (this could be done by filter too, but this
 # would be more convenient)
 
 
+# TODO: tabs for jobs that aren't in both queues
 # Tab #1: jobs that are both in the task queue and slurm queue or are complete
 # jobs that complete will use walltimeuse, jobs that are still running will
 # use elapsed time
@@ -179,7 +206,8 @@ class DashboardData:
             cmd = SQUEUE_CMD
             result = subprocess.run([cmd], shell=True, stdout=subprocess.PIPE)
             data = result.stdout.decode('utf-8')
-            df = pd.read_csv(StringIO(data), delimiter='|', usecols=SQUEUE_COLS)
+            df = pd.read_csv(
+                StringIO(data), delimiter='|', usecols=SQUEUE_COLS)
             df['LABEL'] = df['NAME'].str.split('.slurm').str[0]
             return df
         except pd.errors.EmptyDataError:
