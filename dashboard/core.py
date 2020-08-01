@@ -366,7 +366,8 @@ class DaxDashboard:
 
             # Make a 1x1 figure (I dunno why, this is from doing multi plots)
             fig = plotly.subplots.make_subplots(rows=1, cols=1)
-            fig.update_layout(margin=dict(l=40, r=40, t=40, b=40))
+            fig.update_layout(
+                title='Job Queue', margin=dict(l=40, r=40, t=40, b=40))
 
             # What index are we pivoting on to count statuses
             PINDEX = selected_groupby
@@ -440,13 +441,13 @@ class DaxDashboard:
         job_show = ['LABEL', 'STATUS', 'TIME', 'JOBID']
         job_columns = [{"name": i, "id": i} for i in job_show]
         job_data = df.to_dict('rows')
-        job_tab_content = [
-            dcc.Store(id='local', storage_type='local'),
-            dcc.Loading(
-                id='loading-main',
-                type='default',
-                style={'backgroundColor': 'transparent'},
-                children=[dcc.Graph(
+        job_tab_content = [dcc.Loading(
+            id='loading-main',
+            type='default',
+            style={'backgroundColor': 'transparent'},
+            children=[
+                dcc.Store(id='local', storage_type='local'),
+                dcc.Graph(
                     id='graph-task',
                     figure={'title': 'Job Queue', 'layout': go.Layout(
                         xaxis={
@@ -455,49 +456,49 @@ class DaxDashboard:
                         yaxis={
                             'showgrid': False, 'zeroline': False,
                             'showline': False, 'showticklabels': False})})]),
-            html.Button(
-                'Update',
-                id='update-button',
-                n_clicks=0, style={'margin-right': '25px'}),
-            dcc.RadioItems(
-                options=[
-                    {'label': 'By USER', 'value': 'USER'},
-                    {'label': 'By PROJECT', 'value': 'PROJECT'},
-                    {'label': 'By PROCTYPE', 'value': 'PROCTYPE'}],
-                value='USER',
-                id='radio-task-groupby',
-                labelStyle={'display': 'inline-block'}),
-            dcc.Dropdown(
-                id='dropdown-task-proj', multi=True,
-                options=proj_options,
-                placeholder='Select Project(s)'),
-            dcc.Dropdown(
-                id='dropdown-task-user', multi=True,
-                options=user_options,
-                placeholder='Select User(s)'),
-            dcc.Dropdown(
-                id='dropdown-task-proc', multi=True,
-                options=proc_options,
-                placeholder='Select Processing Type(s)'),
-            dt.DataTable(
-                columns=job_columns,
-                data=job_data,
-                filter_action='native',
-                page_action='none',
-                sort_action='native',
-                id='datatable-task',
-                fixed_rows={'headers': True},
-                style_cell={'textAlign': 'left'},
-                fill_width=False,
-                export_format='xlsx',
-                export_headers='names',
-                export_columns='display')]
+                html.Button(
+                    'Update',
+                    id='update-button',
+                    n_clicks=0, style={'margin-right': '25px'}),
+                dcc.RadioItems(
+                    options=[
+                        {'label': 'By USER', 'value': 'USER'},
+                        {'label': 'By PROJECT', 'value': 'PROJECT'},
+                        {'label': 'By PROCTYPE', 'value': 'PROCTYPE'}],
+                    value='USER',
+                    id='radio-task-groupby',
+                    labelStyle={'display': 'inline-block'}),
+                dcc.Dropdown(
+                    id='dropdown-task-proj', multi=True,
+                    options=proj_options,
+                    placeholder='Select Project(s)'),
+                dcc.Dropdown(
+                    id='dropdown-task-user', multi=True,
+                    options=user_options,
+                    placeholder='Select User(s)'),
+                dcc.Dropdown(
+                    id='dropdown-task-proc', multi=True,
+                    options=proc_options,
+                    placeholder='Select Processing Type(s)'),
+                dt.DataTable(
+                    columns=job_columns,
+                    data=job_data,
+                    filter_action='native',
+                    page_action='none',
+                    sort_action='native',
+                    id='datatable-task',
+                    fixed_rows={'headers': True},
+                    style_cell={'textAlign': 'left'},
+                    fill_width=False,
+                    export_format='xlsx',
+                    export_headers='names',
+                    export_columns='display')]
 
-        #report_content = [html.Div(dcc.Tabs(id='tabs', value=1, children=[
-        #    dcc.Tab(label='Jobs', value=1, children=job_tab_content)],
-        #    vertical=False))]
+        report_content = [html.Div(dcc.Tabs(id='tabs', value=1, children=[
+            dcc.Tab(label='Job Queue', value=1, children=job_tab_content)],
+            vertical=False))]
 
-        report_content = [html.Div(job_tab_content)]
+        #report_content = [html.Div(job_tab_content)]
 
         footer_content = [
             html.Hr(),
