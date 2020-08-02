@@ -4,6 +4,7 @@ from datetime import datetime
 import json
 import os
 
+import humanize
 import pandas as pd
 import plotly
 import plotly.graph_objs as go
@@ -53,9 +54,11 @@ RGB_GREY = 'rgb(200,200,200)'
 STATUS_LIST = ['WAITING', 'PENDING', 'RUNNING', 'COMPLETE', 'UNKNOWN']
 COLOR_LIST = [RGB_GREY, RGB_YELLOW, RGB_GREEN, RGB_BLUE, RGB_RED]
 
+SHOW_COLS = ['LABEL', 'STATUS', 'JOBID', 'WTIME', 'LASTMOD']
+
 TASK_COLS = [
-    'LABEL', 'PROJECT', 'STATUS', 'PROCTYPE', 'USER', 'TIME', 'TIME_LEFT',
-    'JOBID']
+    'LABEL', 'PROJECT', 'STATUS', 'PROCTYPE', 'USER',
+    'JOBID', 'TIME', 'WTIME', 'LASTMOD']
 
 SQUEUE_COLS = [
     'NAME', 'ST', 'STATE', 'PRIORITY', 'JOBID', 'MIN_MEMORY',
@@ -72,14 +75,17 @@ class DashboardData:
 
     def get_data(self):
         # Load tasks in diskq
+        print('loading diskq')
         diskq_df = self.load_diskq_queue()
 
         # load squeue
+        print('loading squeue')
         squeue_df = self.load_slurm_queue()
 
         # TODO: load xnat if we want to identify lost jobs in a separate tab
 
         # merge squeue data into task queue
+        print('merging data')
         df = pd.merge(diskq_df, squeue_df, how='outer', on='LABEL')
 
         # assessor label is delimited by "-x-", first element is project,
@@ -91,7 +97,13 @@ class DashboardData:
         df['psST'] = df['procstatus'].fillna('NONE') + df['ST'].fillna('NONE')
         df['STATUS'] = df['psST'].map(STATUS_MAP).fillna('UNKNOWN')
 
+        df['WTIME'] = df['TIME_LIMIT']
+
+        # Determine how long ago status changed
+        # how long has it been running, pending, waiting or complete?
+
         # Minimize columns
+        print('finishing')
         return df[TASK_COLS].sort_values('LABEL')
 
     def load_diskq_queue(self, status=None):
@@ -118,7 +130,8 @@ class DashboardData:
             'jobnode': self.get_diskq_attr(diskq, assr, 'jobnode'),
             'jobstartdate': self.get_diskq_attr(diskq, assr, 'jobstartdate'),
             'memused': self.get_diskq_attr(diskq, assr, 'memused'),
-            'walltimeused': self.get_diskq_attr(diskq, assr, 'walltimeused')}
+            'walltimeused': self.get_diskq_attr(diskq, assr, 'walltimeused'),
+            'LASTMOD': self.get_diskq_lastmod(diskq, assr)}
 
     def load_slurm_queue(self):
         try:
@@ -131,6 +144,20 @@ class DashboardData:
             return df
         except pd.errors.EmptyDataError:
             return None
+
+    def get_diskq_lastmod(self, diskq, assr):
+
+        if os.path.exists(os.path.join(diskq, 'procstatus', assr)):
+            apath = os.path.join(diskq, 'procstatus', assr)
+        elif os.path.exists(os.path.join(diskq, 'BATCH', assr + '.slurm')):
+            apath = os.path.join(diskq, 'BATCH', assr + '.slurm')
+        else:
+            return None
+
+        # _updatetime = datetime.strptime(self.updatetime, self.DFORMAT)
+        _updatetime = datetime.fromtimestamp(os.path.getmtime(apath))
+        _nowtime = datetime.now()
+        return humanize.naturaltime(_nowtime - _updatetime)
 
     def get_diskq_attr(self, diskq, assr, attr):
         apath = os.path.join(diskq, attr, assr)
@@ -334,9 +361,8 @@ class DaxDashboard:
             return [df.to_dict('records'), fig]
 
     def get_layout(self):
-        job_show = ['LABEL', 'STATUS', 'TIME', 'JOBID']
-        job_columns = [{"name": i, "id": i} for i in job_show]
-        job_data = pd.DataFrame(columns=job_show).to_dict('rows')
+        job_columns = [{"name": i, "id": i} for i in SHOW_COLS]
+        job_data = pd.DataFrame(columns=SHOW_COLS).to_dict('rows')
         job_tab_content = [
             dcc.Loading(id="loading-task", children=[
                 dcc.Store(id='store-task', storage_type='session'),
@@ -359,8 +385,7 @@ class DaxDashboard:
             dcc.Dropdown(
                 id='dropdown-task-proc', multi=True,
                 placeholder='Select Processing Type(s)'),
-            dcc.Loading(id="loading-table", children=[
-                dt.DataTable(
+            dt.DataTable(
                     columns=job_columns,
                     data=job_data,
                     filter_action='native',
@@ -369,10 +394,11 @@ class DaxDashboard:
                     id='datatable-task',
                     fixed_rows={'headers': True},
                     style_cell={'textAlign': 'left'},
+                    #style_data_conditional=[{'if': {'filter': '"STATUS" eq "RUNNING"'}, 'backgroundColor': 'green', 'color': 'blue',}],
                     fill_width=False,
                     export_format='xlsx',
                     export_headers='names',
-                    export_columns='display')])]
+                    export_columns='display')]
 
         report_content = [
             html.Div(
@@ -395,12 +421,9 @@ class DaxDashboard:
             html.Div([
                 html.P('DAX Dashboard by BDB', style={'textAlign': 'right'})])]
 
-        top_content = [dcc.Location(id='url', refresh=False), html.Div([
-            html.H1(
-                'DAX Dashboard',
-                style={
-                    'margin-right': '100px', 'display': 'inline-block'}),
-            ], style={'display': 'inline-block'})]
+        top_content = [
+            dcc.Location(id='url', refresh=False),
+            html.Div([html.H1('DAX Dashboard')])]
 
         return html.Div([
                     html.Div(children=top_content, id='top-content'),
