@@ -1,7 +1,6 @@
 import subprocess
 from io import StringIO
 from datetime import datetime
-import pytz
 import json
 import os
 
@@ -22,7 +21,6 @@ from dax import XnatUtils
 pd.set_option('display.max_colwidth', None)
 
 
-# SQUEUE_CMD = 'ssh sideshowb squeue -u '+SQUEUE_USER+' --format="%all"'
 SQUEUE_USER = ['vuiis_archive_singularity', 'vuiis_daily_singularity']
 UPLOAD_DIR = [
     '/scratch/vuiis_archive_singularity/Spider_Upload_Dir',
@@ -74,31 +72,25 @@ class DashboardData:
 
     def get_data(self):
         # Load tasks in diskq
-        print('loading diskq queue')
         diskq_df = self.load_diskq_queue()
 
         # load squeue
-        print('loading slurm queue')
         squeue_df = self.load_slurm_queue()
 
         # TODO: load xnat if we want to identify lost jobs in a separate tab
 
-        print('merging data')
         # merge squeue data into task queue
         df = pd.merge(diskq_df, squeue_df, how='outer', on='LABEL')
 
-        print('cleaning data:parse assessor')
         # assessor label is delimited by "-x-", first element is project,
         # fourth element is processing type
         df['PROJECT'] = df['LABEL'].str.split('-x-', n=1, expand=True)[0]
         df['PROCTYPE'] = df['LABEL'].str.split('-x-', n=4, expand=True)[3]
 
-        print('cleaning data:set status')
         # create a concanated status that maps to full status
         df['psST'] = df['procstatus'].fillna('NONE') + df['ST'].fillna('NONE')
         df['STATUS'] = df['psST'].map(STATUS_MAP).fillna('UNKNOWN')
 
-        print('finishing data')
         # Minimize columns
         return df[TASK_COLS].sort_values('LABEL')
 
@@ -132,9 +124,9 @@ class DashboardData:
         try:
             cmd = SQUEUE_CMD
             result = subprocess.run([cmd], shell=True, stdout=subprocess.PIPE)
-            data = result.stdout.decode('utf-8')
+            _data = result.stdout.decode('utf-8')
             df = pd.read_csv(
-                StringIO(data), delimiter='|', usecols=SQUEUE_COLS)
+                StringIO(_data), delimiter='|', usecols=SQUEUE_COLS)
             df['LABEL'] = df['NAME'].str.split('.slurm').str[0]
             return df
         except pd.errors.EmptyDataError:
@@ -150,20 +142,20 @@ class DashboardData:
             return f.read().strip()
 
     def get_json(self, xnat, uri):
-        data = json.loads(xnat._exec(uri, 'GET'))
-        return data
+        _data = json.loads(xnat._exec(uri, 'GET'))
+        return _data
 
     def get_user_projects(self, user):
         uri = '/xapi/users/{}/groups'.format(user)
 
         # get from xnat and convert to list
-        data = list(self.get_json(self.xnat, uri))
+        _data = list(self.get_json(self.xnat, uri))
 
         # format of group name is PROJECT_ROLE,
         # so we split on the underscore
-        data = sorted([x.rsplit('_', 1)[0] for x in data])
+        _data = sorted([x.rsplit('_', 1)[0] for x in _data])
 
-        return data
+        return _data
 
     def get_project_names(self):
         if False:
@@ -175,16 +167,6 @@ class DashboardData:
                 'PNC_V3', 'BLSA', 'LANDMAN_UPGRAD']
 
         return project_names
-
-    def updated_datetime(self):
-        return datetime.strptime(self.updatetime, DFORMAT)
-
-    def now_formatted(self):
-        return datetime.strftime(
-            datetime.now(pytz.timezone(self.timezone), DFORMAT))
-
-    def formatted_time(self, curtime):
-        return datetime.strftime(curtime, DFORMAT)
 
     def set_time(self, row):
         if pd.notna(row['SUBMIT_TIME']):
@@ -269,15 +251,13 @@ class DaxDashboard:
             [Input('dropdown-task-proj', 'value'),
              Input('dropdown-task-user', 'value'),
              Input('dropdown-task-proc', 'value'),
-             Input('local', 'modified_timestamp')],
-            [State('local', 'data')])
+             Input('store-task', 'modified_timestamp')],
+            [State('store-task', 'data')])
         def update_rows(
                  selected_proj, selected_user, selected_proc,
                  modified_timestamp, data):
-            print('update_rows_task')
 
             if data is None:
-                print('update_rows', 'PreventUpdate')
                 raise PreventUpdate
 
             df = pd.DataFrame(data)
@@ -292,54 +272,43 @@ class DaxDashboard:
             if selected_proc:
                 df = df[df['PROCTYPE'].isin(selected_proc)]
 
-            print('update_rows_task:len=', len(df))
-
             return df.to_dict('records')
 
         @app.callback(
             Output('dropdown-task-proj', 'options'),
-            [Input('local', 'modified_timestamp')],
-            [State('local', 'data')])
+            [Input('store-task', 'modified_timestamp')],
+            [State('store-task', 'data')])
         def update_dropdown_proj(modified_timestamp, data):
 
             if data is None:
-                print('update_dropdown_projects', 'PreventUpdate')
                 raise PreventUpdate
 
-            print('update_dropdown_proj')
             options = self.make_options(pd.DataFrame(data).PROJECT.unique())
-            print('update_dropdown_proj', options)
             return options
 
-        # @app.callback(
-        #     Output('dropdown-task-proc', 'options'),
-        #     [Input('local', 'modified_timestamp')],
-        #     [State('local', 'data')])
-        # def update_dropdown_proc(modified_timestamp, data):
+        @app.callback(
+            Output('dropdown-task-proc', 'options'),
+            [Input('store-task', 'modified_timestamp')],
+            [State('store-task', 'data')])
+        def update_dropdown_proc(modified_timestamp, data):
 
-        #     if data is None:
-        #         print('update_dropdown_proc', 'PreventUpdate')
-        #         raise PreventUpdate
+            if data is None:
+                raise PreventUpdate
 
-        #     print('update_dropdown_proc')
-        #     options = self.make_options(pd.DataFrame(data).PROCTYPE.unique())
-        #     print('update_dropdown_proc', options)
-        #     return options
+            options = self.make_options(pd.DataFrame(data).PROCTYPE.unique())
+            return options
 
-        # @app.callback(
-        #     Output('dropdown-task-user', 'options'),
-        #     [Input('local', 'modified_timestamp')],
-        #     [State('local', 'data')])
-        # def update_dropdown_user(modified_timestamp, data):
+        @app.callback(
+            Output('dropdown-task-user', 'options'),
+            [Input('store-task', 'modified_timestamp')],
+            [State('store-task', 'data')])
+        def update_dropdown_user(modified_timestamp, data):
 
-        #     if data is None:
-        #         print('update_dropdown_user', 'PreventUpdate')
-        #         raise PreventUpdate
+            if data is None:
+                raise PreventUpdate
 
-        #     print('update_dropdown_user')
-        #     options = self.make_options(pd.DataFrame(data).USER.unique())
-        #     print('update_dropdown_user', options)
-        #     return options
+            options = self.make_options(pd.DataFrame(data).USER.unique())
+            return options
 
         @app.callback(
             Output('graph-task', 'figure'),
@@ -347,10 +316,7 @@ class DaxDashboard:
              Input('radio-task-groupby', 'value')])
         def update_figure(data, selected_groupby):
             if not data:
-                print('update_figure', 'PreventUpdate')
                 raise PreventUpdate
-
-            print('update_figure')
 
             # Make a 1x1 figure (I dunno why, this is from doing multi plots)
             fig = plotly.subplots.make_subplots(rows=1, cols=1)
@@ -358,7 +324,6 @@ class DaxDashboard:
 
             # Load table data into a dataframe for easy manipulation
             df = pd.DataFrame(data)
-            print('update_figure:len=', len(df))
 
             # What index are we pivoting on to count statuses
             PINDEX = selected_groupby
@@ -387,26 +352,17 @@ class DaxDashboard:
 
         # add a click to the appropriate store.
         @app.callback(
-            Output('local', 'data'),
+            Output('store-task', 'data'),
             [Input('update-button', 'n_clicks')],
-            [State('local', 'data')])
+            [State('store-task', 'data')])
         def update_button_click(n_clicks, data):
             if n_clicks is None:
-                print('n_clicks PreventUpdate')
                 raise PreventUpdate
 
-            print('update_button_click', n_clicks)
-
-            print('calling update_data')
             df = self.get_data()
-            print('returning data')
-
-            print('update_button_click:len=', len(df))
             return df.to_dict('records')
 
     def get_layout(self):
-        print('building interface')
-
         job_show = ['LABEL', 'STATUS', 'TIME', 'JOBID']
         job_columns = [{"name": i, "id": i} for i in job_show]
         job_data = pd.DataFrame(columns=job_show).to_dict('rows')
@@ -415,7 +371,7 @@ class DaxDashboard:
             type='default',
             style={'backgroundColor': 'transparent'},
             children=[
-                dcc.Store(id='local', storage_type='local'),
+                dcc.Store(id='store-task', storage_type='session'),
                 dcc.Graph(
                     id='graph-task',
                     figure={'title': 'Job Queue', 'layout': go.Layout(
@@ -463,9 +419,15 @@ class DaxDashboard:
                     export_headers='names',
                     export_columns='display')]
 
-        report_content = [html.Div(dcc.Tabs(id='tabs', value=1, children=[
-            dcc.Tab(label='Job Queue', value=1, children=job_tab_content)],
-            vertical=False))]
+        report_content = [
+            html.Div(
+                dcc.Tabs(id='tabs', value=1, vertical=False, children=[
+                    dcc.Tab(
+                        label='Job Queue', value=1, children=job_tab_content)
+                ]),
+                style={
+                    'width': '100%', 'display': 'flex',
+                    'align-items': 'center', 'justify-content': 'center'})]
 
         footer_content = [
             html.Hr(),
@@ -479,7 +441,7 @@ class DaxDashboard:
                 html.P('DAX Dashboard by BDB', style={'textAlign': 'right'})])]
 
         top_content = [dcc.Location(id='url', refresh=False), html.Div([
-            html.H3(
+            html.H1(
                 'DAX Dashboard',
                 style={
                     'margin-right': '100px', 'display': 'inline-block'}),
@@ -489,9 +451,6 @@ class DaxDashboard:
                     html.Div(children=top_content, id='top-content'),
                     html.Div(children=report_content, id='report-content'),
                     html.Div(children=footer_content, id='footer-content')])
-
-    def update_data(self):
-        return self.dashdata.update_data()
 
     def get_data(self):
         return self.dashdata.get_data()
