@@ -247,18 +247,48 @@ class DaxDashboard:
         # callbacks
         # ===================================================================
         @app.callback(
-            Output('datatable-task', 'data'),
-            [Input('dropdown-task-proj', 'value'),
-             Input('dropdown-task-user', 'value'),
-             Input('dropdown-task-proc', 'value'),
-             Input('store-task', 'modified_timestamp')],
+            [Output('dropdown-task-proc', 'options'),
+             Output('dropdown-task-proj', 'options'),
+             Output('dropdown-task-user', 'options')],
+            [Input('store-task', 'modified_timestamp')],
             [State('store-task', 'data')])
-        def update_rows(
-                 selected_proj, selected_user, selected_proc,
-                 modified_timestamp, data):
-
+        def update_dropdowns(modified_timestamp, data):
             if data is None:
                 raise PreventUpdate
+
+            proc = self.make_options(pd.DataFrame(data).PROCTYPE.unique())
+            proj = self.make_options(pd.DataFrame(data).PROJECT.unique())
+            user = self.make_options(pd.DataFrame(data).USER.unique())
+            return [proc, proj, user]
+
+        @app.callback(
+            Output('store-task', 'data'),
+            [Input('update-button', 'n_clicks')])
+        def update_button_click(n_clicks):
+            if n_clicks is None:
+                raise PreventUpdate
+
+            print('update_button_click', n_clicks)
+            df = self.get_data()
+            return df.to_dict('records')
+
+        @app.callback(
+            [Output('datatable-task', 'data'),
+             Output('graph-task', 'figure')],
+            [Input('radio-task-groupby', 'value'),
+             Input('dropdown-task-proc', 'value'),
+             Input('dropdown-task-proj', 'value'),
+             Input('dropdown-task-user', 'value'),
+             Input('store-task', 'modified_timestamp')],
+            [State('store-task', 'data')])
+        def update_figure_table(
+                selected_groupby, selected_proc, selected_proj,
+                selected_user, modified_timestamp, data):
+
+            if not data:
+                raise PreventUpdate
+
+            print('update_figure_table')
 
             df = pd.DataFrame(data)
 
@@ -272,58 +302,9 @@ class DaxDashboard:
             if selected_proc:
                 df = df[df['PROCTYPE'].isin(selected_proc)]
 
-            return df.to_dict('records')
-
-        @app.callback(
-            Output('dropdown-task-proj', 'options'),
-            [Input('store-task', 'modified_timestamp')],
-            [State('store-task', 'data')])
-        def update_dropdown_proj(modified_timestamp, data):
-
-            if data is None:
-                raise PreventUpdate
-
-            options = self.make_options(pd.DataFrame(data).PROJECT.unique())
-            return options
-
-        @app.callback(
-            Output('dropdown-task-proc', 'options'),
-            [Input('store-task', 'modified_timestamp')],
-            [State('store-task', 'data')])
-        def update_dropdown_proc(modified_timestamp, data):
-
-            if data is None:
-                raise PreventUpdate
-
-            options = self.make_options(pd.DataFrame(data).PROCTYPE.unique())
-            return options
-
-        @app.callback(
-            Output('dropdown-task-user', 'options'),
-            [Input('store-task', 'modified_timestamp')],
-            [State('store-task', 'data')])
-        def update_dropdown_user(modified_timestamp, data):
-
-            if data is None:
-                raise PreventUpdate
-
-            options = self.make_options(pd.DataFrame(data).USER.unique())
-            return options
-
-        @app.callback(
-            Output('graph-task', 'figure'),
-            [Input('datatable-task', 'data'),
-             Input('radio-task-groupby', 'value')])
-        def update_figure(data, selected_groupby):
-            if not data:
-                raise PreventUpdate
-
             # Make a 1x1 figure (I dunno why, this is from doing multi plots)
             fig = plotly.subplots.make_subplots(rows=1, cols=1)
             fig.update_layout(margin=dict(l=40, r=40, t=40, b=40))
-
-            # Load table data into a dataframe for easy manipulation
-            df = pd.DataFrame(data)
 
             # What index are we pivoting on to count statuses
             PINDEX = selected_groupby
@@ -348,63 +329,37 @@ class DaxDashboard:
 
             # Customize figure
             fig['layout'].update(barmode='stack', showlegend=True)
-            return fig
 
-        # add a click to the appropriate store.
-        @app.callback(
-            Output('store-task', 'data'),
-            [Input('update-button', 'n_clicks')],
-            [State('store-task', 'data')])
-        def update_button_click(n_clicks, data):
-            if n_clicks is None:
-                raise PreventUpdate
-
-            df = self.get_data()
-            return df.to_dict('records')
+            # Return table and figure
+            return [df.to_dict('records'), fig]
 
     def get_layout(self):
         job_show = ['LABEL', 'STATUS', 'TIME', 'JOBID']
         job_columns = [{"name": i, "id": i} for i in job_show]
         job_data = pd.DataFrame(columns=job_show).to_dict('rows')
-        job_tab_content = [dcc.Loading(
-            id='loading-main',
-            type='default',
-            style={'backgroundColor': 'transparent'},
-            children=[
+        job_tab_content = [
+            dcc.Loading(id="loading-task", children=[
                 dcc.Store(id='store-task', storage_type='session'),
-                dcc.Graph(
-                    id='graph-task',
-                    figure={'title': 'Job Queue', 'layout': go.Layout(
-                        xaxis={
-                            'showgrid': False, 'zeroline': False,
-                            'showline': False, 'showticklabels': False},
-                        yaxis={
-                            'showgrid': False, 'zeroline': False,
-                            'showline': False, 'showticklabels': False})})]),
-                html.Button(
-                    'Update',
-                    id='update-button',
-                    n_clicks=0, style={'margin-right': '25px'}),
-                dcc.RadioItems(
-                    options=[
-                        {'label': 'By USER', 'value': 'USER'},
-                        {'label': 'By PROJECT', 'value': 'PROJECT'},
-                        {'label': 'By PROCTYPE', 'value': 'PROCTYPE'}],
-                    value='USER',
-                    id='radio-task-groupby',
-                    labelStyle={'display': 'inline-block'}),
-                dcc.Dropdown(
-                    options=[{'label': 'NONE', 'value': 'NONE'}],
-                    id='dropdown-task-proj', multi=True,
-                    placeholder='Select Project(s)'),
-                dcc.Dropdown(
-                    options=[{'label': 'NONE', 'value': 'NONE'}],
-                    id='dropdown-task-user', multi=True,
-                    placeholder='Select User(s)'),
-                dcc.Dropdown(
-                    options=[{'label': 'NONE', 'value': 'NONE'}],
-                    id='dropdown-task-proc', multi=True,
-                    placeholder='Select Processing Type(s)'),
+                dcc.Graph(id='graph-task'),
+                html.Button('Refresh Data', id='update-button')]),
+            dcc.RadioItems(
+                options=[
+                    {'label': 'By USER', 'value': 'USER'},
+                    {'label': 'By PROJECT', 'value': 'PROJECT'},
+                    {'label': 'By PROCTYPE', 'value': 'PROCTYPE'}],
+                value='USER',
+                id='radio-task-groupby',
+                labelStyle={'display': 'inline-block'}),
+            dcc.Dropdown(
+                id='dropdown-task-proj', multi=True,
+                placeholder='Select Project(s)'),
+            dcc.Dropdown(
+                id='dropdown-task-user', multi=True,
+                placeholder='Select User(s)'),
+            dcc.Dropdown(
+                id='dropdown-task-proc', multi=True,
+                placeholder='Select Processing Type(s)'),
+            dcc.Loading(id="loading-table", children=[
                 dt.DataTable(
                     columns=job_columns,
                     data=job_data,
@@ -417,7 +372,7 @@ class DaxDashboard:
                     fill_width=False,
                     export_format='xlsx',
                     export_headers='names',
-                    export_columns='display')]
+                    export_columns='display')])]
 
         report_content = [
             html.Div(
