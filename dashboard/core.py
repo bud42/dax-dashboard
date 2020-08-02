@@ -1,6 +1,6 @@
 import subprocess
 from io import StringIO
-from datetime import datetime
+from datetime import datetime, timedelta
 import json
 import os
 
@@ -51,14 +51,21 @@ RGB_YELLOW = 'rgb(244,160,0)'
 RGB_RED = 'rgb(219,68,55)'
 RGB_GREY = 'rgb(200,200,200)'
 
+HEX_LBLUE = '#DAEBFF'
+HEX_LGREE = '#DCFFDA'
+HEX_LYELL = '#FDFFDA'
+HEX_LREDD = '#FFDADA'
+HEX_LGREY = '#EBEBEB'
+
 STATUS_LIST = ['WAITING', 'PENDING', 'RUNNING', 'COMPLETE', 'UNKNOWN']
 COLOR_LIST = [RGB_GREY, RGB_YELLOW, RGB_GREEN, RGB_BLUE, RGB_RED]
+LCOLOR_LIST = [HEX_LGREY, HEX_LYELL, HEX_LGREE, HEX_LBLUE, HEX_LREDD]
 
-SHOW_COLS = ['LABEL', 'STATUS', 'JOBID', 'WTIME', 'LASTMOD']
+SHOW_COLS = ['LABEL', 'STATUS', 'LASTMOD', 'WALLTIME', 'JOBID']
 
 TASK_COLS = [
     'LABEL', 'PROJECT', 'STATUS', 'PROCTYPE', 'USER',
-    'JOBID', 'TIME', 'WTIME', 'LASTMOD']
+    'JOBID', 'TIME', 'WALLTIME', 'LASTMOD']
 
 SQUEUE_COLS = [
     'NAME', 'ST', 'STATE', 'PRIORITY', 'JOBID', 'MIN_MEMORY',
@@ -93,11 +100,12 @@ class DashboardData:
         df['PROJECT'] = df['LABEL'].str.split('-x-', n=1, expand=True)[0]
         df['PROCTYPE'] = df['LABEL'].str.split('-x-', n=4, expand=True)[3]
 
+        # Do this to avoid blanks in the table
+        df['JOBID'].fillna('not launched', inplace=True)
+
         # create a concanated status that maps to full status
         df['psST'] = df['procstatus'].fillna('NONE') + df['ST'].fillna('NONE')
         df['STATUS'] = df['psST'].map(STATUS_MAP).fillna('UNKNOWN')
-
-        df['WTIME'] = df['TIME_LIMIT']
 
         # Determine how long ago status changed
         # how long has it been running, pending, waiting or complete?
@@ -131,6 +139,7 @@ class DashboardData:
             'jobstartdate': self.get_diskq_attr(diskq, assr, 'jobstartdate'),
             'memused': self.get_diskq_attr(diskq, assr, 'memused'),
             'walltimeused': self.get_diskq_attr(diskq, assr, 'walltimeused'),
+            'WALLTIME': self.get_diskq_walltime(diskq, assr),
             'LASTMOD': self.get_diskq_lastmod(diskq, assr)}
 
     def load_slurm_queue(self):
@@ -145,6 +154,39 @@ class DashboardData:
         except pd.errors.EmptyDataError:
             return None
 
+    def get_diskq_walltime(self, diskq, assr):
+        COOKIE = "#SBATCH --time="
+        walltime = None
+        bpath = os.path.join(diskq, 'BATCH', assr + '.slurm')
+
+        if os.path.exists(bpath):
+            with open(bpath, 'r') as f:
+                for line in f:
+                    if line.startswith(COOKIE):
+                        walltime = self.humanize_walltime(line.split('=')[1])
+                        break
+
+        return walltime
+
+    def humanize_walltime(self, walltime):
+        tmptime = walltime
+        days = 0
+        hours = 0
+        mins = 0
+
+        if '-' in tmptime:
+            tmpdays, tmptime = tmptime.split('-', 1)
+            days = int(tmpdays)
+        if ':' in walltime:
+            tmphours, tmptime = tmptime.split(':', 1)
+            hours = int(tmphours)
+        if ':' in walltime:
+            tmpmins = tmptime.split(':', 1)[0]
+            mins = int(tmpmins)
+
+        delta = timedelta(days=days, hours=hours, minutes=mins)
+        return humanize.naturaldelta(delta)
+
     def get_diskq_lastmod(self, diskq, assr):
 
         if os.path.exists(os.path.join(diskq, 'procstatus', assr)):
@@ -154,10 +196,9 @@ class DashboardData:
         else:
             return None
 
-        # _updatetime = datetime.strptime(self.updatetime, self.DFORMAT)
-        _updatetime = datetime.fromtimestamp(os.path.getmtime(apath))
-        _nowtime = datetime.now()
-        return humanize.naturaltime(_nowtime - _updatetime)
+        updatetime = datetime.fromtimestamp(os.path.getmtime(apath))
+        delta = datetime.now() - updatetime
+        return humanize.naturaldelta(delta)
 
     def get_diskq_attr(self, diskq, assr, attr):
         apath = os.path.join(diskq, attr, assr)
@@ -203,29 +244,6 @@ class DashboardData:
 
         row['timeused'] = row['TIME']
 
-        # Make time used to just be number of minutes
-        # TODO: optimize this, if we need it
-        # if pd.notna(row['TIME']):
-        #     try:
-        #         if '-' in str(row['TIME']):
-        #             t = datetime.strptime(str(row['TIME']), '%j-%H:%M:%S')
-        #             delta = timedelta(
-        #                 days=t.day,
-        #                 hours=t.hour, minutes=t.minute, seconds=t.second)
-        #         elif str(row['TIME']).count(':') == 2:
-        #             t = datetime.strptime(str(row['TIME']), '%H:%M:%S')
-        #             delta = timedelta(
-        #                 hours=t.hour, minutes=t.minute, seconds=t.second)
-        #         else:
-        #             t = datetime.strptime(str(row['TIME']), '%M:%S')
-        #             delta = timedelta(
-        #                 hours=t.hour, minutes=t.minute, seconds=t.second)
-
-        #         row['timeused(min)'] = math.ceil(delta.total_seconds() / 60)
-        #
-        #     except ValueError:
-        #         print('ValueError:'+row['label'])
-        #         row['timeused(min)'] = 1
         return row
 
 
@@ -393,9 +411,16 @@ class DaxDashboard:
                     sort_action='native',
                     id='datatable-task',
                     fixed_rows={'headers': True},
-                    style_cell={'textAlign': 'left'},
-                    #style_data_conditional=[{'if': {'filter': '"STATUS" eq "RUNNING"'}, 'backgroundColor': 'green', 'color': 'blue',}],
-                    fill_width=False,
+                    style_cell={'textAlign': 'left', 'padding': '5px'},
+                    style_cell_conditional=[
+                        {'if': {'column_id': 'STATUS'}, 'textAlign': 'center'},
+                        {'if': {'filter_query': '{STATUS} = RUNNING'}, 'backgroundColor': HEX_LGREE},
+                        {'if': {'filter_query': '{STATUS} = WAITING'}, 'backgroundColor': HEX_LGREY},
+                        {'if': {'filter_query': '{STATUS} = PENDING'}, 'backgroundColor': HEX_LYELL},
+                        {'if': {'filter_query': '{STATUS} = UNKNOWN'}, 'backgroundColor': HEX_LREDD},
+                        {'if': {'filter_query': '{STATUS} = COMPLETE'}, 'backgroundColor': HEX_LBLUE}],
+                    style_header={'backgroundColor': 'white', 'fontWeight': 'bold'},
+                    fill_width=True,
                     export_format='xlsx',
                     export_headers='names',
                     export_columns='display')]
