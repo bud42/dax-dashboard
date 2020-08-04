@@ -13,8 +13,7 @@ import dash
 import dash_core_components as dcc
 import dash_html_components as html
 import dash_table as dt
-from dash.dependencies import Input, Output, State
-from dash.exceptions import PreventUpdate
+from dash.dependencies import Input, Output
 
 from dax import XnatUtils
 
@@ -89,6 +88,13 @@ class DashboardData:
         self.timezone = TIMEZONE
         self.xnat_user = XNAT_USER
         self.updatetime = ''
+        self.df = self.get_data()
+
+    def data(self):
+        return self.df
+
+    def refresh_data(self):
+        self.df = self.get_data()
 
     def get_data(self):
         # TODO: run each load in separate threads
@@ -118,6 +124,9 @@ class DashboardData:
         # create a concanated status that maps to full status
         df['psST'] = df['procstatus'].fillna('NONE') + df['ST'].fillna('NONE')
         df['STATUS'] = df['psST'].map(STATUS_MAP).fillna('UNKNOWN')
+
+        # for debugging exclude waiting
+        df = df[df.procstatus != 'WAITING']
 
         # Determine how long ago status changed
         # how long has it been running, pending, waiting or complete?
@@ -271,6 +280,7 @@ class DaxDashboard:
         self.app = None
         self.url_base_pathname = url_base_pathname
         self.build_app()
+        self.update_count = 1
 
     def make_options(self, values):
         return [{'label': x, 'value': x} for x in sorted(values)]
@@ -301,53 +311,36 @@ class DaxDashboard:
         # therefore we load the data on page load
         app.layout = self.get_layout
 
-        # callbacks
-        # ===================================================================
         @app.callback(
             [Output('dropdown-task-proc', 'options'),
              Output('dropdown-task-proj', 'options'),
-             Output('dropdown-task-user', 'options')],
-            [Input('store-task', 'modified_timestamp')],
-            [State('store-task', 'data')])
-        def update_dropdowns(modified_timestamp, data):
-            if data is None:
-                raise PreventUpdate
-
-            logging.debug('update_dropdowns')
-
-            proc = self.make_options(pd.DataFrame(data).PROCTYPE.unique())
-            proj = self.make_options(pd.DataFrame(data).PROJECT.unique())
-            user = self.make_options(pd.DataFrame(data).USER.unique())
-            return [proc, proj, user]
-
-        @app.callback(
-            Output('store-task', 'data'),
-            [Input('update-button', 'n_clicks')])
-        def update_button_click(n_clicks):
-            logging.debug('update_button_click:'+str(n_clicks))
-
-            df = self.get_data()
-            return df.to_dict('records')
-
-        @app.callback(
-            [Output('datatable-task', 'data'),
+             Output('dropdown-task-user', 'options'),
+             Output('datatable-task', 'data'),
              Output('graph-task', 'figure')],
             [Input('radio-task-groupby', 'value'),
              Input('dropdown-task-proc', 'value'),
              Input('dropdown-task-proj', 'value'),
              Input('dropdown-task-user', 'value'),
-             Input('store-task', 'modified_timestamp')],
-            [State('store-task', 'data')])
-        def update_figure_table(
-                selected_groupby, selected_proc, selected_proj,
-                selected_user, modified_timestamp, data):
+             Input('update-button', 'n_clicks')])
+        def update_everything(
+                selected_groupby,
+                selected_proc,
+                selected_proj,
+                selected_user,
+                n_clicks):
 
-            if not data:
-                raise PreventUpdate
+            if n_clicks is not None and n_clicks > self.update_count:
+                self.update_count += 1
+                logging.debug('update_everything:refreshing:update_count={},clicks={}'.format(self.update_count, n_clicks))
+                self.refresh_data()
 
-            logging.debug('update_figure_table')
+            logging.debug('update_everything:loading data:update_count={},clicks={}'.format(self.update_count, n_clicks))
+            df = self.data()
 
-            df = pd.DataFrame(data)
+            # Get the dropdown options
+            proc = self.make_options(pd.DataFrame(df).PROCTYPE.unique())
+            proj = self.make_options(pd.DataFrame(df).PROJECT.unique())
+            user = self.make_options(pd.DataFrame(df).USER.unique())
 
             # Filter by project
             if selected_proj:
@@ -387,17 +380,22 @@ class DaxDashboard:
             # Customize figure
             fig['layout'].update(barmode='stack', showlegend=True)
 
-            # Return table and figure
-            return [df.to_dict('records'), fig]
+            # Return table, figure, dropdown options
+            logging.debug('update_everything:returning:update_count={},clicks={}'.format(self.update_count, n_clicks))
+            records = df.to_dict('records')
+            return [proc, proj, user, records, fig, ]
 
     def get_layout(self):
         logging.debug('get_layout')
 
+        df = self.data()
+
         job_columns = [{"name": i, "id": i} for i in SHOW_COLS]
-        job_data = pd.DataFrame(columns=SHOW_COLS).to_dict('rows')
+        job_data = df.to_dict('rows')
+        print(job_columns)
+        print(job_data)
         job_tab_content = [
             dcc.Loading(id="loading-task", children=[
-                dcc.Store(id='store-task', storage_type='session'),
                 dcc.Graph(id='graph-task'),
                 html.Button('Refresh Data', id='update-button')]),
             dcc.RadioItems(
@@ -472,8 +470,11 @@ class DaxDashboard:
                     html.Div(children=report_content, id='report-content'),
                     html.Div(children=footer_content, id='footer-content')])
 
-    def get_data(self):
-        return self.dashdata.get_data()
+    def data(self):
+        return self.dashdata.data()
+
+    def refresh_data(self):
+        return self.dashdata.refresh_data()
 
     def get_app(self):
         return self.app
