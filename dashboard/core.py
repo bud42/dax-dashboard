@@ -18,6 +18,10 @@ from dash.exceptions import PreventUpdate
 
 from dax import XnatUtils
 
+import logging
+logging.basicConfig(
+    format='%(asctime)s %(levelname)-8s %(message)s',
+    level=logging.DEBUG, datefmt='%Y-%m-%d %H:%M:%S')
 
 pd.set_option('display.max_colwidth', None)
 
@@ -33,33 +37,39 @@ XNAT_USER = 'boydb1'
 
 # we concat diskq status and squeue status to make a single status
 # squeue states: CG,F, PR, S, ST
-# diskq statuses: JOB_RUNNING, JOB_FAILED, NEED_TO_RUN,
+# diskq statuses: JOB_RUNNING, JOB_FAILED, NEED_TO_RUN, COMPLETE,
 # UPLOADING, READY_TO_COMPLETE, READY_TO_UPLOAD
 STATUS_MAP = {
-    'NONENONE': 'WAITING',
+    'COMPLETENONE': 'COMPLETE',
+    'JOB_FAILEDNONE': 'FAILED',
     'JOB_RUNNINGCD': 'RUNNING',
     'JOB_RUNNINGCG': 'RUNNING',
     'JOB_RUNNINGF': 'RUNNING',
     'JOB_RUNNINGR': 'RUNNING',
-    'JOB_RUNNINGNONE': 'COMPLETE',
-    'JOB_RUNNINGPD': 'PENDING'}
+    'JOB_RUNNINGNONE': 'RUNNING',
+    'JOB_RUNNINGPD': 'PENDING',
+    'NONENONE': 'WAITING',
+    'READY_TO_COMPLETENONE': 'COMPLETE',
+    'READY_TO_UPLOADNONE': 'COMPLETE'}
 
 RGB_DKBLUE = 'rgb(59,89,152)'
 RGB_BLUE = 'rgb(66,133,244)'
 RGB_GREEN = 'rgb(15,157,88)'
 RGB_YELLOW = 'rgb(244,160,0)'
 RGB_RED = 'rgb(219,68,55)'
+RGB_PURPLE = 'rgb(160,106,255)'
 RGB_GREY = 'rgb(200,200,200)'
 
 HEX_LBLUE = '#DAEBFF'
 HEX_LGREE = '#DCFFDA'
-HEX_LYELL = '#FDFFDA'
+HEX_LYELL = '#FFE4B3'
 HEX_LREDD = '#FFDADA'
 HEX_LGREY = '#EBEBEB'
+HEX_LPURP = '#FFD281'
 
-STATUS_LIST = ['WAITING', 'PENDING', 'RUNNING', 'COMPLETE', 'UNKNOWN']
-COLOR_LIST = [RGB_GREY, RGB_YELLOW, RGB_GREEN, RGB_BLUE, RGB_RED]
-LCOLOR_LIST = [HEX_LGREY, HEX_LYELL, HEX_LGREE, HEX_LBLUE, HEX_LREDD]
+STATUS_LIST = ['WAITING', 'PENDING', 'RUNNING', 'COMPLETE', 'FAILED', 'UNKNOWN']
+COLOR_LIST = [RGB_GREY, RGB_YELLOW, RGB_GREEN, RGB_BLUE, RGB_RED, RGB_PURPLE]
+LCOLOR_LIST = [HEX_LGREY, HEX_LYELL, HEX_LGREE, HEX_LBLUE, HEX_LREDD, HEX_LPURP]
 
 SHOW_COLS = ['LABEL', 'STATUS', 'LASTMOD', 'WALLTIME', 'JOBID']
 
@@ -81,18 +91,20 @@ class DashboardData:
         self.updatetime = ''
 
     def get_data(self):
+        # TODO: run each load in separate threads
+
         # Load tasks in diskq
-        print('loading diskq')
+        logging.debug('loading diskq')
         diskq_df = self.load_diskq_queue()
 
         # load squeue
-        print('loading squeue')
+        logging.debug('loading squeue')
         squeue_df = self.load_slurm_queue()
 
         # TODO: load xnat if we want to identify lost jobs in a separate tab
 
         # merge squeue data into task queue
-        print('merging data')
+        logging.debug('merging data')
         df = pd.merge(diskq_df, squeue_df, how='outer', on='LABEL')
 
         # assessor label is delimited by "-x-", first element is project,
@@ -111,7 +123,7 @@ class DashboardData:
         # how long has it been running, pending, waiting or complete?
 
         # Minimize columns
-        print('finishing')
+        logging.debug('finishing data')
         return df[TASK_COLS].sort_values('LABEL')
 
     def load_diskq_queue(self, status=None):
@@ -250,7 +262,7 @@ class DashboardData:
 class DaxDashboard:
     def __init__(self, url_base_pathname=None):
         if False:
-            print('DEBUG:connecting to XNAT')
+            logging.debug('DEBUG:connecting to XNAT')
             self.xnat = XnatUtils.get_interface()
         else:
             self.xnat = None
@@ -301,6 +313,8 @@ class DaxDashboard:
             if data is None:
                 raise PreventUpdate
 
+            logging.debug('update_dropdowns')
+
             proc = self.make_options(pd.DataFrame(data).PROCTYPE.unique())
             proj = self.make_options(pd.DataFrame(data).PROJECT.unique())
             user = self.make_options(pd.DataFrame(data).USER.unique())
@@ -310,10 +324,8 @@ class DaxDashboard:
             Output('store-task', 'data'),
             [Input('update-button', 'n_clicks')])
         def update_button_click(n_clicks):
-            if n_clicks is None:
-                raise PreventUpdate
+            logging.debug('update_button_click:'+str(n_clicks))
 
-            print('update_button_click', n_clicks)
             df = self.get_data()
             return df.to_dict('records')
 
@@ -333,7 +345,7 @@ class DaxDashboard:
             if not data:
                 raise PreventUpdate
 
-            print('update_figure_table')
+            logging.debug('update_figure_table')
 
             df = pd.DataFrame(data)
 
@@ -379,6 +391,8 @@ class DaxDashboard:
             return [df.to_dict('records'), fig]
 
     def get_layout(self):
+        logging.debug('get_layout')
+
         job_columns = [{"name": i, "id": i} for i in SHOW_COLS]
         job_data = pd.DataFrame(columns=SHOW_COLS).to_dict('rows')
         job_tab_content = [
@@ -414,11 +428,12 @@ class DaxDashboard:
                     style_cell={'textAlign': 'left', 'padding': '5px'},
                     style_cell_conditional=[
                         {'if': {'column_id': 'STATUS'}, 'textAlign': 'center'},
-                        {'if': {'filter_query': '{STATUS}= RUNNING'}, 'backgroundColor': HEX_LGREE},
-                        {'if': {'filter_query': '{STATUS}= WAITING'}, 'backgroundColor': HEX_LGREY},
-                        {'if': {'filter_query': '{STATUS}= PENDING'}, 'backgroundColor': HEX_LYELL},
-                        {'if': {'filter_query': '{STATUS}= UNKNOWN'}, 'backgroundColor': HEX_LREDD},
-                        {'if': {'filter_query': '{STATUS}=COMPLETE'}, 'backgroundColor': HEX_LBLUE},
+                        {'if': {'filter_query': '{STATUS} = RUNNING'}, 'backgroundColor': HEX_LGREE},
+                        {'if': {'filter_query': '{STATUS} = WAITING'}, 'backgroundColor': HEX_LGREY},
+                        {'if': {'filter_query': '{STATUS} = PENDING'}, 'backgroundColor': HEX_LYELL},
+                        {'if': {'filter_query': '{STATUS} = UNKNOWN'}, 'backgroundColor': HEX_LPURP},
+                        {'if': {'filter_query': '{STATUS} = FAILED'}, 'backgroundColor': HEX_LREDD},
+                        {'if': {'filter_query': '{STATUS} = COMPLETE'}, 'backgroundColor': HEX_LBLUE},
                         {'if': {'filter_query': '{STATUS} = ""'}, 'backgroundColor': 'white'}],
                     style_header={'backgroundColor': 'white', 'fontWeight': 'bold'},
                     fill_width=True,
@@ -438,11 +453,12 @@ class DaxDashboard:
 
         footer_content = [
             html.Hr(),
-            html.H5('WAITING: job has been built, but is not yet submitted'),
-            html.H5('PENDING: job has been submitted, but is not yet running'),
-            html.H5('RUNNING: job is running on the cluster'),
-            html.H5('COMPLETE: job has finished and will be uploaded'),
             html.H5('UNKNOWN: status is ambiguous or incomplete'),
+            html.H5('FAILED: job has failed, but has not yet been uploaded'),
+            html.H5('COMPLETE: job has finished, but not yet been uploaded'),
+            html.H5('RUNNING: job is currently running on the cluster'),
+            html.H5('PENDING: job has been submitted, but is not yet running'),
+            html.H5('WAITING: job has been built, but is not yet submitted'),
             html.Hr(),
             html.Div([
                 html.P('DAX Dashboard by BDB', style={'textAlign': 'right'})])]
@@ -463,7 +479,7 @@ class DaxDashboard:
         return self.app
 
     def run(self, host='0.0.0.0'):
-        print('DEBUG:running app on host:' + host)
+        logging.debug('DEBUG:running app on host:' + host)
         self.app.run_server(host=host)
 
 
