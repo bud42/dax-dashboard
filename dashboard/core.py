@@ -3,6 +3,7 @@ from io import StringIO
 from datetime import datetime, timedelta
 import json
 import os
+import logging
 
 import humanize
 import pandas as pd
@@ -17,7 +18,11 @@ from dash.dependencies import Input, Output
 
 from dax import XnatUtils
 
-import logging
+# 2020-08-03
+# THIS CODE isn't gonna get much more optimized than this.
+# If this ain't fast enough then Dash isn't fast enough
+# and we should try someone else, ugh. - bdb
+
 logging.basicConfig(
     format='%(asctime)s %(levelname)-8s %(message)s',
     level=logging.DEBUG, datefmt='%Y-%m-%d %H:%M:%S')
@@ -93,10 +98,10 @@ class DashboardData:
     def data(self):
         return self.df
 
-    def refresh_data(self, waiting=False):
-        self.df = self.get_data(waiting)
+    def refresh_data(self, exclude_waiting=True):
+        self.df = self.get_data(exclude_waiting)
 
-    def get_data(self, waiting=False):
+    def get_data(self, exclude_waiting=True):
         # TODO: run each load in separate threads
 
         # Load tasks in diskq
@@ -125,8 +130,7 @@ class DashboardData:
         df['psST'] = df['procstatus'].fillna('NONE') + df['ST'].fillna('NONE')
         df['STATUS'] = df['psST'].map(STATUS_MAP).fillna('UNKNOWN')
 
-        # for debugging exclude waiting
-        if not waiting:
+        if exclude_waiting:
             df = df[df.STATUS != 'WAITING']
 
         # Determine how long ago status changed
@@ -185,7 +189,8 @@ class DashboardData:
             with open(bpath, 'r') as f:
                 for line in f:
                     if line.startswith(COOKIE):
-                        walltime = self.humanize_walltime(line.split('=')[1])
+                        tmptime = line.split('=')[1].strip('"')
+                        walltime = self.humanize_walltime(tmptime)
                         break
 
         return walltime
@@ -282,7 +287,7 @@ class DaxDashboard:
         self.url_base_pathname = url_base_pathname
         self.build_app()
         self.update_count = 0
-        self.waitin_count = 0
+        self.exclude_waiting = True
 
     def make_options(self, values):
         return [{'label': x, 'value': x} for x in sorted(values)]
@@ -318,31 +323,32 @@ class DaxDashboard:
              Output('dropdown-task-proj', 'options'),
              Output('dropdown-task-user', 'options'),
              Output('datatable-task', 'data'),
-             Output('graph-task', 'figure')],
-            [Input('radio-task-groupby', 'value'),
-             Input('dropdown-task-proc', 'value'),
+             Output('tabs-task', 'children')],
+            [Input('dropdown-task-proc', 'value'),
              Input('dropdown-task-proj', 'value'),
              Input('dropdown-task-user', 'value'),
-             Input('waitin-button', 'n_clicks'),
-             Input('update-button', 'n_clicks')])
+             Input('checklist-waiting', 'value'),
+             Input('button-update', 'n_clicks')])
         def update_everything(
-                selected_groupby,
                 selected_proc,
                 selected_proj,
                 selected_user,
-                n_clicks_waiting,
+                waiting,
                 n_clicks):
 
-            if n_clicks is not None and n_clicks > self.update_count:
-                self.update_count += 1
-                logging.debug('update_everything:refreshing:update_count={},clicks={}'.format(self.update_count, n_clicks))
-                self.refresh_data()
-            elif n_clicks_waiting is not None and n_clicks_waiting > self.waitin_count:
-                self.waitin_count += 1
-                logging.debug('update_everything:rewaiting:clicks refresh ={},clicks rewait={}'.format(n_clicks, n_clicks_waiting))
-                self.refresh_data(waiting=True)
+            # Update exclude_waiting checkbox  and determine if it was modified
+            waiting_modified = self.update_waiting(waiting)
 
-            logging.debug('update_everything:loading data:update_count={},clicks={}'.format(self.update_count, n_clicks))
+            # Refresh data if waiting was toggled or refresh button clicked
+            if waiting_modified or (n_clicks is not None and n_clicks > self.update_count):
+                self.update_count += 1
+                logging.debug('update:refresh:count={},clicks={}'.format(
+                        self.update_count, n_clicks))
+                self.refresh_data()
+
+
+            # Load stored data
+            logging.debug('update:loading data')
             df = self.data()
 
             # Get the dropdown options
@@ -360,16 +366,37 @@ class DaxDashboard:
             if selected_proc:
                 df = df[df['PROCTYPE'].isin(selected_proc)]
 
-            # Make a 1x1 figure (I dunno why, this is from doing multi plots)
+            tabs = self.get_tabs_content(df)
+
+            # Return table, figure, dropdown options
+            logging.debug('update:returning data')
+            records = df.to_dict('records')
+            return [proc, proj, user, records, tabs]
+
+    def update_waiting(self, waiting):
+        modified = False
+
+        if waiting is not None:
+            new_waiting = ('WAITING' in waiting)
+            if new_waiting != self.exclude_waiting:
+                self.exclude_waiting = waiting
+                modified = True
+
+        return modified
+
+    def get_tabs_content(self, df):
+        PIVOTS = ['USER', 'PROJECT', 'PROCTYPE']
+        tabs_content = []
+
+        # index are we pivoting on to count statuses
+        for i, pindex in enumerate(PIVOTS):
+            # Make a 1x1 figure
             fig = plotly.subplots.make_subplots(rows=1, cols=1)
             fig.update_layout(margin=dict(l=40, r=40, t=40, b=40))
 
-            # What index are we pivoting on to count statuses
-            PINDEX = selected_groupby
-
             # Draw bar for each status, these will be displayed in order
             dfp = pd.pivot_table(
-                df, index=PINDEX, values='LABEL', columns=['STATUS'],
+                df, index=pindex, values='LABEL', columns=['STATUS'],
                 aggfunc='count', fill_value=0)
             for status, color in zip(STATUS_LIST, COLOR_LIST):
                 ydata = sorted(dfp.index)
@@ -386,35 +413,43 @@ class DaxDashboard:
                     opacity=0.9, orientation='h'), 1, 1)
 
             # Customize figure
-            fig['layout'].update(barmode='stack', showlegend=True)
+            fig['layout'].update(barmode='stack', showlegend=True, width=900)
 
-            # Return table, figure, dropdown options
-            logging.debug('update_everything:returning:update_count={},clicks={}'.format(self.update_count, n_clicks))
-            records = df.to_dict('records')
-            return [proc, proj, user, records, fig, ]
+            # Build the tab
+            label = 'By {}'.format(pindex)
+            graph = html.Div(dcc.Graph(figure=fig), style={
+                'width': '100%', 'display': 'inline-block'})
+            value = i + 1
+            tab = dcc.Tab(label=label, value=value, children=[graph])
+
+            # Append the tab
+            tabs_content.append(tab)
+
+        return tabs_content
 
     def get_layout(self):
         logging.debug('get_layout')
 
         df = self.data()
 
+        graph_tabs_content = self.get_tabs_content(df)
         job_columns = [{"name": i, "id": i} for i in SHOW_COLS]
         job_data = df.to_dict('rows')
-        #print(job_columns)
-        #print(job_data)
         job_tab_content = [
             dcc.Loading(id="loading-task", children=[
-                dcc.Graph(id='graph-task'),
-                html.Button('Refresh Data', id='update-button'),
-                html.Button('Refresh Data including WAITING', id='waitin-button')]),
-            dcc.RadioItems(
-                options=[
-                    {'label': 'By USER', 'value': 'USER'},
-                    {'label': 'By PROJECT', 'value': 'PROJECT'},
-                    {'label': 'By PROCTYPE', 'value': 'PROCTYPE'}],
-                value='USER',
-                id='radio-task-groupby',
-                labelStyle={'display': 'inline-block'}),
+                html.Div(dcc.Tabs(
+                    id='tabs-task',
+                    value=1,
+                    children=graph_tabs_content,
+                    vertical=True))]),
+            html.Button('Refresh Data', id='button-update'),
+            dcc.Checklist(
+                id='checklist-waiting',
+                options=[{
+                    'label': 'exclude WAITING',
+                    'value': 'WAITING'}],
+                value=['WAITING'],
+                style={'display': 'inline'}, labelStyle={'display': 'inline'}),
             dcc.Dropdown(
                 id='dropdown-task-proj', multi=True,
                 placeholder='Select Project(s)'),
@@ -482,8 +517,8 @@ class DaxDashboard:
     def data(self):
         return self.dashdata.data()
 
-    def refresh_data(self, waiting=False):
-        return self.dashdata.refresh_data(waiting)
+    def refresh_data(self):
+        return self.dashdata.refresh_data(exclude_waiting=self.exclude_waiting)
 
     def get_app(self):
         return self.app
