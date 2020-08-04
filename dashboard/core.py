@@ -93,10 +93,10 @@ class DashboardData:
     def data(self):
         return self.df
 
-    def refresh_data(self):
-        self.df = self.get_data()
+    def refresh_data(self, waiting=False):
+        self.df = self.get_data(waiting)
 
-    def get_data(self):
+    def get_data(self, waiting=False):
         # TODO: run each load in separate threads
 
         # Load tasks in diskq
@@ -126,7 +126,8 @@ class DashboardData:
         df['STATUS'] = df['psST'].map(STATUS_MAP).fillna('UNKNOWN')
 
         # for debugging exclude waiting
-        df = df[df.procstatus != 'WAITING']
+        if not waiting:
+            df = df[df.STATUS != 'WAITING']
 
         # Determine how long ago status changed
         # how long has it been running, pending, waiting or complete?
@@ -280,7 +281,8 @@ class DaxDashboard:
         self.app = None
         self.url_base_pathname = url_base_pathname
         self.build_app()
-        self.update_count = 1
+        self.update_count = 0
+        self.waitin_count = 0
 
     def make_options(self, values):
         return [{'label': x, 'value': x} for x in sorted(values)]
@@ -321,18 +323,24 @@ class DaxDashboard:
              Input('dropdown-task-proc', 'value'),
              Input('dropdown-task-proj', 'value'),
              Input('dropdown-task-user', 'value'),
+             Input('waitin-button', 'n_clicks'),
              Input('update-button', 'n_clicks')])
         def update_everything(
                 selected_groupby,
                 selected_proc,
                 selected_proj,
                 selected_user,
+                n_clicks_waiting,
                 n_clicks):
 
             if n_clicks is not None and n_clicks > self.update_count:
                 self.update_count += 1
                 logging.debug('update_everything:refreshing:update_count={},clicks={}'.format(self.update_count, n_clicks))
                 self.refresh_data()
+            elif n_clicks_waiting is not None and n_clicks_waiting > self.waitin_count:
+                self.waitin_count += 1
+                logging.debug('update_everything:rewaiting:clicks refresh ={},clicks rewait={}'.format(n_clicks, n_clicks_waiting))
+                self.refresh_data(waiting=True)
 
             logging.debug('update_everything:loading data:update_count={},clicks={}'.format(self.update_count, n_clicks))
             df = self.data()
@@ -392,12 +400,13 @@ class DaxDashboard:
 
         job_columns = [{"name": i, "id": i} for i in SHOW_COLS]
         job_data = df.to_dict('rows')
-        print(job_columns)
-        print(job_data)
+        #print(job_columns)
+        #print(job_data)
         job_tab_content = [
             dcc.Loading(id="loading-task", children=[
                 dcc.Graph(id='graph-task'),
-                html.Button('Refresh Data', id='update-button')]),
+                html.Button('Refresh Data', id='update-button'),
+                html.Button('Refresh Data including WAITING', id='waitin-button')]),
             dcc.RadioItems(
                 options=[
                     {'label': 'By USER', 'value': 'USER'},
@@ -473,8 +482,8 @@ class DaxDashboard:
     def data(self):
         return self.dashdata.data()
 
-    def refresh_data(self):
-        return self.dashdata.refresh_data()
+    def refresh_data(self, waiting=False):
+        return self.dashdata.refresh_data(waiting)
 
     def get_app(self):
         return self.app
