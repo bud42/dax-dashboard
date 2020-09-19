@@ -116,7 +116,7 @@ JOB_TAB_COLS = [
 
 SQUEUE_COLS = [
     'NAME', 'ST', 'STATE', 'PRIORITY', 'JOBID', 'MIN_MEMORY',
-    'TIME', 'SUBMIT_TIME', 'START_TIME', 'TIME_LIMIT', 'TIME_LEFT']
+    'TIME', 'SUBMIT_TIME', 'START_TIME', 'TIME_LIMIT', 'TIME_LEFT', 'USER']
 
 # These are the columns to be displayed in the table
 TASK_SHOW_COLS = ['LABEL', 'STATUS', 'TIME', 'MEM', 'JOBID']
@@ -131,7 +131,6 @@ TASK_TAB_COLS = [
 class DashboardData:
     def __init__(self, xnat):
         self.xnat = xnat
-        self.task_df = None
         self.timezone = TIMEZONE
         self.xnat_user = XNAT_USER
         self.updatetime = ''
@@ -215,7 +214,7 @@ class DashboardData:
 
         # merge squeue data into task queue
         logging.debug('merging data')
-        df = pd.merge(diskq_df, squeue_df, how='outer', on='LABEL')
+        df = pd.merge(diskq_df, squeue_df, how='outer', on=['LABEL', 'USER'])
 
         # assessor label is delimited by "-x-", first element is project,
         # fourth element is processing type
@@ -237,7 +236,8 @@ class DashboardData:
 
         # Minimize columns
         logging.debug('finishing data')
-        return df[JOB_TAB_COLS].sort_values('LABEL')
+        df = df.reindex(columns=JOB_TAB_COLS)
+        return df.sort_values('LABEL')
 
     def load_diskq_queue(self, status=None):
         task_list = list()
@@ -514,7 +514,6 @@ class DaxDashboard:
             # Return table, figure, dropdown options
             logging.debug('update_all:returning data')
             records = df.to_dict('records')
-            print(len(records))
             return [proc, proj, records, tabs]
 
         @app.callback(
@@ -537,7 +536,6 @@ class DaxDashboard:
 
             # Update exclude_waiting checkbox  and determine if it was modified
             waiting_modified = self.update_waiting(waiting)
-            print(waiting, waiting_modified)
 
             # Refresh data if waiting was toggled or refresh button clicked
             if waiting_modified or (n_clicks is not None and n_clicks > self.job_refresh_count):
@@ -652,8 +650,6 @@ class DaxDashboard:
 
         # Plot trace for each status
         for i in df.PROCSTATUS.unique():
-            # print('appending trace', i)
-
             # Filter data by status
             dft = df[df.PROCSTATUS == i]
 
