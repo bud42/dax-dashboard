@@ -8,6 +8,7 @@ import math
 
 import humanize
 import pandas as pd
+import numpy as np
 import plotly
 import plotly.graph_objs as go
 import plotly.subplots
@@ -404,7 +405,11 @@ class DashboardData:
         return datetime.strptime(jobstartdate, '%Y-%m-%d')
 
     def clean_mem(self, memused):
-        bytes_used = int(float(memused))*1024
+        try:
+            bytes_used = int(float(memused))*1024
+        except ValueError:
+            bytes_used = np.nan
+
         return self.humanize_memused(bytes_used)
 
     def clean_time(self, timeused):
