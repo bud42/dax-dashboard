@@ -293,10 +293,10 @@ class DashboardData:
                         walltime = self.humanize_walltime(tmptime)
                         break
         except IOError:
-            print('file does not exist:' + bpath)
+            logging.warn('file does not exist:' + bpath)
             return None
         except PermissionError:
-            print('permission error reading file:' + bpath)
+            logging.warn('permission error reading file:' + bpath)
             return None
 
         return walltime
