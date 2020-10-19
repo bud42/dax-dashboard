@@ -285,13 +285,19 @@ class DashboardData:
         walltime = None
         bpath = os.path.join(diskq, 'BATCH', assr + '.slurm')
 
-        if os.path.exists(bpath):
+        try:
             with open(bpath, 'r') as f:
                 for line in f:
                     if line.startswith(COOKIE):
                         tmptime = line.split('=')[1].strip('"')
                         walltime = self.humanize_walltime(tmptime)
                         break
+        except IOError:
+            print('file does not exist:' + bpath)
+            return None
+        except PermissionError:
+            print('permission error reading file:' + bpath)
+            return None
 
         return walltime
 
