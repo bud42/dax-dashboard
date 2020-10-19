@@ -339,8 +339,11 @@ class DashboardData:
         if not os.path.exists(apath):
             return None
 
-        with open(apath, 'r') as f:
-            return f.read().strip()
+        try:
+            with open(apath, 'r') as f:
+                return f.read().strip()
+        except PermissionError:
+            return None
 
     def get_json(self, uri):
         _data = json.loads(self.xnat._exec(uri, 'GET'))
