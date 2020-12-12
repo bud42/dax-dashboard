@@ -42,6 +42,8 @@ from app import app
 
 from . import qadata
 
+from . import utils
+
 
 logging.basicConfig(
     format='%(asctime)s %(levelname)-8s %(message)s',
@@ -74,10 +76,6 @@ STATUS2COLOR = {
 DEFAULT_COLOR = 'rgba(0,0,0,0.5)'
 
 LINE_COLOR = 'rgba(50,50,50,0.9)'
-
-
-def make_options(values):
-    return [{'label': x, 'value': x} for x in values]
 
 
 def filter_qa_data(df, projects, proctypes, timeframe, sesstype):
@@ -466,8 +464,8 @@ def update_all(
 
     # Update lists of possible options for dropdowns (could have changed)
     # make these lists before we filter what to display
-    proc = make_options(df.TYPE.unique())
-    proj = make_options(sorted(df.PROJECT.unique()))
+    proc = utils.make_options(df.TYPE.unique())
+    proj = utils.make_options(sorted(df.PROJECT.unique()))
 
     # Filter data based on dropdown values
     df = filter_qa_data(

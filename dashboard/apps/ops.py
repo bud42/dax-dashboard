@@ -21,6 +21,8 @@ from dax import XnatUtils
 
 from app import app
 
+from . import utils
+
 
 logging.basicConfig(
     format='%(asctime)s %(levelname)-8s %(message)s',
@@ -467,10 +469,6 @@ class DashboardData:
             return 1
 
 
-def make_options(values):
-    return [{'label': x, 'value': x} for x in sorted(values)]
-
-
 def update_waiting(waiting):
     modified = False
 
@@ -833,8 +831,8 @@ def update_all(selected_proc, selected_proj, selected_time, n_clicks):
     df = task_data()
 
     # Get the dropdown options
-    proc = make_options(df.PROCTYPE.unique())
-    proj = make_options(df.PROJECT.unique())
+    proc = utils.make_options(df.PROCTYPE.unique())
+    proj = utils.make_options(df.PROJECT.unique())
 
     # Filter by project
     if selected_proj:
@@ -884,9 +882,9 @@ def update_everything(
     df = get_job_data()
 
     # Get the dropdown options
-    proc = make_options(df.PROCTYPE.unique())
-    proj = make_options(df.PROJECT.unique())
-    user = make_options(df.USER.unique())
+    proc = utils.make_options(df.PROCTYPE.unique())
+    proj = utils.make_options(df.PROJECT.unique())
+    user = utils.make_options(df.USER.unique())
 
     # Filter by project
     if selected_proj:

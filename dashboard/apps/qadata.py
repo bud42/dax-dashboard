@@ -76,7 +76,7 @@ SCAN_RENAME = {
 
 SCAN_STATUS_MAP = {
     'usable': 'P',
-    'questionable': 'Q',
+    'questionable': 'P',
     'unusable': 'F'}
 
 ASSR_STATUS_MAP = {

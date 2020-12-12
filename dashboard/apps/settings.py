@@ -89,7 +89,7 @@ def update_settings(load_n_clicks):
 
     # Load all possible types for currently selected projects only
     # ptype_list = get_ptypes(xnat, selected_proj) # this is too slow
-    stype_list = qadata.get_stypes(selected_proj)
+    stype_list = sorted(qadata.get_stypes(selected_proj))
 
     # Limit selected to those in the QA file
     type_set = set(df.TYPE.unique())
