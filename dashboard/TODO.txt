@@ -1,3 +1,9 @@
+# Try vertically column names, or try to make it work like redcap does, such that
+# ony the table is extra wide and the controls and graph stay in place
+
+# Next - preselect a subject of projects/scans/assessors so we don't go too wide
+# and also make the table only show columns for selected types
+
 # v0.2 - this version loads the diskq files, runs squeue to get status of slurm
 # queue, merges the data and to display a table and stacked bar chart.
 # There is an update button but it doesn't really work. The formatting could
