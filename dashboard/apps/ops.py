@@ -327,7 +327,7 @@ class DashboardData:
             with open(bpath, 'r') as f:
                 for line in f:
                     if line.startswith(COOKIE):
-                        tmptime = line.split('=')[1].strip('"')
+                        tmptime = line.split('=')[1].replace('"', '').replace("'", '')
                         walltime = self.humanize_walltime(tmptime)
                         break
         except IOError:
