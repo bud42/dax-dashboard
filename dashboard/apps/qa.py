@@ -325,7 +325,10 @@ def get_qa_content(df):
                 id='datatable-qa',
                 # fixed_rows={'headers': True}, # disabled b/c it behaves weird
                 style_cell={'textAlign': 'left', 'padding': '5px'},
-                style_header={'backgroundColor': 'white', 'fontWeight': 'bold'},
+                style_header={
+                    'backgroundColor': 'white',
+                    'fontWeight': 'bold',
+                    'padding': '5px 15px 5px 10px'},
                 fill_width=True,
                 export_format='xlsx',
                 export_headers='names',
