@@ -120,6 +120,7 @@ def get_qa_graph_content(dfp):
     tab_value = 0
 
     logging.debug('get_qa_figure')
+    print(dfp)
 
     # Make a 1x1 figure
     fig = plotly.subplots.make_subplots(rows=1, cols=1)
@@ -281,9 +282,10 @@ def get_qa_content(df):
     qa_graph_content = get_qa_graph_content(dfp)
 
     # Get the rows and colums for the table
+    qa_columns = [{"name": i, "id": i} for i in dfp.index.names]
     dfp.reset_index(inplace=True)
     qa_data = dfp.to_dict('rows')
-    qa_columns = [{"name": i, "id": i} for i in dfp.columns]
+    #qa_columns = [{"name": i, "id": i} for i in dfp.columns]
 
     qa_content = [
         dcc.Loading(id="loading-qa", children=[
@@ -317,22 +319,23 @@ def get_qa_content(df):
             id='radio-qa-sesstype',
             labelStyle={'display': 'inline-block'}),
         dt.DataTable(
-                columns=qa_columns,
-                data=qa_data,
-                filter_action='native',
-                page_action='none',
-                sort_action='native',
-                id='datatable-qa',
-                # fixed_rows={'headers': True}, # disabled b/c it behaves weird
-                style_cell={'textAlign': 'left', 'padding': '5px'},
-                style_header={
-                    'backgroundColor': 'white',
-                    'fontWeight': 'bold',
-                    'padding': '5px 15px 5px 10px'},
-                fill_width=True,
-                export_format='xlsx',
-                export_headers='names',
-                export_columns='visible')]
+            columns=qa_columns,
+            data=qa_data,
+            filter_action='native',
+            page_action='none',
+            sort_action='native',
+            id='datatable-qa',
+            # fixed_rows={'headers': True}, # disabled b/c it behaves weird
+            style_cell={'textAlign': 'left', 'padding': '5px'},
+            style_header={
+                'backgroundColor': 'white',
+                'fontWeight': 'bold',
+                'padding': '5px 15px 5px 10px'},
+            #fill_width=True,
+            fill_width=False,
+            export_format='xlsx',
+            export_headers='names',
+            export_columns='visible')]
 
     return qa_content
 
@@ -386,8 +389,8 @@ def get_layout():
         html.H5('Q: To be determined')]
 
     return html.Div([
-                html.Div(children=report_content, id='report-content'),
-                html.Div(children=footer_content, id='footer-content')])
+        html.Div(children=report_content, id='report-content'),
+        html.Div(children=footer_content, id='footer-content')])
 
 
 def qa_pivot(df):
@@ -439,6 +442,7 @@ def was_triggered(callback_ctx, button_id):
     [Output('dropdown-qa-proc', 'options'),
      Output('dropdown-qa-proj', 'options'),
      Output('datatable-qa', 'data'),
+     Output('datatable-qa', 'columns'),
      Output('tabs-qa', 'children')],
     [Input('dropdown-qa-proc', 'value'),
      Input('dropdown-qa-proj', 'value'),
@@ -487,8 +491,9 @@ def update_all(
     # Return table, figure, dropdown options
     logging.debug('update_all:returning data')
     records = dfp.reset_index().to_dict('records')
+    columns = [{"name": i, "id": i} for i in dfp.reset_index().columns]
 
-    return [proc, proj, records, tabs]
+    return [proc, proj, records, columns, tabs]
 
 
 # Build the layout that will used by top level index.py

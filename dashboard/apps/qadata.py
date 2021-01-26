@@ -338,7 +338,10 @@ def load_scan_data(project_filter, scantype_filter):
 
     # TODO: move this filtering to the uri if we can, not currently working
     # Filter by scan type
-    df = df[df['SCANTYPE'].isin(scantype_filter)]
+    if False:
+        df = df[df['SCANTYPE'].isin(scantype_filter)]
+    else:
+        print(sorted(list(df['SCANTYPE'].unique())))
 
     # return the scan data
     logging.info('loaded {} scans'.format(len(df)))
