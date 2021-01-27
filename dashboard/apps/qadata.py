@@ -9,6 +9,8 @@ from dax import XnatUtils
 
 EXCLUDE_LIST = [
 'ARC_GRE_field_mapping',
+'ARC_GRE_field_mapping ',
+' ARC_GRE_field_mapping ',
 '&amp;amp;lt;MPR Collection&amp;amp;gt;',
 '1mm+PSF_CTAC',
 '1mm_CTAC',
@@ -22,7 +24,6 @@ EXCLUDE_LIST = [
 '32CH_v2 DTI_AP_FA',
 '32CH_v2 DTI_AP_TENSOR',
 '32CH_v2 DTI_AP_TRACEW',
-'3D T2',
 '3DPCA_DEM_MJD',
 '4X5-1MM',
 '4X5-1MM+PSF',
@@ -120,11 +121,8 @@ EXCLUDE_LIST = [
 'WIP SOURCE - pCASL_SoftSinglePhase',
 'WIP WIP WIP BOLDMB2_shift3_TR0.66 SENSE',
 'WIP rsEPI_MB6R1_FSA',
-'WIP_HARDI_60_2_5iso',
 'WIP_dti_32_1000_multiband2',
 'WIP_dti_32_1000_nomb',
-'WIP_dti_4min_matchTE',
-'WIP_dti_landman_5min',
 '[BR-DY_CTAC] 2MM Brain Dynamic',
 '[BR-DY_CTAC] 2mm',
 '[BR-DY_CTAC] Brain Dynamic',
@@ -448,6 +446,9 @@ def refresh_data():
 def load_assr_data(project_filter, proctype_filter):
     df = pd.DataFrame()
 
+    proctype_filter.extend(['dtiQA_synb0_v7', 'EDATQA_v1', 'EDP_v1', 'RSFC_CONN_v1'])
+    #print('proctype_filter=', proctype_filter)
+
     # Load assr data
     logging.debug('loading assr data')
     try:
@@ -514,7 +515,7 @@ def load_scan_data(project_filter, scantype_filter):
     if False:
         df = df[df['SCANTYPE'].isin(scantype_filter)]
     else:
-        print(sorted(list(df['SCANTYPE'].unique())))
+        #print(sorted(list(df['SCANTYPE'].unique())))
         df = df[~df['SCANTYPE'].isin(EXCLUDE_LIST)]
 
     # return the scan data

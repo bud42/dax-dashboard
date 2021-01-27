@@ -120,7 +120,7 @@ def get_qa_graph_content(dfp):
     tab_value = 0
 
     logging.debug('get_qa_figure')
-    print(dfp)
+    #print(dfp)
 
     # Make a 1x1 figure
     fig = plotly.subplots.make_subplots(rows=1, cols=1)
@@ -326,13 +326,32 @@ def get_qa_content(df):
             sort_action='native',
             id='datatable-qa',
             # fixed_rows={'headers': True}, # disabled b/c it behaves weird
-            style_cell={'textAlign': 'left', 'padding': '5px'},
+            style_table={'overflowY': 'scroll', 'overflowX': 'scroll'},
+            # fixed_columns={'headers': True, 'data': 2}, # disabled b/c it behaves weirdly
+            # style_cell={'textAlign': 'left', 'padding': '5px', 'width': '30px'},
+            style_cell={
+                'textAlign': 'left',
+                'padding': '5px 5px 0px 5px',
+                'width': '30px',
+                'overflow': 'hidden',
+                'textOverflow': 'ellipsis',
+                'height': 'auto',
+                'minWidth': '40',
+                'maxWidth': '60'},
+            #style_header={
+            #    'backgroundColor': 'white',
+            #    'fontWeight': 'bold',
+            #    'padding': '5px 15px 5px 10px'},
             style_header={
+                'width': '80px',
                 'backgroundColor': 'white',
                 'fontWeight': 'bold',
-                'padding': '5px 15px 5px 10px'},
+                'padding': '5px 15px 0px 10px'},
+            #    'transform': 'rotate(-90deg)'},
+            #style_header_conditional=[
+            #    {'if': {'column_id': c}, 'backgroundColor': '#3D9970', 'color': 'white', 'transform': 'rotate(0deg)'} for c in ['SESSION', 'PROJECT', 'DATE']],
             #fill_width=True,
-            fill_width=False,
+            fill_width=True,
             export_format='xlsx',
             export_headers='names',
             export_columns='visible')]
@@ -380,7 +399,7 @@ def get_layout():
             ]),
             style={
                 'width': '100%', 'display': 'flex',
-                'align-items': 'center', 'justify-content': 'center'})]
+                'align-items': 'center', 'justify-content': 'left'})]
 
     footer_content = [
         html.Hr(),
