@@ -5,7 +5,7 @@ import dash_auth
 
 from app import app
 
-from apps import qa, ops, settings
+from apps import qa, ops, settings, stats
 
 from secrets import VALID_USERNAME_PASSWORD_PAIRS
 
@@ -22,6 +22,7 @@ app.layout = html.Div([
     html.Div([
         dcc.Link('qa', href='/qa', style=link_style),
         dcc.Link('ops', href='/ops', style=link_style),
+        dcc.Link('stats', href='/stats', style=link_style),
         dcc.Link('settings', href='/settings', style=link_style)],
         style={'float': 'right'}),
     html.Div([html.H1('DAX Dashboard')]),
@@ -60,6 +61,9 @@ def display_page(pathname):
         # return ops.layout
         print('display_page:ops')
         return ops.layout
+    elif pathname == '/stats':
+        print('display_page:stats')
+        return stats.layout
     else:
         print('display_page:')
         return qa.layout
