@@ -214,16 +214,17 @@ class DashboardData:
         self.task_df = self.get_task_data(timeframe)
         self.task_refresh_count += 1
 
-    def refresh_job_data(self, exclude_waiting=True):
-        self.job_df = self.get_job_data(exclude_waiting)
+    def refresh_job_data(self):
+        self.job_df = self.get_job_data()
         self.job_refresh_count += 1
 
-    def get_job_data(self, exclude_waiting=True):
+    def get_job_data(self):
         # TODO: run each load in separate threads
 
         # Load tasks in diskq
         logging.debug('loading diskq')
         diskq_df = self.load_diskq_queue()
+        #print(diskq_df)
 
         # load squeue
         logging.debug('loading squeue')
@@ -247,7 +248,6 @@ class DashboardData:
             print('merging')
             df = pd.merge(diskq_df, squeue_df, how='outer', on=['LABEL', 'USER'])
 
-        #print(df)
         if not df.empty:
             # assessor label is delimited by "-x-", first element is project,
             # fourth element is processing type
@@ -261,15 +261,13 @@ class DashboardData:
             df['psST'] = df['procstatus'].fillna('NONE') + df['ST'].fillna('NONE')
             df['STATUS'] = df['psST'].map(STATUS_MAP).fillna('UNKNOWN')
 
-            if exclude_waiting:
-                df = df[df.STATUS != 'WAITING']
-
         # Determine how long ago status changed
         # how long has it been running, pending, waiting or complete?
 
         # Minimize columns
         logging.debug('finishing data')
         df = df.reindex(columns=JOB_TAB_COLS)
+
         return df.sort_values('LABEL')
 
     def load_diskq_queue(self, status=None):
@@ -442,7 +440,7 @@ class DashboardData:
 
     def clean_mem(self, memused):
         try:
-            bytes_used = int(float(memused))*1024
+            bytes_used = int(float(memused)) * 1024
         except ValueError:
             bytes_used = np.nan
 
@@ -467,18 +465,6 @@ class DashboardData:
             return math.ceil(delta.total_seconds() / 60)
         except ValueError:
             return 1
-
-
-def update_waiting(waiting):
-    modified = False
-
-    if waiting is not None:
-        new_waiting = ('WAITING' in waiting)
-        if new_waiting != True:
-            exclude_waiting = waiting
-            modified = True
-
-    return modified
 
 
 def update_timeframe(timeframe):
@@ -657,13 +643,6 @@ def get_job_content(df):
                 children=job_graph_content,
                 vertical=True))]),
         html.Button('Refresh Data', id='button-job-refresh'),
-        dcc.Checklist(
-            id='checklist-job-waiting',
-            options=[{
-                'label': 'exclude WAITING',
-                'value': 'WAITING'}],
-            value=['WAITING'],
-            style={'display': 'inline'}, labelStyle={'display': 'inline'}),
         dcc.Dropdown(
             id='dropdown-job-proj', multi=True,
             placeholder='Select Project(s)'),
@@ -674,30 +653,30 @@ def get_job_content(df):
             id='dropdown-job-proc', multi=True,
             placeholder='Select Processing Type(s)'),
         dt.DataTable(
-                columns=job_columns,
-                data=job_data,
-                filter_action='native',
-                page_action='none',
-                sort_action='native',
-                id='datatable-job',
-                #fixed_rows={'headers': True}, # this behaves weirdly
-                #style_table={'overflowY': 'auto', 'overflowX': 'auto'}, # this is weird too
-                style_cell={'textAlign': 'left', 'padding': '5px'},
-                style_data_conditional=[
-                    {'if': {'column_id': 'STATUS'}, 'textAlign': 'center'},
-                    {'if': {'filter_query': '{STATUS} = RUNNING'}, 'backgroundColor': HEX_LGREE},
-                    {'if': {'filter_query': '{STATUS} = WAITING'}, 'backgroundColor': HEX_LGREY},
-                    {'if': {'filter_query': '{STATUS} = "PENDING"'}, 'backgroundColor': HEX_LYELL},
-                    {'if': {'filter_query': '{STATUS} = "UNKNOWN"'}, 'backgroundColor': HEX_LPURP},
-                    {'if': {'filter_query': '{STATUS} = "FAILED"'}, 'backgroundColor': HEX_LREDD},
-                    {'if': {'filter_query': '{STATUS} = "COMPLETE"'}, 'backgroundColor': HEX_LBLUE},
-                    {'if': {'column_id': 'STATUS', 'filter_query': '{STATUS} = ""'}, 'backgroundColor': 'white'}
-                ],
-                style_header={'backgroundColor': 'white', 'fontWeight': 'bold'},
-                fill_width=True,
-                export_format='xlsx',
-                export_headers='names',
-                export_columns='visible')]
+            columns=job_columns,
+            data=job_data,
+            filter_action='native',
+            page_action='none',
+            sort_action='native',
+            id='datatable-job',
+            #fixed_rows={'headers': True}, # this behaves weirdly
+            #style_table={'overflowY': 'auto', 'overflowX': 'auto'}, # this is weird too
+            style_cell={'textAlign': 'left', 'padding': '5px'},
+            style_data_conditional=[
+                {'if': {'column_id': 'STATUS'}, 'textAlign': 'center'},
+                {'if': {'filter_query': '{STATUS} = RUNNING'}, 'backgroundColor': HEX_LGREE},
+                {'if': {'filter_query': '{STATUS} = WAITING'}, 'backgroundColor': HEX_LGREY},
+                {'if': {'filter_query': '{STATUS} = "PENDING"'}, 'backgroundColor': HEX_LYELL},
+                {'if': {'filter_query': '{STATUS} = "UNKNOWN"'}, 'backgroundColor': HEX_LPURP},
+                {'if': {'filter_query': '{STATUS} = "FAILED"'}, 'backgroundColor': HEX_LREDD},
+                {'if': {'filter_query': '{STATUS} = "COMPLETE"'}, 'backgroundColor': HEX_LBLUE},
+                {'if': {'column_id': 'STATUS', 'filter_query': '{STATUS} = ""'}, 'backgroundColor': 'white'}
+            ],
+            style_header={'backgroundColor': 'white', 'fontWeight': 'bold'},
+            fill_width=True,
+            export_format='xlsx',
+            export_headers='names',
+            export_columns='visible')]
 
     return job_content
 
@@ -804,7 +783,7 @@ def refresh_task_data():
 
 
 def refresh_job_data():
-    return dashdata.refresh_job_data(exclude_waiting=True)
+    return dashdata.refresh_job_data()
 
 
 @app.callback(
@@ -818,10 +797,10 @@ def refresh_job_data():
      Input('button-task-refresh', 'n_clicks')])
 def update_all(selected_proc, selected_proj, selected_time, n_clicks):
 
-    # Update exclude_waiting checkbox  and determine if it was modified
+    # Update timeframe, returns a boolean indicating if it was modified
     timeframe_modified = update_timeframe(selected_time)
 
-    # Refresh data if waiting was toggled or refresh button clicked
+    # Refresh data if timeframe was toggled or refresh button clicked
     if timeframe_modified or (n_clicks is not None and n_clicks > dashdata.task_refresh_count):
         logging.debug('update:refresh:count={},clicks={}'.format(
                 dashdata.task_refresh_count, n_clicks))
@@ -859,22 +838,17 @@ def update_all(selected_proc, selected_proj, selected_time, n_clicks):
     [Input('dropdown-job-proc', 'value'),
      Input('dropdown-job-proj', 'value'),
      Input('dropdown-job-user', 'value'),
-     Input('checklist-job-waiting', 'value'),
      Input('button-job-refresh', 'n_clicks')])
 def update_everything(
         selected_proc,
         selected_proj,
         selected_user,
-        waiting,
         n_clicks):
 
-    # Update exclude_waiting checkbox  and determine if it was modified
-    waiting_modified = update_waiting(waiting)
-
-    # Refresh data if waiting was toggled or refresh button clicked
-    if waiting_modified or (n_clicks is not None and n_clicks > dashdata.job_refresh_count):
+    # Refresh data if refresh button clicked
+    if (n_clicks is not None and n_clicks > dashdata.job_refresh_count):
         logging.debug('update:refresh:count={},clicks={}'.format(
-                dashdata.job_refresh_count, n_clicks))
+            dashdata.job_refresh_count, n_clicks))
         refresh_job_data()
 
     # Load stored data
