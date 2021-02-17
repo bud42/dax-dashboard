@@ -101,7 +101,8 @@ def get_stats_graph_content(df):
     box_count = len(var_list)
 
     # Make a figure
-    fig = plotly.subplots.make_subplots(rows=1, cols=box_count)
+    fig = plotly.subplots.make_subplots(
+        rows=1, cols=box_count, horizontal_spacing=0.08)
 
     # Check for empty data
     if len(df) == 0:
@@ -116,19 +117,26 @@ def get_stats_graph_content(df):
 
     # Add traces to figure
     for i, var in enumerate(var_list):
-        print(i, 'var', var)
+        #print(i, 'var', var)
         if pd.isnull(df[var]).all():
             continue
 
-        fig.append_trace(go.Box(
-            y=df[var],
-            name=var,
-            boxpoints='all',
-            text=df.assessor_label,
-            ), 1, i + 1)
+        #print('trace', var)
+        fig.append_trace(
+            go.Box(
+                y=df[var],
+                name=var,
+                boxpoints='all',
+                text=df.assessor_label),
+            1,
+            i + 1)
 
     # Customize figure
-    fig.update_layout(autosize=True, margin=dict(l=40, r=40, t=40, b=40))
+    fig.update_layout(
+        showlegend=False,
+        autosize=False,
+        width=1000,
+        margin=dict(l=20, r=0, t=40, b=40, pad=0))
 
     # Build the tab
     label = 'ALL'
