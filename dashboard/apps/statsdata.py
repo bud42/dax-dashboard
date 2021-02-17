@@ -15,8 +15,8 @@ logging.basicConfig(
 # TODO: move this to an environ var
 username = 'boydb1'
 REDCAP_FILE = '/home/boydb1/dashboard.redcap.yaml'
-PROCTYPES = ['EDATQA_v1', 'fmriqa_v4', 'LST_v1', 'AMYVIDQA_v1']
-PROJECTS = ['CHAMP']
+PROCTYPES = ['EDATQA_v1', 'fmriqa_v4', 'LST_v1', 'AMYVIDQA_v1', 'FS6_v1']
+PROJECTS = ['CHAMP', 'REMBRANDT', 'NIC']
 
 STATS_RENAME = {
     'experiment': 'SESSION',
@@ -147,8 +147,14 @@ def load_stats_data():
         name = r['name']
         key = r['key']
         (proj, proc, res) = parse_redcap_name(name)
+        logging.debug('loading redcap:{}'.format(name))
         try:
             cur_df = redcap.Project(api_url, key).export_records(format='df')
+
+            if 'wml_volume' in cur_df:
+                print('rename wml for NIC')
+                cur_df['lst_stats_wml_volume'] = cur_df['wml_volume']
+
             df = pd.concat([df, cur_df], ignore_index=True, sort=False)
         except:
             print('error exporting:' + name)

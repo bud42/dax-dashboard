@@ -355,7 +355,7 @@ def load_data():
         df = pd.read_pickle(filename)
     else:
         # no filters
-        df = get_data()
+        df = get_data([], [], [])
 
         # save to cache
         save_data(df)
@@ -446,7 +446,7 @@ def refresh_data():
 def load_assr_data(project_filter, proctype_filter):
     df = pd.DataFrame()
 
-    proctype_filter.extend(['dtiQA_synb0_v7', 'EDATQA_v1', 'EDP_v1', 'RSFC_CONN_v1'])
+    proctype_filter.extend(['struct_preproc_v1', 'dtiQA_synb0_v7', 'EDATQA_v1', 'EDP_v1', 'RSFC_CONN_v1'])
     #print('proctype_filter=', proctype_filter)
 
     # Load assr data
@@ -472,6 +472,9 @@ def load_assr_data(project_filter, proctype_filter):
     except AttributeError as err:
         logging.warn('failed to load assessor data:' + str(err))
         df = pd.DataFrame(columns=ASSR_RENAME.keys())
+
+    # remove test sessions
+    df = df[df.SESSION != 'Pitt_Test_Upload_MR1']
 
     # return the assessor data
     logging.info('loaded {} assessors'.format(len(df)))
@@ -517,6 +520,10 @@ def load_scan_data(project_filter, scantype_filter):
     else:
         #print(sorted(list(df['SCANTYPE'].unique())))
         df = df[~df['SCANTYPE'].isin(EXCLUDE_LIST)]
+
+
+    # remove test sessions
+    df = df[df.SESSION != 'Pitt_Test_Upload_MR1']
 
     # return the scan data
     logging.info('loaded {} scans'.format(len(df)))
