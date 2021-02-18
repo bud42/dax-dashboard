@@ -16,7 +16,7 @@ logging.basicConfig(
 username = 'boydb1'
 REDCAP_FILE = '/home/boydb1/dashboard.redcap.yaml'
 PROCTYPES = ['EDATQA_v1', 'fmriqa_v4', 'LST_v1', 'AMYVIDQA_v1', 'FS6_v1']
-PROJECTS = ['CHAMP', 'REMBRANDT', 'NIC']
+PROJECTS = ['CHAMP', 'REMBRANDT', 'NIC', 'TAYLOR_CAARE']
 
 STATS_RENAME = {
     'experiment': 'SESSION',
