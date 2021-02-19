@@ -12,41 +12,13 @@ from dash.dependencies import Input, Output
 import dash
 
 from app import app
-from . import statsdata
+from data import statsdata
 from . import utils
 
 
 logging.basicConfig(
     format='%(asctime)s %(levelname)-8s %(message)s',
     level=logging.DEBUG, datefmt='%Y-%m-%d %H:%M:%S')
-
-# These are used to set colors of graphs
-RGB_DKBLUE = 'rgb(59,89,152)'
-RGB_BLUE = 'rgb(66,133,244)'
-RGB_GREEN = 'rgb(15,157,88)'
-RGB_YELLOW = 'rgb(244,160,0)'
-RGB_RED = 'rgb(219,68,55)'
-RGB_PURPLE = 'rgb(160,106,255)'
-RGB_GREY = 'rgb(200,200,200)'
-
-# These can be used to set color of html tables via style argument
-HEX_LBLUE = '#DAEBFF'
-HEX_LGREE = '#DCFFDA'
-HEX_LYELL = '#FFE4B3'
-HEX_LREDD = '#FFDADA'
-HEX_LGREY = '#EBEBEB'
-HEX_LPURP = '#D1C0E5'
-
-# Give each status a color to display
-STATUS2COLOR = {
-    'PASS': RGB_GREEN,
-    'TBD': RGB_YELLOW,
-    'FAIL': RGB_RED,
-    'NONE': RGB_GREY}
-
-DEFAULT_COLOR = 'rgba(0,0,0,0.5)'
-
-LINE_COLOR = 'rgba(50,50,50,0.9)'
 
 
 def filter_stats_data(df, projects, proctypes, timeframe, sesstype):
@@ -111,17 +83,15 @@ def get_stats_graph_content(df):
 
     # box plots
     # each proctype has specific set of fields to plot,
-    # vwe need a dictionary listing them
+    # TODO: we need a dictionary listing them
     # then we just do the boxplots for the chosen proctypes (and maybe scan
     # types?, how did we do that for fmri scan type?)
 
     # Add traces to figure
     for i, var in enumerate(var_list):
-        #print(i, 'var', var)
         if pd.isnull(df[var]).all():
             continue
 
-        #print('trace', var)
         fig.append_trace(
             go.Box(
                 y=df[var],
@@ -251,8 +221,8 @@ def load_data():
     return statsdata.load_data()
 
 
-def refresh_stats_data():
-    logging.debug('refresh_qa_data calling dashdata.refresh_data()')
+def refresh_data():
+    logging.debug('refresh data')
     return statsdata.refresh_data()
 
 
@@ -308,7 +278,7 @@ def update_all(
     if was_triggered(ctx, 'button-stats-refresh'):
         # Refresh data if refresh button clicked
         logging.debug('refresh:clicks={}'.format(n_clicks))
-        df = refresh_stats_data()
+        df = refresh_data()
     else:
         df = load_data()
 

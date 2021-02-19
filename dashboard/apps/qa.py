@@ -39,43 +39,14 @@ from dash.dependencies import Input, Output
 import dash
 
 from app import app
-
-from . import qadata
-
+from data import qadata
 from . import utils
+from .shared import QASTATUS2COLOR, RGB_DKBLUE
 
 
 logging.basicConfig(
     format='%(asctime)s %(levelname)-8s %(message)s',
     level=logging.DEBUG, datefmt='%Y-%m-%d %H:%M:%S')
-
-# These are used to set colors of graphs
-RGB_DKBLUE = 'rgb(59,89,152)'
-RGB_BLUE = 'rgb(66,133,244)'
-RGB_GREEN = 'rgb(15,157,88)'
-RGB_YELLOW = 'rgb(244,160,0)'
-RGB_RED = 'rgb(219,68,55)'
-RGB_PURPLE = 'rgb(160,106,255)'
-RGB_GREY = 'rgb(200,200,200)'
-
-# These can be used to set color of html tables via style argument
-HEX_LBLUE = '#DAEBFF'
-HEX_LGREE = '#DCFFDA'
-HEX_LYELL = '#FFE4B3'
-HEX_LREDD = '#FFDADA'
-HEX_LGREY = '#EBEBEB'
-HEX_LPURP = '#D1C0E5'
-
-# Give each status a color to display
-STATUS2COLOR = {
-    'PASS': RGB_GREEN,
-    'TBD': RGB_YELLOW,
-    'FAIL': RGB_RED,
-    'NONE': RGB_GREY}
-
-DEFAULT_COLOR = 'rgba(0,0,0,0.5)'
-
-LINE_COLOR = 'rgba(50,50,50,0.9)'
 
 
 def filter_qa_data(df, projects, proctypes, timeframe, sesstype):
@@ -120,7 +91,6 @@ def get_qa_graph_content(dfp):
     tab_value = 0
 
     logging.debug('get_qa_figure')
-    #print(dfp)
 
     # Make a 1x1 figure
     fig = plotly.subplots.make_subplots(rows=1, cols=1)
@@ -147,8 +117,6 @@ def get_qa_graph_content(dfp):
         # Change each value from the multiple values in concatenated
         # characters to a single overall status
         dfp_copy[col] = dfp_copy[col].apply(get_metastatus)
-
-    # print(dfp_copy)
 
     # The pivot table for the graph is a pivot of the pivot table, instead
     # of having a row per session, this pivot table has a row per
@@ -189,10 +157,9 @@ def get_qa_graph_content(dfp):
     # Draw bar for each status, these will be displayed in order
     # ydata should be the types, xdata should be count of status
     # for each type
-    for cur_status, cur_color in STATUS2COLOR.items():
+    for cur_status, cur_color in QASTATUS2COLOR.items():
         ydata = dfpp.index
         if cur_status not in dfpp:
-            #print('cur_status not in dfpp')
             xdata = [0] * len(dfpp.index)
         else:
             xdata = dfpp[cur_status]
@@ -231,8 +198,6 @@ def get_qa_graph_content(dfp):
         values='SESSION',
         aggfunc=pd.Series.nunique,
         fill_value=0)
-
-    # print(dfpp)
 
     fig = plotly.subplots.make_subplots(rows=1, cols=1)
     fig.update_layout(margin=dict(l=40, r=40, t=40, b=40))
@@ -285,7 +250,6 @@ def get_qa_content(df):
     qa_columns = [{"name": i, "id": i} for i in dfp.index.names]
     dfp.reset_index(inplace=True)
     qa_data = dfp.to_dict('rows')
-    #qa_columns = [{"name": i, "id": i} for i in dfp.columns]
 
     qa_content = [
         dcc.Loading(id="loading-qa", children=[
@@ -325,10 +289,7 @@ def get_qa_content(df):
             page_action='none',
             sort_action='native',
             id='datatable-qa',
-            # fixed_rows={'headers': True}, # disabled b/c it behaves weird
             style_table={'overflowY': 'scroll', 'overflowX': 'scroll'},
-            # fixed_columns={'headers': True, 'data': 2}, # disabled b/c it behaves weirdly
-            # style_cell={'textAlign': 'left', 'padding': '5px', 'width': '30px'},
             style_cell={
                 'textAlign': 'left',
                 'padding': '5px 5px 0px 5px',
@@ -338,19 +299,11 @@ def get_qa_content(df):
                 'height': 'auto',
                 'minWidth': '40',
                 'maxWidth': '60'},
-            #style_header={
-            #    'backgroundColor': 'white',
-            #    'fontWeight': 'bold',
-            #    'padding': '5px 15px 5px 10px'},
             style_header={
                 'width': '80px',
                 'backgroundColor': 'white',
                 'fontWeight': 'bold',
                 'padding': '5px 15px 0px 10px'},
-            #    'transform': 'rotate(-90deg)'},
-            #style_header_conditional=[
-            #    {'if': {'column_id': c}, 'backgroundColor': '#3D9970', 'color': 'white', 'transform': 'rotate(0deg)'} for c in ['SESSION', 'PROJECT', 'DATE']],
-            #fill_width=True,
             fill_width=True,
             export_format='xlsx',
             export_headers='names',
@@ -503,7 +456,6 @@ def update_all(
 
     # Get the qa pivot from the filtered data
     dfp = qa_pivot(df)
-    # print(dfp)
 
     tabs = get_qa_graph_content(dfp)
 

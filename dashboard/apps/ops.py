@@ -11,74 +11,29 @@ from dash.dependencies import Input, Output
 import dash
 
 from app import app
-from . import opsdata
+from data import opsdata
 from . import utils
+from .shared import STATUS2RGB, STATUS2HEX
 
 
 logging.basicConfig(
     format='%(asctime)s %(levelname)-8s %(message)s',
     level=logging.DEBUG, datefmt='%Y-%m-%d %H:%M:%S')
 
-RGB_DKBLUE = 'rgb(59,89,152)'
-RGB_BLUE = 'rgb(66,133,244)'
-RGB_GREEN = 'rgb(15,157,88)'
-RGB_YELLOW = 'rgb(244,160,0)'
-RGB_RED = 'rgb(219,68,55)'
-RGB_PURPLE = 'rgb(160,106,255)'
-RGB_GREY = 'rgb(200,200,200)'
-
-HEX_LBLUE = '#DAEBFF'
-HEX_LGREE = '#DCFFDA'
-HEX_LYELL = '#FFE4B3'
-HEX_LREDD = '#FFDADA'
-HEX_LGREY = '#EBEBEB'
-HEX_LPURP = '#D1C0E5'
-
-STATUS_LIST = ['WAITING', 'PENDING', 'RUNNING', 'COMPLETE', 'FAILED', 'UNKNOWN']
-COLOR_LIST = [RGB_GREY, RGB_YELLOW, RGB_GREEN, RGB_BLUE, RGB_RED, RGB_PURPLE]
-LCOLOR_LIST = [HEX_LGREY, HEX_LYELL, HEX_LGREE, HEX_LBLUE, HEX_LREDD, HEX_LPURP]
-
-STATUS2COLOR = {
-    'COMPLETE': 'rgba(0,255,0,0.5)',
-    'JOB_FAILED': 'rgba(255,0,0,0.5)',
-    'JOB_RUNNING': 'rgba(0,0,255,0.5)',
-    'UPLOADING': 'rgba(255,0,255,0.5)'}
-
-DEFAULT_COLOR = 'rgba(0,0,0,0.5)'
-LINE_COLOR = 'rgba(50,50,50,0.9)'
-
-JOB_SHOW_COLS = ['LABEL', 'STATUS', 'LASTMOD', 'WALLTIME', 'JOBID']
-
-JOB_TAB_COLS = [
-    'LABEL', 'PROJECT', 'STATUS', 'PROCTYPE', 'USER',
-    'JOBID', 'TIME', 'WALLTIME', 'LASTMOD']
-
-SQUEUE_COLS = [
-    'NAME', 'ST', 'STATE', 'PRIORITY', 'JOBID', 'MIN_MEMORY',
-    'TIME', 'SUBMIT_TIME', 'START_TIME', 'TIME_LIMIT', 'TIME_LEFT', 'USER']
-
 
 def filter_jobs_data(df, projects, proctypes, user):
-    print('filtering before size=', len(df))
-    print('filtering projects', projects)
-    print('filtering proctypes', proctypes)
-    print('filtering user', user)
 
     # Filter by project
     if projects:
-        logging.debug('filtering by project:')
-        logging.debug(projects)
         df = df[df['PROJECT'].isin(projects)]
 
     if proctypes:
-        logging.debug('filtering by proctypes:')
-        logging.debug(proctypes)
         df = df[df['PROCTYPE'].isin(proctypes)]
 
     if user:
         df = df[df['USER'].isin(user)]
 
-    print('filtering after size=', len(df))
+    # Return the filtered dataframe
     return df
 
 
@@ -86,11 +41,8 @@ def get_job_graph_content(df):
     PIVOTS = ['USER', 'PROJECT', 'PROCTYPE']
     tabs_content = []
 
-    print('df size=', len(df))
-
-    # index are we pivoting on to count statuses
+    # index we are pivoting on to count statuses
     for i, pindex in enumerate(PIVOTS):
-        logging.debug('making graph:' + str(i) + ',' + str(pindex))
         # Make a 1x1 figure
         fig = plotly.subplots.make_subplots(rows=1, cols=1)
         fig.update_layout(margin=dict(l=40, r=40, t=40, b=40))
@@ -100,8 +52,7 @@ def get_job_graph_content(df):
             df, index=pindex, values='LABEL', columns=['STATUS'],
             aggfunc='count', fill_value=0)
 
-        for status, color in zip(STATUS_LIST, COLOR_LIST):
-            logging.debug('plotting bar:'+status+','+color)
+        for status, color in STATUS2RGB.items():
             ydata = sorted(dfp.index)
             if status not in dfp:
                 xdata = [0] * len(dfp.index)
@@ -125,13 +76,14 @@ def get_job_graph_content(df):
         tab = dcc.Tab(label=label, value=str(i + 1), children=[graph])
 
         # Append the tab
-        logging.debug('tab finished')
         tabs_content.append(tab)
 
     return tabs_content
 
 
 def get_job_content(df):
+    JOB_SHOW_COLS = ['LABEL', 'STATUS', 'LASTMOD', 'WALLTIME', 'JOBID']
+
     job_graph_content = get_job_graph_content(df)
 
     job_columns = [{"name": i, "id": i} for i in JOB_SHOW_COLS]
@@ -162,17 +114,15 @@ def get_job_content(df):
             page_action='none',
             sort_action='native',
             id='datatable-job',
-            #fixed_rows={'headers': True}, # this behaves weirdly
-            #style_table={'overflowY': 'auto', 'overflowX': 'auto'}, # this is weird too
             style_cell={'textAlign': 'left', 'padding': '5px'},
             style_data_conditional=[
                 {'if': {'column_id': 'STATUS'}, 'textAlign': 'center'},
-                {'if': {'filter_query': '{STATUS} = RUNNING'}, 'backgroundColor': HEX_LGREE},
-                {'if': {'filter_query': '{STATUS} = WAITING'}, 'backgroundColor': HEX_LGREY},
-                {'if': {'filter_query': '{STATUS} = "PENDING"'}, 'backgroundColor': HEX_LYELL},
-                {'if': {'filter_query': '{STATUS} = "UNKNOWN"'}, 'backgroundColor': HEX_LPURP},
-                {'if': {'filter_query': '{STATUS} = "FAILED"'}, 'backgroundColor': HEX_LREDD},
-                {'if': {'filter_query': '{STATUS} = "COMPLETE"'}, 'backgroundColor': HEX_LBLUE},
+                {'if': {'filter_query': '{STATUS} = "RUNNING"'},  'backgroundColor': STATUS2HEX['RUNNING']},
+                {'if': {'filter_query': '{STATUS} = "WAITING"'},  'backgroundColor': STATUS2HEX['WAITING']},
+                {'if': {'filter_query': '{STATUS} = "PENDING"'},  'backgroundColor': STATUS2HEX['PENDING']},
+                {'if': {'filter_query': '{STATUS} = "UNKNOWN"'},  'backgroundColor': STATUS2HEX['UNKNOWN']},
+                {'if': {'filter_query': '{STATUS} = "FAILED"'},   'backgroundColor': STATUS2HEX['FAILED']},
+                {'if': {'filter_query': '{STATUS} = "COMPLETE"'}, 'backgroundColor': STATUS2HEX['COMPLETE']},
                 {'if': {'column_id': 'STATUS', 'filter_query': '{STATUS} = ""'}, 'backgroundColor': 'white'}
             ],
             style_header={'backgroundColor': 'white', 'fontWeight': 'bold'},
@@ -185,15 +135,12 @@ def get_job_content(df):
 
 
 def get_layout():
-    logging.debug('get_layout')
-
     job_content = get_job_content(load_data())
 
     report_content = [
         html.Div(
             dcc.Tabs(id='tabs', value='1', vertical=False, children=[
-                dcc.Tab(
-                    label='Job Queue', value='1', children=job_content),
+                dcc.Tab(label='Job Queue', value='1', children=job_content),
             ]),
             style={
                 'width': '100%', 'display': 'flex',
@@ -218,7 +165,6 @@ def load_data():
 
 
 def refresh_data():
-    logging.debug('refresh_data')
     return opsdata.refresh_data()
 
 
@@ -246,7 +192,7 @@ def update_everything(
         selected_user,
         n_clicks
 ):
-    logging.debug('update_all')
+    logging.debug('update')
 
     # Load the data
     ctx = dash.callback_context
@@ -255,15 +201,12 @@ def update_everything(
         logging.debug('refresh:clicks={}'.format(n_clicks))
         df = refresh_data()
     else:
-        print('load data')
         df = load_data()
 
     # Get the dropdown options
     proc = utils.make_options(df.PROCTYPE.unique())
     proj = utils.make_options(df.PROJECT.unique())
     user = utils.make_options(df.USER.unique())
-
-    print(user, proc, proj)
 
     logging.debug('applying data filters')
     df = filter_jobs_data(
