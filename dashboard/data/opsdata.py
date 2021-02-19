@@ -15,33 +15,10 @@ logging.basicConfig(
     format='%(asctime)s %(levelname)-8s %(message)s',
     level=logging.DEBUG, datefmt='%Y-%m-%d %H:%M:%S')
 
-ASSR_URI = '/REST/experiments?xsiType=proc:genprocdata\
-&columns=\
-ID,\
-label,\
-project,\
-proc:genprocdata/procstatus,\
-proc:genprocdata/proctype,\
-proc:genprocdata/jobstartdate,\
-proc:genprocdata/memused,\
-proc:genprocdata/walltimeused,\
-proc:genprocdata/jobid'
-
-ASSR_RENAME = {
-    'ID': 'ID',
-    'label': 'LABEL',
-    'project': 'PROJECT',
-    'proc:genprocdata/jobid': 'JOBID',
-    'proc:genprocdata/jobstartdate': 'JOBSTARTDATE',
-    'proc:genprocdata/memused': 'MEMUSED',
-    'proc:genprocdata/procstatus': 'PROCSTATUS',
-    'proc:genprocdata/proctype': 'PROCTYPE',
-    'proc:genprocdata/walltimeused': 'WALLTIMEUSED'}
-
 
 SQUEUE_CMD = 'squeue -u '+','.join(SQUEUE_USER)+' --format="%all"'
+
 DFORMAT = '%Y-%m-%d %H:%M:%S'
-XNAT_DFORMAT = '%m/%d/%Y'
 
 # we concat diskq status and squeue status to make a single status
 # squeue states: CG,F, PR, S, ST
@@ -60,36 +37,6 @@ STATUS_MAP = {
     'READY_TO_COMPLETENONE': 'COMPLETE',
     'READY_TO_UPLOADNONE': 'COMPLETE'}
 
-RGB_DKBLUE = 'rgb(59,89,152)'
-RGB_BLUE = 'rgb(66,133,244)'
-RGB_GREEN = 'rgb(15,157,88)'
-RGB_YELLOW = 'rgb(244,160,0)'
-RGB_RED = 'rgb(219,68,55)'
-RGB_PURPLE = 'rgb(160,106,255)'
-RGB_GREY = 'rgb(200,200,200)'
-
-HEX_LBLUE = '#DAEBFF'
-HEX_LGREE = '#DCFFDA'
-HEX_LYELL = '#FFE4B3'
-HEX_LREDD = '#FFDADA'
-HEX_LGREY = '#EBEBEB'
-HEX_LPURP = '#D1C0E5'
-
-STATUS_LIST = ['WAITING', 'PENDING', 'RUNNING', 'COMPLETE', 'FAILED', 'UNKNOWN']
-COLOR_LIST = [RGB_GREY, RGB_YELLOW, RGB_GREEN, RGB_BLUE, RGB_RED, RGB_PURPLE]
-LCOLOR_LIST = [HEX_LGREY, HEX_LYELL, HEX_LGREE, HEX_LBLUE, HEX_LREDD, HEX_LPURP]
-
-STATUS2COLOR = {
-    'COMPLETE': 'rgba(0,255,0,0.5)',
-    'JOB_FAILED': 'rgba(255,0,0,0.5)',
-    'JOB_RUNNING': 'rgba(0,0,255,0.5)',
-    'UPLOADING': 'rgba(255,0,255,0.5)'}
-
-DEFAULT_COLOR = 'rgba(0,0,0,0.5)'
-LINE_COLOR = 'rgba(50,50,50,0.9)'
-
-JOB_SHOW_COLS = ['LABEL', 'STATUS', 'LASTMOD', 'WALLTIME', 'JOBID']
-
 JOB_TAB_COLS = [
     'LABEL', 'PROJECT', 'STATUS', 'PROCTYPE', 'USER',
     'JOBID', 'TIME', 'WALLTIME', 'LASTMOD']
@@ -106,7 +53,6 @@ def get_job_data():
     # Load tasks in diskq
     logging.debug('loading diskq')
     diskq_df = load_diskq_queue()
-    # print(diskq_df)
 
     # load squeue
     logging.debug('loading squeue')
@@ -118,16 +64,15 @@ def get_job_data():
     logging.debug('merging data')
 
     if diskq_df.empty and squeue_df.empty:
-        print('both empty')
+        logging.debug('both empty')
         df = pd.DataFrame(columns=diskq_df.columns.union(squeue_df.columns))
     elif diskq_df.empty:
-        print('diskq empty')
+        logging.debug('diskq empty')
         df = squeue_df.reindex(squeue_df.columns.union(diskq_df.columns), axis=1)
     elif squeue_df.empty:
-        print('squeue empty')
+        logging.debug('squeue empty')
         df = diskq_df.reindex(diskq_df.columns.union(squeue_df.columns), axis=1)
     else:
-        print('merging')
         df = pd.merge(diskq_df, squeue_df, how='outer', on=['LABEL', 'USER'])
 
     if not df.empty:
@@ -189,6 +134,7 @@ def load_diskq_task(diskq, assr):
         'walltimeused': get_diskq_attr(diskq, assr, 'walltimeused'),
         'WALLTIME': get_diskq_walltime(diskq, assr),
         'LASTMOD': get_diskq_lastmod(diskq, assr)}
+
 
 # Load slurm data
 def load_slurm_queue():

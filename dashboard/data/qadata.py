@@ -518,9 +518,8 @@ def load_scan_data(project_filter, scantype_filter):
     if False:
         df = df[df['SCANTYPE'].isin(scantype_filter)]
     else:
-        #print(sorted(list(df['SCANTYPE'].unique())))
+        # print(sorted(list(df['SCANTYPE'].unique())))
         df = df[~df['SCANTYPE'].isin(EXCLUDE_LIST)]
-
 
     # remove test sessions
     df = df[df.SESSION != 'Pitt_Test_Upload_MR1']
