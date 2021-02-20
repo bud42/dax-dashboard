@@ -439,6 +439,7 @@ def update_all(
         logging.debug('refresh:clicks={}'.format(n_clicks))
         df = refresh_qa_data()
     else:
+        logging.debug('loading data')
         df = load_data()
 
     # Update lists of possible options for dropdowns (could have changed)

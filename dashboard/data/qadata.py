@@ -3,179 +3,9 @@ import os
 
 import json
 import pandas as pd
-
 from dax import XnatUtils
 
-
-EXCLUDE_LIST = [
-'ARC_GRE_field_mapping',
-'ARC_GRE_field_mapping ',
-' ARC_GRE_field_mapping ',
-'&amp;amp;lt;MPR Collection&amp;amp;gt;',
-'1mm+PSF_CTAC',
-'1mm_CTAC',
-'2mm+PSF_CTAC',
-'2mm-CTAC',
-'3 Plane Localizer',
-'32CH_v2 ARC_2D_pASL',
-'32CH_v2 DTI_AP',
-'32CH_v2 DTI_AP_ADC',
-'32CH_v2 DTI_AP_ColFA',
-'32CH_v2 DTI_AP_FA',
-'32CH_v2 DTI_AP_TENSOR',
-'32CH_v2 DTI_AP_TRACEW',
-'3DPCA_DEM_MJD',
-'4X5-1MM',
-'4X5-1MM+PSF',
-'4X5-2MM',
-'4X5-2MM+PSF',
-'AAHScout',
-'AAHScout_MPR_cor',
-'AAHScout_MPR_sag',
-'AAHScout_MPR_tra',
-'AAHead_Scout_32ch-head-coil',
-'AAHead_Scout_32ch-head-coil_MPR_cor',
-'AAHead_Scout_32ch-head-coil_MPR_sag',
-'AAHead_Scout_32ch-head-coil_MPR_tra',
-'ABCD_DTI_6dirs_FSA',
-'ABCD_DTI_96dirs_mixed_FSP',
-'ABCD_T1w_MPR_vNav',
-'ABCD_T1w_MPR_vNav_setter',
-'ABCD_dMRI_2mm', 
-'ABCD_dMRI_DistortionMap_AP_2mm',
-'ABCD_dMRI_DistortionMap_PA_2mm',
-'ABCD_fMRI_DistortionMap_AP',
-'ABCD_fMRI_DistortionMap_PA',
-'ABCD_fMRI_rest_PMU',
-'ARC_2D_pASL',
-'ARC_GRE_field_mapping',
-'Ax',
-'Ax-B0map',
-'Axial 2D PASL',
-'Axial ASL rev3',
-'Axial DTI rev2_ADC',
-'Axial DTI rev2_ColFA',
-'Axial DTI rev2_FA',
-'Axial DTI rev2_TENSOR',
-'Axial DTI rev2_TRACEW',
-'Axial Field Map rev2',
-'Axial Field Map rev2 repeat',
-'Axial fMRI Resting State - eyes OPEN rev3 repeat',
-'AxialField Mapping',
-'AxialField Mapping2',
-'B0',
-'B0_Map',
-'B0_PreScan',
-'CT',
-'Cor',
-'DEFAULT PS SERIES',
-'DTI_AP_ADC',
-'DTI_AP_ColFA',
-'DTI_AP_FA',
-'DTI_AP_TENSOR',
-'DTI_AP_TRACEW', 
-'FLAIR_spc_ir_sag_p2_',
-'GRE FIELD MAPPING',
-'Head-Low Dose CT',
-'Head-Low Dose CT, iDose (4)',
-'LOC',
-'Localizer',
-'Localizer_aligned',
-'MB2 fMRI Fieldmap A',
-'MB2 fMRI Fieldmap P',
-'MIP - 3DPCA_DEM_MJD',
-'MPR AX 3D T2',
-'MPR AX FLAIR',
-'MPR COR 3D T2',
-'MPR COR FLAIR 1.0mm',
-'MPRAGE 3D 1st',
-'MSIT_PMU',
-'MoCoSeries',
-'PD_T2',
-'PD_T2_TSE',
-'PET',
-'Patient Aligned MPR AWPLAN_SMARTPLAN_TYPE_BRAIN',
-'Perfusion_Weighted',
-'PhoenixZIPReport',
-'SCOUT',
-'SCOUT_WT_MJD',
-'SE-fMRI A',
-'SE-fMRI P',
-'SOURCE - WIP ASL_BASELINE PGPP_6800ms',
-'SURVEY',
-'Sag',
-'Sag MPRAGE T1', 'SmartBrain',
-'Survey', 'Survey SHC32',
-'Survey_32ch_HeadCoil',
-'THREE PLANE LOC',
-'Unknown',
-'VWIP 3D T1 AX',
-'VWIP 3D T1 Cor',
-'VWIP AnatBrain_T1W3D SENSE',
-'VWIP MPRAGE',
-'VWIP T1W/3D/TFE_SENSE',
-'VWIP T1W/3D/TFE_SENSE SENSE',
-'VWIP cs_T1W_3D_TFE_32ch_Fast_ax',
-'WIP MPR - SmartBrain',
-'WIP MSIT',
-'WIP SOURCE - pCASL_SoftSinglePhase',
-'WIP WIP WIP BOLDMB2_shift3_TR0.66 SENSE',
-'WIP rsEPI_MB6R1_FSA',
-'WIP_dti_32_1000_multiband2',
-'WIP_dti_32_1000_nomb',
-'[BR-DY_CTAC] 2MM Brain Dynamic',
-'[BR-DY_CTAC] 2mm',
-'[BR-DY_CTAC] Brain Dynamic',
-'[BR-DY_CTAC_2MM] Brain Dynamic',
-'[BR-DY_CTAC_2mm+PSF] Brain Dynamic',
-'[BR-DY_CTAC_2mm+PSF] Brain Dynamic (18)',
-'[BR-DY_CTAC_2mmPSF] Brain Dynamic',
-'[BR-DY_CTAC_2mm] Brain Dynamic',
-'[BR-DY_NAC] 2mm',
-'[BR-DY_NAC] Brain Dynamic',
-'[BR-DY_NAC_2MM+PSF] Brain Dynamic',
-'[BR-DY_NAC_2MM] Brain Dynamic',
-'[BR-DY_NAC_2mm+PSF] Brain Dynamic (18)',
-'[BR_CTAC_2mm+PSF] Brain Dynamic (16)',
-'[BR_CTAC_2mm+PSF] Brain Dynamic (17)',
-'[BR_CTAC_2mm+PSF] Brain Dynamic (18)',
-'[BR_CTAC_2mm+PSF] Brain Dynamic (19)',
-'[BR_CTAC_2mm] Brain Dynamic (17)',
-'[DY_CTAC_4mm+PSF] Brain Dynamic (22)',
-'[DY_CTAC_4mm-576FOV] Brain Dynamic (22)',
-'[DetailBR_CTAC_1mm+PSF] Brain Dynamic',
-'[DetailBR_CTAC_1mm+PSF] Brain Dynamic (16)',
-'[DetailBR_CTAC_1mm+PSF] Brain Dynamic (17)',
-'[DetailBR_CTAC_1mm+PSF] Brain Dynamic (18)',
-'[DetailBR_CTAC_1mm+PSF] Brain Dynamic (19)',
-'[DetailBR_CTAC_1mmPSF] Brain Dynamic',
-'[DetailBR_CTAC_1mm] Brain Dynamic',
-'[DetailBR_CTAC_1mm] Brain Dynamic (16)',
-'[DetailBR_CTAC_1mm] Brain Dynamic (17)',
-'[DetailBR_CTAC_1mm] Brain Dynamic (18)',
-'[DetailBR_CTAC_1mm] Brain Dynamic (19)',
-'[Not_for_Clinical_Use-SuperWB_CTAC_BODY3-15] Brain Dynamic',
-'[PREVIEW] Brain Dynamic',
-'[research_only-BR-DY1mm_CTAC_1mm+PSF] Brain Dynamic',
-'[research_only-BR-DY1mm_CTAC_1mm] Brain Dynamic',
-'[research_only-BR-DY1mm_NAC_1MM+PSF] Brain Dynamic',
-'[research_only-BR-DY1mm_NAC_1MM] Brain Dynamic',
-'anatqa',
-'bl_dti32MB_2min',
-'bl_dti32MBapa_2min',
-'cor',
-'dtiqa',
-'ep2d_2D_pASL',
-'ep2d_bold_n-back rev2_repeat',
-'fs',
-'localizer_32ch',
-'localizer_32ch_ND',
-'pCASL_SoftSinglePhase',
-'ref',
-'relCBF',
-'rsfMRI_Run_#1_P/A',
-'unknown',
-'v2 ARC_GRE__field_mapping']
+from params import XNAT_USER, PROJECTS, PROCTYPES, EXCLUDE_LIST
 
 
 logging.basicConfig(
@@ -262,13 +92,6 @@ ASSR_STATUS_MAP = {
 
 QA_COLS = ['SESSION', 'PROJECT', 'DATE', 'TYPE', 'STATUS']
 
-# TODO: move this to an environ var
-username = 'boydb1'
-
-# TODO: move this inside the functions, declare at top and pass down,
-# use a with statement so it hopefully get's closed
-xnat = XnatUtils.get_interface()
-
 
 def is_baseline_session(session):
     # TODO: re-implement this by getting list of sessions for each subject,
@@ -279,10 +102,13 @@ def is_baseline_session(session):
         session.endswith('_MR1'))
 
 
-def get_user_projects():
+def get_user_projects(xnat=None):
+    if xnat is None:
+        xnat = XnatUtils.get_interface()
+
     logging.debug('loading user projects')
 
-    uri = '/xapi/users/{}/groups'.format(username)
+    uri = '/xapi/users/{}/groups'.format(XNAT_USER)
 
     # get from xnat and convert to list
     data = json.loads(xnat._exec(uri, 'GET'))
@@ -291,10 +117,15 @@ def get_user_projects():
     # so we split on the underscore
     data = sorted([x.rsplit('_', 1)[0] for x in data])
 
+    print('user projects=', data)
+
     return data
 
 
-def get_ptypes(project_list):
+def get_ptypes( project_list, xnat=None):
+    if xnat is None:
+        xnat = XnatUtils.get_interface()
+
     # Load assr data
     logging.debug('loading ptypes')
     try:
@@ -318,7 +149,10 @@ def get_ptypes(project_list):
     return df.PROCTYPE.unique()
 
 
-def get_stypes(project_list):
+def get_stypes(project_list, xnat=None):
+    if xnat is None:
+        xnat = XnatUtils.get_interface()
+
     # Load scan data
     logging.debug('loading stypes')
     try:
@@ -345,17 +179,20 @@ def get_stypes(project_list):
 
 
 def get_filename():
-    return '{}.pkl'.format(username)
+    return '{}.pkl'.format(XNAT_USER)
 
 
 def load_data():
     filename = get_filename()
 
     if os.path.exists(filename):
+        logging.debug('reading data from file:{}'.format(filename))
         df = pd.read_pickle(filename)
     else:
-        # no filters
-        df = get_data([], [], [])
+        logging.debug('loading data from xnat')
+        with XnatUtils.get_interface() as xnat:
+            #df = get_data(xnat, PROJECTS, [], PROCTYPES)
+            df = get_data(xnat, PROJECTS, [], [])
 
         # save to cache
         save_data(df)
@@ -372,27 +209,28 @@ def save_data(df):
 
 
 def set_data(proj_filter=[], stype_filter=[], ptype_filter=[]):
+    with XnatUtils.get_interface() as xnat:
 
-    if not proj_filter:
-        # Select first project
-        proj_list = get_user_projects()
-        proj_filter = proj_list[0:1]
+        if not proj_filter:
+            # Select first project
+            proj_list = get_user_projects(xnat)
+            proj_filter = proj_list[0:1]
 
-    if not stype_filter:
-        # Load scan types
-        stype_list = get_stypes(xnat, proj_filter)
+        if not stype_filter:
+            # Load scan types
+            stype_list = get_stypes(proj_filter, xnat)
 
-        # Pick a scan type
-        stype_filter = stype_list[0:1]
+            # Pick a scan type
+            stype_filter = stype_list[0:1]
 
-    if not ptype_filter:
-        # Load proc types
-        ptype_list = get_ptypes(xnat, proj_filter)
+        if not ptype_filter:
+            # Load proc types
+            ptype_list = get_ptypes(proj_filter, xnat)
 
-        # Pick a scan type
-        ptype_filter = ptype_list[0:1]
+            # Pick a scan type
+            ptype_filter = ptype_list[0:1]
 
-    df = get_data(proj_filter, stype_filter, ptype_filter)
+        df = get_data(xnat, proj_filter, stype_filter, ptype_filter)
 
     # save to cache
     save_data(df)
@@ -400,11 +238,10 @@ def set_data(proj_filter=[], stype_filter=[], ptype_filter=[]):
     return df
 
 
-def get_data(proj_filter, stype_filter, ptype_filter):
-
+def get_data(xnat, proj_filter, stype_filter, ptype_filter):
     # Load that data
-    assr_df = load_assr_data(proj_filter, ptype_filter)
-    scan_df = load_scan_data(proj_filter, stype_filter)
+    assr_df = load_assr_data(xnat, proj_filter, ptype_filter)
+    scan_df = load_scan_data(xnat, proj_filter, stype_filter)
 
     # Make a common column for type
     assr_df['TYPE'] = assr_df['PROCTYPE']
@@ -421,21 +258,18 @@ def get_data(proj_filter, stype_filter, ptype_filter):
 
 
 def refresh_data():
-    df = load_data()
+    with XnatUtils.get_interface() as xnat:
 
-    # Hacky way to get reverse-engineer the filters
-    proj_filter = df.PROJECT.unique()
+        # Hacky way to reverse-engineer the filters based on previous data
+        df = load_data()
+        proj_filter = df.PROJECT.unique()
+        stype_list = get_stypes(proj_filter, xnat)
+        type_set = set(df.TYPE.unique())
+        stype_filter = list(set(stype_list).intersection(type_set))
+        ptype_filter = list(type_set - set(stype_filter))
 
-    stype_list = get_stypes(proj_filter)
-
-    type_set = set(df.TYPE.unique())
-
-    stype_filter = list(set(stype_list).intersection(type_set))
-
-    ptype_filter = list(type_set - set(stype_filter))
-
-    # Get the data again with same filters
-    df = get_data(proj_filter, stype_filter, ptype_filter)
+        # Get the data again with same filters
+        df = get_data(xnat, proj_filter, stype_filter, ptype_filter)
 
     # save to cache
     save_data(df)
@@ -443,22 +277,23 @@ def refresh_data():
     return df
 
 
-def load_assr_data(project_filter, proctype_filter):
+def load_assr_data(xnat, project_filter, proctype_filter):
     df = pd.DataFrame()
-
-    proctype_filter.extend(['struct_preproc_v1', 'dtiQA_synb0_v7', 'EDATQA_v1', 'EDP_v1', 'RSFC_CONN_v1'])
-    #print('proctype_filter=', proctype_filter)
 
     # Load assr data
     logging.debug('loading assr data')
+    print('project_filter=', project_filter)
+    print('proctype_filter=', proctype_filter)
+
     try:
         # Build the uri to query with filters
         assr_uri = ASSR_URI
         assr_uri += '&project={}'.format(','.join(project_filter))
-        assr_uri += '&proc:genprocdata/proctype={}'.format(
-            ','.join(proctype_filter))
+        if proctype_filter:
+            assr_uri += '&proc:genprocdata/proctype={}'.format(
+                ','.join(proctype_filter))
 
-        assr_json = get_json(assr_uri)
+        assr_json = get_json(xnat, assr_uri)
 
         df = pd.DataFrame(assr_json['ResultSet']['Result'])
 
@@ -481,11 +316,13 @@ def load_assr_data(project_filter, proctype_filter):
     return df
 
 
-def load_scan_data(project_filter, scantype_filter):
+def load_scan_data(xnat, project_filter, scantype_filter):
     df = pd.DataFrame()
 
     # Load scan data
     logging.debug('loading scan data')
+    print('project_filter=', project_filter)
+    print('scantype_filter=', scantype_filter)
     try:
         # Build the uri to query with filters
         scan_uri = '{}&project={}'.format(
@@ -499,7 +336,7 @@ def load_scan_data(project_filter, scantype_filter):
         # ','.join(self.scantype_filter))
         #     scan_uri += '&' + type_filter
 
-        scan_json = get_json(scan_uri)
+        scan_json = get_json(xnat, scan_uri)
         df = pd.DataFrame(scan_json['ResultSet']['Result'])
         logging.debug('finishing scan data')
 
@@ -530,6 +367,6 @@ def load_scan_data(project_filter, scantype_filter):
     return df
 
 
-def get_json(uri):
+def get_json(xnat, uri):
     _data = json.loads(xnat._exec(uri, 'GET'))
     return _data

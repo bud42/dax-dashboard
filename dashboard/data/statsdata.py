@@ -1,39 +1,17 @@
 import logging
 import os
+
 import yaml
 import redcap
 import pandas as pd
 import json
 
-from dax import XnatUtils
+from params import XNAT_USER, REDCAP_FILE, PROCTYPES, PROJECTS, STATS_RENAME
 
 
 logging.basicConfig(
     format='%(asctime)s %(levelname)-8s %(message)s',
     level=logging.DEBUG, datefmt='%Y-%m-%d %H:%M:%S')
-
-# TODO: move this to an environ var
-username = 'boydb1'
-REDCAP_FILE = '/home/boydb1/dashboard.redcap.yaml'
-PROCTYPES = ['EDATQA_v1', 'fmriqa_v4', 'LST_v1', 'AMYVIDQA_v1', 'FS6_v1']
-PROJECTS = ['CHAMP', 'REMBRANDT', 'NIC', 'TAYLOR_CAARE']
-
-STATS_RENAME = {
-    'experiment': 'SESSION',
-    'proctype': 'TYPE',
-    'project': 'PROJECT',
-    'proc_date': 'DATE',
-    'stats_edatqa_acc_mean': 'accuracy',
-    'stats_edatqa_rt_mean': 'RT',
-    'stats_edatqa_trial_count': 'trials',
-    'lst_stats_wml_volume': 'WML',
-    'fmriqa_stats_wide_voxel_displacement_mm_95prctile': 'VOXD',
-    'fmriqa_stats_wide_dvars_mean': 'DVARS',
-    'stats_amyvid_compgm_suvr': 'compgm_suvr'}
-
-# TODO: move this inside the functions, declare at top and pass down,
-# use a with statement so it hopefully get's closed
-xnat = XnatUtils.get_interface()
 
 
 def is_baseline_session(session):
@@ -45,10 +23,10 @@ def is_baseline_session(session):
         session.endswith('_MR1'))
 
 
-def get_user_projects():
+def get_user_projects(xnat):
     logging.debug('loading user projects')
 
-    uri = '/xapi/users/{}/groups'.format(username)
+    uri = '/xapi/users/{}/groups'.format(XNAT_USER)
 
     # get from xnat and convert to list
     data = json.loads(xnat._exec(uri, 'GET'))
