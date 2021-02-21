@@ -4,7 +4,7 @@ from dash.dependencies import Input, Output
 import dash_auth
 from flask import request
 
-from app import app
+from app import app, server
 from apps import qa, ops, settings, stats
 from secrets import VALID_USERNAME_PASSWORD_PAIRS, USER_ACCESS
 
@@ -63,17 +63,12 @@ def display_page(pathname):
 
     # Now that we know the path, get the content
     if pathname == '/settings':
-        print('display_page:settings')
         layout = settings.layout
     elif pathname == '/qa':
-        print('display_page:qa')
         layout = qa.layout
     elif pathname == '/ops':
-        # return ops.layout
-        print('display_page:ops')
         layout = ops.layout
     elif pathname == '/stats':
-        print('display_page:stats')
         layout = stats.layout
     else:
         # we shouldn't be here
@@ -89,7 +84,6 @@ def display_page(pathname):
     # Build the top menu based on access to pages
     if len(cur_access) > 1:
         for i in cur_access:
-            print('adding to menu:' + i)
             menu_content.append(
                 dcc.Link(i, href='/' + i, style=link_style, target='_blank'))
 
@@ -97,4 +91,4 @@ def display_page(pathname):
 
 
 if __name__ == '__main__':
-    app.run_server(host='0.0.0.0')  # , debug=True)
+    app.run_server(host='0.0.0.0', ssl_context='adhoc')  # , debug=True)
