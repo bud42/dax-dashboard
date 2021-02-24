@@ -39,7 +39,14 @@ STATS_RENAME = {
     'lst_stats_wml_volume': 'WML',
     'fmriqa_stats_wide_voxel_displacement_mm_95prctile': 'VOXD',
     'fmriqa_stats_wide_dvars_mean': 'DVARS',
-    'stats_amyvid_compgm_suvr': 'compgm_suvr'}
+    'stats_amyvid_compgm_suvr': 'compgm_suvr',
+    'stats_recon_estimatedtotalintracranialvol_etiv': 'ETIV',
+    'stats_recon_left_hippocampus_volume_mm3': 'LHPC',
+    'stats_recon_right_hippocampus_volume_mm3': 'RHPC',
+    'stats_recon_left_lateral_ventricle_volume_mm3': 'LVENT',
+    'stats_recon_right_lateral_ventricle_volume_mm3': 'RVENT',
+    'stats_recon_lh_superiorfrontal_thickavg': 'LSUPFLOBE',
+    'stats_recon_rh_superiorfrontal_thickavg': 'RSUPFLOBE'}
 
 EXCLUDE_LIST = [
 'ARC_GRE_field_mapping',
