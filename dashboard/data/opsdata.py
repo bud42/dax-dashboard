@@ -108,6 +108,7 @@ def load_diskq_queue(status=None):
 
         for t in os.listdir(batch_dir):
             assr = os.path.splitext(t)[0]
+            logging.debug('load task:{}'.format(assr))
             task = load_diskq_task(diskq_dir, assr)
             task['USER'] = u
             task_list.append(task)
