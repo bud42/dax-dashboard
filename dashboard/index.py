@@ -4,9 +4,12 @@ from dash.dependencies import Input, Output
 import dash_auth
 from flask import request
 
-from app import app, server
+from app import app
 from apps import qa, ops, settings, stats
 from secrets import VALID_USERNAME_PASSWORD_PAIRS, USER_ACCESS
+
+
+server = app.server  # for gunicorn
 
 # Styling for the links to different pages
 link_style = {
@@ -91,4 +94,5 @@ def display_page(pathname):
 
 
 if __name__ == '__main__':
-    app.run_server(host='0.0.0.0', ssl_context='adhoc')  # , debug=True)
+    #app.run_server(host='0.0.0.0', ssl_context='adhoc')  # , debug=True)
+    app.run_server(host='0.0.0.0')  # , debug=True)
