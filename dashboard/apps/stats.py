@@ -16,6 +16,14 @@ from data import statsdata
 from . import utils
 
 
+VAR_LIST = ['accuracy', 'RT', 'trials']  # EDATQA
+VAR_LIST.extend(['WML'])  # LST
+VAR_LIST.extend(['VOXD', 'DVARS'])  # fmriqa
+VAR_LIST.extend(['compgm_suvr'])  # amyvidqa
+VAR_LIST.extend([
+    'ETIV', 'LHPC', 'RHPC', 'LVENT', 'RVENT', 'LSUPFLOBE', 'RSUPFLOBE'])  # FS6
+
+
 logging.basicConfig(
     format='%(asctime)s %(levelname)-8s %(message)s',
     level=logging.DEBUG, datefmt='%Y-%m-%d %H:%M:%S')
@@ -61,25 +69,30 @@ def filter_stats_data(df, projects, proctypes, timeframe, sesstype):
 def get_stats_graph_content(df):
     tabs_content = []
     tab_value = 0
+    var_list = VAR_LIST
 
-    var_list = ['accuracy', 'RT', 'trials']  # EDATQA
-    var_list.extend(['WML'])  # LST
-    var_list.extend(['VOXD', 'DVARS'])  # fmriqa
-    var_list.extend(['compgm_suvr'])  # amyvidqa
+    # Check for empty data
+    if len(df) == 0:
+        logging.debug('empty data, using empty figure')
+        return [plotly.subplots.make_subplots(rows=1, cols=1)]
+
+    var_list = [x for x in VAR_LIST if not pd.isnull(df[x]).all()]
 
     logging.debug('get_stats_figure')
 
     # Determine how many boxplots we're making, depends on how many vars
     box_count = len(var_list)
+    graph_width = 150 * box_count
 
-    # Make a figure
+    # Horizontal spacing cannot be greater than (1 / (cols - 1))
+    hspacing = 1 / (box_count * 2)
+    print('hspacing=', hspacing)
+    print('box_count=', box_count)
+    print('graph_width=', graph_width)
+
+    # Make the figure
     fig = plotly.subplots.make_subplots(
-        rows=1, cols=box_count, horizontal_spacing=0.08)
-
-    # Check for empty data
-    if len(df) == 0:
-        logging.debug('empty data, using empty figure')
-        return [fig]
+        rows=1, cols=box_count, horizontal_spacing=hspacing)
 
     # box plots
     # each proctype has specific set of fields to plot,
@@ -89,8 +102,7 @@ def get_stats_graph_content(df):
 
     # Add traces to figure
     for i, var in enumerate(var_list):
-        if pd.isnull(df[var]).all():
-            continue
+        print('trace', i, var)
 
         fig.append_trace(
             go.Box(
@@ -105,7 +117,7 @@ def get_stats_graph_content(df):
     fig.update_layout(
         showlegend=False,
         autosize=False,
-        width=1000,
+        width=graph_width,
         margin=dict(l=20, r=0, t=40, b=40, pad=0))
 
     # Build the tab
