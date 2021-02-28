@@ -8,6 +8,15 @@ from dax import XnatUtils
 from params import XNAT_USER, PROJECTS, PROCTYPES, EXCLUDE_LIST
 
 
+# Data sources are:
+# XNAT (VUIIS XNAT at Vanderbilt)
+# TODO: use REDCap (project settings REDCap instance to filter types)
+#
+# Note this app does not access ACCRE or SLURM. The ony local file access
+# is to write the cached data in a pickle file. This file is named with the
+# xnat user name as <username>.pkl
+
+
 logging.basicConfig(
     format='%(asctime)s %(levelname)-8s %(message)s',
     level=logging.DEBUG, datefmt='%Y-%m-%d %H:%M:%S')

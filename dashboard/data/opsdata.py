@@ -11,6 +11,18 @@ import numpy as np
 
 from .opsparams import SQUEUE_USER, UPLOAD_DIR
 
+
+# Data sources are:
+# SLURM (on ACCRE at Vanderbilt)
+# Local Filesystem (as configured for DAX upload queue)
+#
+# Note that this app does not access XNAT or REDCap or any external source
+#
+# Data is cached in a pickle file named ops.pkl. This data is written when the
+# app first starts and then any time the user clicks Refresh Data. It is read
+# any time the user changes the data filtering.
+
+
 logging.basicConfig(
     format='%(asctime)s %(levelname)-8s %(message)s',
     level=logging.DEBUG, datefmt='%Y-%m-%d %H:%M:%S')

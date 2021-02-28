@@ -9,6 +9,17 @@ import json
 from params import XNAT_USER, REDCAP_FILE, PROCTYPES, PROJECTS, STATS_RENAME
 
 
+# Data sources are:
+# XNAT (VUIIS XNAT at Vanderbilt) we only use XNAT to determine what projects
+# the user can access and only those projects are loaded from REDCAp.
+#
+# REDCap (using keys in file as specified in REDCAP_FILE) this is the
+# source of the stats data.
+#
+# Note this app does not access ACCRE or SLURM. The ony local file access
+# is to write the cached data in a pickle file. This file is named stats.pkl
+
+
 logging.basicConfig(
     format='%(asctime)s %(levelname)-8s %(message)s',
     level=logging.DEBUG, datefmt='%Y-%m-%d %H:%M:%S')
