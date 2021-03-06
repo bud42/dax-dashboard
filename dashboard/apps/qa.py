@@ -1,5 +1,8 @@
 # TODO: show session notes in a popup?
 
+# TODO: filter by scanner or site (need to make sure these data are available, 
+# could do this with a script in ccm_utils)
+
 # TODO: show help in a clickable dialog
 
 # and then:
@@ -183,10 +186,8 @@ def get_qa_graph_content(dfp):
     graph = html.Div(dcc.Graph(figure=fig), style={
         'width': '100%', 'display': 'inline-block'})
     tab = dcc.Tab(label=label, value=str(tab_value), children=[graph])
-    tab_value += 1
-
-    # Append the tab
     tabs_content.append(tab)
+    tab_value += 1
 
     # We also want a tab for By Project, so we can ask e.g. how many
     # sessions for each project, and then ask
@@ -225,13 +226,63 @@ def get_qa_graph_content(dfp):
     graph = html.Div(dcc.Graph(figure=fig), style={
         'width': '100%', 'display': 'inline-block'})
     tab = dcc.Tab(label=label, value=str(tab_value), children=[graph])
+    tabs_content.append(tab)
     tab_value += 1
 
-    # Append the tab
+    # Append the by-time graph (this was added later with separate function)
+    fig = sessionsbytime_figure(df)
+    label = 'By {}'.format('TIME')
+    graph = html.Div(dcc.Graph(figure=fig), style={
+        'width': '100%', 'display': 'inline-block'})
+    tab = dcc.Tab(label=label, value=str(tab_value), children=[graph])
     tabs_content.append(tab)
+    tab_value += 1
+
+    # TODO: write a "graph in a tab" function to wrap each figure above
+    # in a graph in a tab, b/c DRY
 
     # Return the tabs
     return tabs_content
+
+
+def sessionsbytime_figure(df):
+    fig = plotly.subplots.make_subplots(rows=1, cols=1)
+    fig.update_layout(margin=dict(l=40, r=40, t=40, b=40))
+
+    # TODO: include PET sessions here somehow, we are currently only including
+    # MR
+
+    # TODO: if weekly is chosen, show the actually session name
+
+    # TODO: use different shapes for PET vs MR, different colors for baseline
+    # vs. followup
+
+    # TODO: try to connect basline with followup with arc line or something
+    # or could have "by subject" choice that has a subject per y value
+
+    # Customize figure
+    fig['layout'].update(
+        xaxis=dict(automargin=True), yaxis=dict(automargin=True))
+
+    #if selected_groupby == 'project':
+    #    ygroupby = dft['project']
+    #else:
+    #    ygroupby = dft['site']
+
+    dft = df
+    ygroupby = dft['PROJECT']
+
+    # Add trace for MRI to figure
+    fig.append_trace({
+        'name': '{} ({})'.format('MRI', len(dft)),
+        'x': dft['DATE'],
+        'y': ygroupby,
+        'text': dft['SESSION'],
+        'mode': 'markers',
+        'marker': dict(size=10, line=dict(width=1), opacity=0.9)
+    }, 1, 1)
+
+    return fig
 
 
 def get_qa_content(df):

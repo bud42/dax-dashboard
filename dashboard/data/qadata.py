@@ -131,7 +131,7 @@ def get_user_projects(xnat=None):
     return data
 
 
-def get_ptypes( project_list, xnat=None):
+def get_ptypes(project_list, xnat=None):
     if xnat is None:
         xnat = XnatUtils.get_interface()
 
