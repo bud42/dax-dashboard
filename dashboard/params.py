@@ -31,7 +31,7 @@ PROCTYPES = [
     'BrainAgeGap_v2',
     'RSFC_CONN_v1']
 
-PROJECTS = ['CHAMP', 'REMBRANDT', 'NIC', 'TAYLOR_CAARE']
+PROJECTS = ['CHAMP', 'REMBRANDT', 'NIC', 'TAYLOR_CAARE', 'D3', 'DepMIND2']
 
 STATS_RENAME = {
     'experiment': 'SESSION',
@@ -171,7 +171,7 @@ EXCLUDE_LIST = [
     'WIP_dti_32_1000_nomb',
     '[BR-DY_CTAC] 2MM Brain Dynamic',
     '[BR-DY_CTAC] 2mm',
-    '[BR-DY_CTAC] Brain Dynamic',
+    #disbling this to see if it shows up in dax dashboard '[BR-DY_CTAC] Brain Dynamic',
     '[BR-DY_CTAC_2MM] Brain Dynamic',
     '[BR-DY_CTAC_2mm+PSF] Brain Dynamic',
     '[BR-DY_CTAC_2mm+PSF] Brain Dynamic (18)',
