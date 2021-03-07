@@ -52,18 +52,32 @@ logging.basicConfig(
     level=logging.DEBUG, datefmt='%Y-%m-%d %H:%M:%S')
 
 
-def filter_qa_data(df, projects, proctypes, timeframe, sesstype):
+def filter_qa_data(df, projects, proctypes, scantypes, timeframe, sesstype, arttype):
     # Filter by project
     if projects:
         logging.debug('filtering by project:')
         logging.debug(projects)
         df = df[df['PROJECT'].isin(projects)]
 
-    # Filter by proctype
+    # Filter by artefact type
+    if arttype == 'assessor':
+        # only assessors
+        df = df[df['ARTTYPE'] == 'assessor']
+    elif arttype == 'scan':
+        # only scans
+        df = df[df['ARTTYPE'] == 'scan']
+
+    # Filter by proc type
     if proctypes:
-        logging.debug('filtering by proctypes:')
+        logging.debug('filtering by proc types:')
         logging.debug(proctypes)
-        df = df[df['TYPE'].isin(proctypes)]
+        df = df[df['PROCTYPE'].isin(proctypes)]
+
+    # Filter by scan type
+    if scantypes:
+        logging.debug('filtering by scan types:')
+        logging.debug(scantypes)
+        df = df[df['SCANTYPE'].isin(scantypes)]
 
     # Filter by timeframe
     if timeframe in ['1day', '7day', '30day', '365day']:
@@ -249,13 +263,12 @@ def sessionsbytime_figure(df):
     fig = plotly.subplots.make_subplots(rows=1, cols=1)
     fig.update_layout(margin=dict(l=40, r=40, t=40, b=40))
 
-    # TODO: include PET sessions here somehow, we are currently only including
-    # MR
-
-    # TODO: if weekly is chosen, show the actually session name
+    # TODO: if weekly is chosen, show the actual session name
 
     # TODO: use different shapes for PET vs MR, different colors for baseline
     # vs. followup
+
+    # TODO: jitter
 
     # TODO: try to connect basline with followup with arc line or something
     # or could have "by subject" choice that has a subject per y value
@@ -310,8 +323,18 @@ def get_qa_content(df):
                 children=qa_graph_content,
                 vertical=True))]),
         html.Button('Refresh Data', id='button-qa-refresh'),
+        dcc.RadioItems(
+            options=[
+                {'label': 'Both', 'value': 'both'},
+                {'label': 'Scans Only', 'value': 'scan'},
+                {'label': 'Assessors Only', 'value': 'assessor'}],
+            value='both',
+            id='radio-qa-arttype',
+            labelStyle={'display': 'inline-block'}),
         dcc.Dropdown(
             id='dropdown-qa-time',
+            # Change filters to "Today", "this week", "last week",
+            #"this month", "last month", "YTD", "past year", "last year"
             options=[
                 {'label': 'all time', 'value': 'ALL'},
                 {'label': '1 day', 'value': '1day'},
@@ -324,7 +347,10 @@ def get_qa_content(df):
             placeholder='Select Project(s)'),
         dcc.Dropdown(
             id='dropdown-qa-proc', multi=True,
-            placeholder='Select Type(s)'),
+            placeholder='Select Processing Type(s)'),
+        dcc.Dropdown(
+            id='dropdown-qa-scan', multi=True,
+            placeholder='Select Scan Type(s)'),
         dcc.RadioItems(
             options=[
                 {'label': 'All Sessions', 'value': 'all'},
@@ -351,11 +377,11 @@ def get_qa_content(df):
                 'minWidth': '40',
                 'maxWidth': '60'},
             style_header={
-                'width': '80px',
+                #'width': '80px',
                 'backgroundColor': 'white',
                 'fontWeight': 'bold',
                 'padding': '5px 15px 0px 10px'},
-            fill_width=True,
+            #fill_width=True,
             export_format='xlsx',
             export_headers='names',
             export_columns='visible')]
@@ -401,9 +427,13 @@ def get_layout():
                 dcc.Tab(
                     label='QA', value='1', children=qa_content)
             ]),
+            #style={
+            #    'width': '100%', 'display': 'flex',
+            #    'align-items': 'center', 'justify-content': 'left'}
             style={
-                'width': '100%', 'display': 'flex',
-                'align-items': 'center', 'justify-content': 'left'})]
+                'width': '90%', 'display': 'flex',
+                'align-items': 'center', 'justify-content': 'center'}
+            )]
 
     footer_content = [
         html.Hr(),
@@ -427,13 +457,24 @@ def qa_pivot(df):
     return dfp
 
 
-def load_data():
-    return qadata.load_data()
+# This is where the data gets initialized
+def load_data(proj_filter=None, proc_filter=None, scan_filter=None, refresh=False):
+    return qadata.load_data(
+        proj_filter=proj_filter,
+        proc_filter=proc_filter,
+        scan_filter=scan_filter, refresh=refresh)
 
 
-def refresh_qa_data():
-    logging.debug('refresh_qa_data calling dashdata.refresh_data()')
-    return qadata.refresh_data()
+def load_proj_options():
+    return qadata.load_proj_options()
+
+
+def load_scan_options(proj_filter=None):
+    return qadata.load_scan_options(proj_filter)
+
+
+def load_proc_options(proj_filter=None):
+    return qadata.load_proc_options(proj_filter)
 
 
 def was_triggered(callback_ctx, button_id):
@@ -463,22 +504,29 @@ def was_triggered(callback_ctx, button_id):
 # content for the graph tabs
 @app.callback(
     [Output('dropdown-qa-proc', 'options'),
+     Output('dropdown-qa-scan', 'options'),
      Output('dropdown-qa-proj', 'options'),
      Output('datatable-qa', 'data'),
      Output('datatable-qa', 'columns'),
      Output('tabs-qa', 'children')],
     [Input('dropdown-qa-proc', 'value'),
+     Input('dropdown-qa-scan', 'value'),
      Input('dropdown-qa-proj', 'value'),
      Input('dropdown-qa-time', 'value'),
      Input('radio-qa-sesstype', 'value'),
+     Input('radio-qa-arttype', 'value'),
      Input('button-qa-refresh', 'n_clicks')])
 def update_all(
     selected_proc,
+    selected_scan,
     selected_proj,
     selected_time,
     selected_sesstype,
+    selected_arttype,
     n_clicks
 ):
+    refresh = False
+
     logging.debug('update_all')
 
     # Load our data
@@ -488,35 +536,59 @@ def update_all(
     if was_triggered(ctx, 'button-qa-refresh'):
         # Refresh data if refresh button clicked
         logging.debug('refresh:clicks={}'.format(n_clicks))
-        df = refresh_qa_data()
-    else:
-        logging.debug('loading data')
-        df = load_data()
+        refresh = True
+
+    logging.debug('loading data')
+    df = load_data(
+        proj_filter=selected_proj,
+        proc_filter=selected_proc,
+        scan_filter=selected_scan,
+        refresh=refresh)
 
     # Update lists of possible options for dropdowns (could have changed)
     # make these lists before we filter what to display
-    proc = utils.make_options(df.TYPE.unique())
-    proj = utils.make_options(sorted(df.PROJECT.unique()))
+    #proc = utils.make_options(sorted(df.TYPE.unique()))
+    #proj = utils.make_options(sorted(df.PROJECT.unique()))
+    proj = utils.make_options(load_proj_options())
+    scan = utils.make_options(load_scan_options(selected_proj))
+    proc = utils.make_options(load_proc_options(selected_proj))
+
+    # Clear types as needed
+    #if selected_arttype == 'scan':
+    #    selected_proc = ['NONE']
+    #elif selected_arttype == 'assessor':
+    #    selected_scan = ['NONE']
 
     # Filter data based on dropdown values
     df = filter_qa_data(
         df,
         selected_proj,
         selected_proc,
+        selected_scan,
         selected_time,
-        selected_sesstype)
+        selected_sesstype,
+        selected_arttype)
 
     # Get the qa pivot from the filtered data
     dfp = qa_pivot(df)
 
     tabs = get_qa_graph_content(dfp)
 
+    # Get the table data
+    selected_cols = ['SESSION', 'PROJECT', 'DATE']
+
+    if selected_proc:
+        selected_cols += selected_proc
+
+    if selected_scan:
+        selected_cols += selected_scan
+
+    columns = utils.make_columns(selected_cols)
+    records = dfp.reset_index().to_dict('records')
+
     # Return table, figure, dropdown options
     logging.debug('update_all:returning data')
-    records = dfp.reset_index().to_dict('records')
-    columns = [{"name": i, "id": i} for i in dfp.reset_index().columns]
-
-    return [proc, proj, records, columns, tabs]
+    return [proc, scan, proj, records, columns, tabs]
 
 
 # Build the layout that will used by top level index.py

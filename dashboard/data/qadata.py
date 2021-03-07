@@ -3,9 +3,14 @@ import os
 
 import json
 import pandas as pd
+import numpy as np
 from dax import XnatUtils
 
 from params import XNAT_USER, PROJECTS, PROCTYPES, EXCLUDE_LIST
+
+# should just have a "reload options" button and always requery xnat but
+# only change options when "reload" is clicked. or will this actually make
+# filtering take longer? maybe it will be fast enough.
 
 
 # Data sources are:
@@ -16,6 +21,38 @@ from params import XNAT_USER, PROJECTS, PROCTYPES, EXCLUDE_LIST
 # is to write the cached data in a pickle file. This file is named with the
 # xnat user name as <username>.pkl
 
+
+# Save projects.pkl that is the result of the projects this user can access,
+# we could save some other stuff here too.
+
+# Save to pickle the results of each query, i.e. scans.pkl, assessors.pkl
+# we reuse the pickle data when a filter changes. Then anytime user clicks 
+# refresh, we query xnat again.
+
+# what we could do is anytime we requery xnat again we apply the currently selected
+# filters in order to make the query faster. but then if a filter changes in a way
+# that we don't have the data , we need to know that we should requery. so how
+# can we track that?  the filter changes in a way that we don't have the data already
+# we have to requery.
+
+# we load the pickle, determine what assessors are included, determine if they are
+# the same as those in the list. and compare list of projects in the assessors
+# if it's the same or fewer in the list, then we don't need to requery, where was this going...
+# wait, what we wanna do differently is to apply the selected projects as a filter
+# unless no projects are selected or if a project is selected that has not been 
+# selected previoulsy, in which case we must requery.
+# so different things:
+
+# 1. when we don't have a file or filters, on load: we get the users projects,
+# then get all the scans and assessors for that project
+# and save a pickle with project scan/assr types for user.
+
+# 2. then next time we load the pickle, determine what 
+
+
+# what we're trying to help is when a project filter or proctype filter is selected
+# when refresh is clicked, we should be able to apply the filters in the query instead 
+# of after.
 
 logging.basicConfig(
     format='%(asctime)s %(levelname)-8s %(message)s',
@@ -99,7 +136,7 @@ ASSR_STATUS_MAP = {
     'Needs QA': 'Q',
     'Do Not Run': 'N'}
 
-QA_COLS = ['SESSION', 'PROJECT', 'DATE', 'TYPE', 'STATUS']
+QA_COLS = ['SESSION', 'PROJECT', 'DATE', 'TYPE', 'STATUS', 'ARTTYPE', 'SCANTYPE', 'PROCTYPE']
 
 
 def is_baseline_session(session):
@@ -131,123 +168,118 @@ def get_user_projects(xnat=None):
     return data
 
 
-def get_ptypes(project_list, xnat=None):
-    if xnat is None:
-        xnat = XnatUtils.get_interface()
-
-    # Load assr data
-    logging.debug('loading ptypes')
-    try:
-        # Build the uri to query with filters
-        assr_uri = '{}&project={}'.format(
-            ASSR_TYPE_URI,
-            ','.join(project_list))
-
-        assr_json = json.loads(xnat._exec(assr_uri, 'GET'))
-        df = pd.DataFrame(assr_json['ResultSet']['Result'])
-
-        df.rename(columns=ASSR_RENAME, inplace=True)
-
-        logging.debug('finishing assr data')
-    except AttributeError as err:
-        logging.warn('failed to load assessor data:' + str(err))
-        return []
-
-    # return the assessor data
-    logging.info('loaded {} assessors'.format(len(df)))
-    return df.PROCTYPE.unique()
-
-
-def get_stypes(project_list, xnat=None):
-    if xnat is None:
-        xnat = XnatUtils.get_interface()
-
-    # Load scan data
-    logging.debug('loading stypes')
-    try:
-        # Build the uri to query with filters
-        scan_uri = '{}&project={}'.format(SCAN_TYPE_URI, ','.join(project_list))
-
-        # Query xnat
-        scan_json = json.loads(xnat._exec(scan_uri, 'GET'))
-
-        # Build dataframe from result
-        df = pd.DataFrame(scan_json['ResultSet']['Result'])
-        logging.debug('finishing scan data')
-
-        # Rename columns
-        df.rename(columns=SCAN_RENAME, inplace=True)
-    except AttributeError as err:
-        logging.warn('failed to load scan data:' + str(err))
-        # Create an empty table with column names from SCAN_RENAME
-        df = pd.DataFrame(columns=SCAN_RENAME.keys())
-
-    # return the scan data types
-    logging.info('loaded {} scans'.format(len(df)))
-    return df.SCANTYPE.unique()
-
-
 def get_filename():
     return '{}.pkl'.format(XNAT_USER)
 
 
-def load_data():
-    filename = get_filename()
+def run_refresh(filename):
+    proj_filter = PROJECTS
+    proc_filter = PROCTYPES
+    scan_filter = []
 
-    if os.path.exists(filename):
-        logging.debug('reading data from file:{}'.format(filename))
-        df = pd.read_pickle(filename)
-    else:
-        logging.debug('loading data from xnat')
-        with XnatUtils.get_interface() as xnat:
-            #df = get_data(xnat, PROJECTS, [], PROCTYPES)
-            df = get_data(xnat, PROJECTS, [], [])
+    # force a requery
+    with XnatUtils.get_interface() as xnat:
+        df = get_data(xnat, proj_filter, proc_filter, scan_filter)
 
-        # save to cache
-        save_data(df)
+    save_data(df, filename)
 
     return df
 
 
-def save_data(df):
+def load_scan_options(project_filter=None):
+    # Read stypes from file and filter by projects
+
     filename = get_filename()
 
+    if not os.path.exists(filename):
+        logging.debug('refreshing data for file:{}'.format(filename))
+        run_refresh()
+
+    logging.debug('reading data from file:{}'.format(filename))
+    df = pd.read_pickle(filename)
+
+    if project_filter:
+        scantypes = df[df.PROJECT.isin(project_filter)].SCANTYPE.unique()
+    else:
+        scantypes = df.SCANTYPE.unique()
+
+    scantypes = [x for x in scantypes if x]
+
+    return sorted(scantypes)
+
+
+def load_proc_options(project_filter=None):
+    # Read ptypes from file and filter by projects
+
+    filename = get_filename()
+
+    if not os.path.exists(filename):
+        logging.debug('refreshing data for file:{}'.format(filename))
+        run_refresh()
+
+    logging.debug('reading data from file:{}'.format(filename))
+    df = pd.read_pickle(filename)
+
+    if project_filter:
+        proctypes = df[df.PROJECT.isin(project_filter)].PROCTYPE.unique()
+    else:
+        proctypes = df.PROCTYPE.unique()
+
+    proctypes = [x for x in proctypes if x]
+
+    return sorted(proctypes)
+
+
+def load_proj_options():
+    filename = get_filename()
+
+    if not os.path.exists(filename):
+        logging.debug('refreshing data for file:{}'.format(filename))
+        run_refresh()
+
+    logging.debug('reading data from file:{}'.format(filename))
+    df = pd.read_pickle(filename)
+
+    return df.PROJECT.unique()
+
+
+def load_data(proj_filter=None, scan_filter=None, proc_filter=None, refresh=False):
+    filename = get_filename()
+
+    if refresh or not os.path.exists(filename):
+        # TODO: check for old file and refresh too
+        run_refresh(filename)
+
+    #if proj_filter or scan_filter or proc_filter:
+    #    # Load from xnat
+    #    logging.debug('loading data from xnat')
+    #    with XnatUtils.get_interface() as xnat:
+    #        df = get_data(xnat, proj_filter, scan_filter, proc_filter)
+    #else:
+    #    # No filters, use the cached file
+    #    logging.debug('reading data from file:{}'.format(filename))
+    #    df = read_data(filename)
+    logging.debug('reading data from file:{}'.format(filename))
+    return read_data(filename)
+
+
+def read_data(filename):
+    df = pd.read_pickle(filename)
+    return df
+
+
+def save_data(df, filename):
     # save to cache
     df.to_pickle(filename)
-    return df
-
-
-def set_data(proj_filter=[], stype_filter=[], ptype_filter=[]):
-    with XnatUtils.get_interface() as xnat:
-
-        if not proj_filter:
-            # Select first project
-            proj_list = get_user_projects(xnat)
-            proj_filter = proj_list[0:1]
-
-        if not stype_filter:
-            # Load scan types
-            stype_list = get_stypes(proj_filter, xnat)
-
-            # Pick a scan type
-            stype_filter = stype_list[0:1]
-
-        if not ptype_filter:
-            # Load proc types
-            ptype_list = get_ptypes(proj_filter, xnat)
-
-            # Pick a scan type
-            ptype_filter = ptype_list[0:1]
-
-        df = get_data(xnat, proj_filter, stype_filter, ptype_filter)
-
-    # save to cache
-    save_data(df)
-
-    return df
 
 
 def get_data(xnat, proj_filter, stype_filter, ptype_filter):
+    if not proj_filter:
+        proj_filter = PROJECTS
+
+    if not ptype_filter:
+        ptype_filter = PROCTYPES
+
     # Load that data
     assr_df = load_assr_data(xnat, proj_filter, ptype_filter)
     scan_df = load_scan_data(xnat, proj_filter, stype_filter)
@@ -256,32 +288,18 @@ def get_data(xnat, proj_filter, stype_filter, ptype_filter):
     assr_df['TYPE'] = assr_df['PROCTYPE']
     scan_df['TYPE'] = scan_df['SCANTYPE']
 
+    assr_df['SCANTYPE'] = None
+    scan_df['PROCTYPE'] = None
+
+    assr_df['ARTTYPE'] = 'assessor'
+    scan_df['ARTTYPE'] = 'scan'
+
     # Concatenate the common cols to a new dataframe
     df = pd.concat([assr_df[QA_COLS], scan_df[QA_COLS]], sort=False)
 
     # set a column for session visit type, i.e. baseline if session name
     # ends with a or MR1 or something else, otherwise it's a followup
     df['ISBASELINE'] = df['SESSION'].apply(is_baseline_session)
-
-    return df
-
-
-def refresh_data():
-    with XnatUtils.get_interface() as xnat:
-
-        # Hacky way to reverse-engineer the filters based on previous data
-        df = load_data()
-        proj_filter = df.PROJECT.unique()
-        stype_list = get_stypes(proj_filter, xnat)
-        type_set = set(df.TYPE.unique())
-        stype_filter = list(set(stype_list).intersection(type_set))
-        ptype_filter = list(type_set - set(stype_filter))
-
-        # Get the data again with same filters
-        df = get_data(xnat, proj_filter, stype_filter, ptype_filter)
-
-    # save to cache
-    save_data(df)
 
     return df
 
