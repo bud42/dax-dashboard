@@ -301,6 +301,12 @@ def get_data(xnat, proj_filter, stype_filter, ptype_filter):
     # ends with a or MR1 or something else, otherwise it's a followup
     df['ISBASELINE'] = df['SESSION'].apply(is_baseline_session)
 
+    # remove test sessions
+    df = df[df.SESSION != 'Pitt_Test_Upload_MR1']
+
+    # relabel caare
+    df.PROJECT = df.PROJECT.replace(['TAYLOR_CAARE'], 'CAARE')
+
     return df
 
 
@@ -334,9 +340,6 @@ def load_assr_data(xnat, project_filter, proctype_filter):
     except AttributeError as err:
         logging.warn('failed to load assessor data:' + str(err))
         df = pd.DataFrame(columns=ASSR_RENAME.keys())
-
-    # remove test sessions
-    df = df[df.SESSION != 'Pitt_Test_Upload_MR1']
 
     # return the assessor data
     logging.info('loaded {} assessors'.format(len(df)))
