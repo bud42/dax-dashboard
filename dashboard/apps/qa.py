@@ -71,13 +71,13 @@ def filter_qa_data(df, projects, proctypes, scantypes, timeframe, sesstype, artt
     if proctypes:
         logging.debug('filtering by proc types:')
         logging.debug(proctypes)
-        df = df[df['PROCTYPE'].isin(proctypes)]
+        df = df[(df['PROCTYPE'].isin(proctypes)) | (df['ARTTYPE'] == 'scan')]
 
     # Filter by scan type
     if scantypes:
         logging.debug('filtering by scan types:')
         logging.debug(scantypes)
-        df = df[df['SCANTYPE'].isin(scantypes)]
+        df = df[(df['SCANTYPE'].isin(scantypes)) | (df['ARTTYPE'] == 'assessor')]
 
     # Filter by timeframe
     if timeframe in ['1day', '7day', '30day', '365day']:
@@ -282,16 +282,30 @@ def sessionsbytime_figure(df):
     #else:
     #    ygroupby = dft['site']
 
-    dft = df
-    ygroupby = dft['PROJECT']
+    print(df)
+
+    # Pivot show us how many sessions for project on that date
+    # df columns are: SESSION PROJECT DATE TYPE STATUS
+    dft = df.pivot_table(
+        index=('PROJECT', 'DATE'),
+        values='SESSION',
+        aggfunc=pd.Series.nunique,
+        fill_value=0)
+
+    print(dft)
+    print('qa df length=', len(dft))
+    dft.reset_index(inplace=True)
+    ydata = dft['PROJECT']
+    xdata = dft['DATE']
 
     # Add trace for MRI to figure
     fig.append_trace({
         'name': '{} ({})'.format('MRI', len(dft)),
-        'x': dft['DATE'],
-        'y': ygroupby,
-        'text': dft['SESSION'],
+        'x': xdata,
+        'y': ydata,
+        #'text': dft['SESSION'],
         'mode': 'markers',
+        #'marker': dict(size=10*dft['SESSION'], line=dict(width=1), opacity=0.9)
         'marker': dict(size=10, line=dict(width=1), opacity=0.9)
     }, 1, 1)
 
@@ -381,7 +395,7 @@ def get_qa_content(df):
                 'backgroundColor': 'white',
                 'fontWeight': 'bold',
                 'padding': '5px 15px 0px 10px'},
-            #fill_width=True,
+            fill_width=False,
             export_format='xlsx',
             export_headers='names',
             export_columns='visible')]
@@ -585,6 +599,8 @@ def update_all(
 
     columns = utils.make_columns(selected_cols)
     records = dfp.reset_index().to_dict('records')
+    # TODO: should only include data for the selected columns here, to reduce
+    # amount of data sent?
 
     # Return table, figure, dropdown options
     logging.debug('update_all:returning data')
