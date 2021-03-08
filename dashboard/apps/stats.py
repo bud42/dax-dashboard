@@ -63,6 +63,9 @@ def filter_stats_data(df, projects, proctypes, timeframe, sesstype):
         logging.debug('not filtering by sesstype')
         pass
 
+    # remove test sessions
+    df = df[df.SESSION != 'Pitt_Test_Upload_MR1']
+
     return df
 
 
@@ -70,6 +73,8 @@ def get_stats_graph_content(df):
     tabs_content = []
     tab_value = 0
     var_list = VAR_LIST
+    box_width = 150
+    min_box_count = 4
 
     # Check for empty data
     if len(df) == 0:
@@ -80,15 +85,16 @@ def get_stats_graph_content(df):
 
     logging.debug('get_stats_figure')
 
-    # Determine how many boxplots we're making, depends on how many vars
+    # Determine how many boxplots we're making, depends on how many vars, use
+    # minimum so graph doesn't get too small
     box_count = len(var_list)
-    graph_width = 150 * box_count
+    if box_count < min_box_count:
+        box_count = min_box_count
+
+    graph_width = box_width * box_count
 
     # Horizontal spacing cannot be greater than (1 / (cols - 1))
     hspacing = 1 / (box_count * 2)
-    print('hspacing=', hspacing)
-    print('box_count=', box_count)
-    print('graph_width=', graph_width)
 
     # Make the figure
     fig = plotly.subplots.make_subplots(
@@ -195,7 +201,7 @@ def get_stats_content(df):
                 'backgroundColor': 'white',
                 'fontWeight': 'bold',
                 'padding': '5px 15px 0px 10px'},
-            fill_width=True,
+            fill_width=False,
             export_format='xlsx',
             export_headers='names',
             export_columns='visible')]
@@ -214,8 +220,11 @@ def get_layout():
                 dcc.Tab(
                     label='STATS', value='1', children=stats_content)
             ]),
+            # style={
+            #    'width': '100%', 'display': 'flex',
+            #    'align-items': 'center', 'justify-content': 'left'})]
             style={
-                'width': '100%', 'display': 'flex',
+                'width': '90%', 'display': 'flex',
                 'align-items': 'center', 'justify-content': 'left'})]
 
     footer_content = [
@@ -307,13 +316,23 @@ def update_all(
         selected_time,
         selected_sesstype)
 
+    # Get the graph content in tabs (currently only one tab)
     tabs = get_stats_graph_content(df)
+
+    # Get the table data
+    selected_cols = ['assessor_label', 'PROJECT', 'SESSION', 'TYPE']
+
+    if selected_proc:
+        var_list = [x for x in VAR_LIST if not pd.isnull(df[x]).all()]
+        selected_cols += var_list
+
+    columns = utils.make_columns(selected_cols)
+    records = df.reset_index().to_dict('records')
+    # TODO: should only include data for the selected columns here, to reduce
+    # amount of data sent?
 
     # Return table, figure, dropdown options
     logging.debug('update_all:returning data')
-    records = df.reset_index().to_dict('records')
-    columns = [{"name": i, "id": i} for i in df.reset_index().columns]
-
     return [proc, proj, records, columns, tabs]
 
 
