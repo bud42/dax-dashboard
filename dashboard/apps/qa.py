@@ -282,10 +282,15 @@ def sessionsbytime_figure(df):
     #else:
     #    ygroupby = dft['site']
 
-    print(df)
-
     # Pivot show us how many sessions for project on that date
     # df columns are: SESSION PROJECT DATE TYPE STATUS
+    # we want the count of sessions on each project/date and then we
+    # clear the index and plot with
+    # xdata as date
+    # ydata as project
+    # we could use size of marker as count on that date but it looked weird so
+    # we are not currently doing anything to highlight multiple sessions on
+    # the same day.
     dft = df.pivot_table(
         index=('PROJECT', 'DATE'),
         values='SESSION',
