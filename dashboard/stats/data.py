@@ -4,14 +4,13 @@ import os
 import yaml
 import redcap
 import pandas as pd
-import json
+import dax
 
-from params import XNAT_USER, REDCAP_FILE, PROCTYPES, PROJECTS, STATS_RENAME
+import utils
+from stats.params import REDCAP_FILE, STATS_RENAME
 
 
 # Data sources are:
-# XNAT (VUIIS XNAT at Vanderbilt) we only use XNAT to determine what projects
-# the user can access and only those projects are loaded from REDCAp.
 #
 # REDCap (using keys in file as specified in REDCAP_FILE) this is the
 # source of the stats data.
@@ -29,24 +28,9 @@ def is_baseline_session(session):
     # TODO: re-implement this by getting list of sessions for each subject,
     # sorted by date and set the first session to basline
     return (
-        session.endswith('a') or
-        session.endswith('_bl') or
-        session.endswith('_MR1'))
-
-
-def get_user_projects(xnat):
-    logging.debug('loading user projects')
-
-    uri = '/xapi/users/{}/groups'.format(XNAT_USER)
-
-    # get from xnat and convert to list
-    data = json.loads(xnat._exec(uri, 'GET'))
-
-    # format of group name is PROJECT_ROLE,
-    # so we split on the underscore
-    data = sorted([x.rsplit('_', 1)[0] for x in data])
-
-    return data
+        str(session).endswith('a') or
+        str(session).endswith('_bl') or
+        str(session).endswith('_MR1'))
 
 
 def get_filename():
@@ -103,8 +87,6 @@ def parse_redcap_name(name):
 
 
 def load_stats_data():
-    my_proctypes = PROCTYPES
-    my_projects = PROJECTS
     my_redcaps = []
     df = pd.DataFrame()
 
@@ -117,6 +99,9 @@ def load_stats_data():
 
     api_url = redcap_data['api_url']
 
+    with dax.XnatUtils.get_interface() as xnat:
+        my_projects = utils.get_user_favorites(xnat)
+
     # Filter the list of redcaps based on our project access
     for r in redcap_data['projects']:
         name = r['name']
@@ -126,10 +111,8 @@ def load_stats_data():
         except ValueError:
             continue
 
-        if (proj not in my_projects) or (proc not in my_proctypes):
-            continue
-
-        my_redcaps.append(r)
+        if (proj in my_projects):
+            my_redcaps.append(r)
 
     # Load data from each redcap
     for r in my_redcaps:
@@ -141,7 +124,7 @@ def load_stats_data():
             cur_df = redcap.Project(api_url, key).export_records(format='df')
 
             if 'wml_volume' in cur_df:
-                print('rename wml for NIC')
+                #print('rename wml for NIC')
                 cur_df['lst_stats_wml_volume'] = cur_df['wml_volume']
 
             df = pd.concat([df, cur_df], ignore_index=True, sort=False)

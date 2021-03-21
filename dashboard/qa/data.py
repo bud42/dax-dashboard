@@ -1,12 +1,11 @@
 import logging
 import os
 
-import json
 import pandas as pd
-import numpy as np
-from dax import XnatUtils
+import dax
 
-from params import XNAT_USER, PROJECTS, PROCTYPES, EXCLUDE_LIST
+import utils
+from qa.params import SCAN_EXCLUDE_LIST, ASSR_EXCLUDE_LIST
 
 # should just have a "reload options" button and always requery xnat but
 # only change options when "reload" is clicked. or will this actually make
@@ -58,21 +57,6 @@ logging.basicConfig(
     format='%(asctime)s %(levelname)-8s %(message)s',
     level=logging.DEBUG, datefmt='%Y-%m-%d %H:%M:%S')
 
-
-ASSR_TYPE_URI = '/REST/experiments?xsiType=proc:genprocdata\
-&columns=\
-ID,\
-label,\
-project,\
-proc:genprocdata/proctype'
-
-SCAN_TYPE_URI = '/REST/experiments?xsiType=xnat:imagesessiondata\
-&columns=\
-ID,\
-label,\
-project,\
-xnat:imagescandata/id,\
-xnat:imagescandata/type'
 
 ASSR_URI = '/REST/experiments?xsiType=proc:genprocdata\
 &columns=\
@@ -148,37 +132,18 @@ def is_baseline_session(session):
         session.endswith('_MR1'))
 
 
-def get_user_projects(xnat=None):
-    if xnat is None:
-        xnat = XnatUtils.get_interface()
-
-    logging.debug('loading user projects')
-
-    uri = '/xapi/users/{}/groups'.format(XNAT_USER)
-
-    # get from xnat and convert to list
-    data = json.loads(xnat._exec(uri, 'GET'))
-
-    # format of group name is PROJECT_ROLE,
-    # so we split on the underscore
-    data = sorted([x.rsplit('_', 1)[0] for x in data])
-
-    print('user projects=', data)
-
-    return data
-
-
 def get_filename():
-    return '{}.pkl'.format(XNAT_USER)
+    return '{}.pkl'.format('qadata')
 
 
 def run_refresh(filename):
-    proj_filter = PROJECTS
-    proc_filter = PROCTYPES
+    proj_filter = []
+    proc_filter = []
     scan_filter = []
 
     # force a requery
-    with XnatUtils.get_interface() as xnat:
+    with dax.XnatUtils.get_interface() as xnat:
+        proj_filter = utils.get_user_favorites(xnat)
         df = get_data(xnat, proj_filter, proc_filter, scan_filter)
 
     save_data(df, filename)
@@ -250,15 +215,6 @@ def load_data(proj_filter=None, scan_filter=None, proc_filter=None, refresh=Fals
         # TODO: check for old file and refresh too
         run_refresh(filename)
 
-    #if proj_filter or scan_filter or proc_filter:
-    #    # Load from xnat
-    #    logging.debug('loading data from xnat')
-    #    with XnatUtils.get_interface() as xnat:
-    #        df = get_data(xnat, proj_filter, scan_filter, proc_filter)
-    #else:
-    #    # No filters, use the cached file
-    #    logging.debug('reading data from file:{}'.format(filename))
-    #    df = read_data(filename)
     logging.debug('reading data from file:{}'.format(filename))
     return read_data(filename)
 
@@ -274,12 +230,6 @@ def save_data(df, filename):
 
 
 def get_data(xnat, proj_filter, stype_filter, ptype_filter):
-    if not proj_filter:
-        proj_filter = PROJECTS
-
-    if not ptype_filter:
-        ptype_filter = PROCTYPES
-
     # Load that data
     assr_df = load_assr_data(xnat, proj_filter, ptype_filter)
     scan_df = load_scan_data(xnat, proj_filter, stype_filter)
@@ -315,8 +265,6 @@ def load_assr_data(xnat, project_filter, proctype_filter):
 
     # Load assr data
     logging.debug('loading assr data')
-    print('project_filter=', project_filter)
-    print('proctype_filter=', proctype_filter)
 
     try:
         # Build the uri to query with filters
@@ -326,7 +274,7 @@ def load_assr_data(xnat, project_filter, proctype_filter):
             assr_uri += '&proc:genprocdata/proctype={}'.format(
                 ','.join(proctype_filter))
 
-        assr_json = get_json(xnat, assr_uri)
+        assr_json = utils.get_json(xnat, assr_uri)
 
         df = pd.DataFrame(assr_json['ResultSet']['Result'])
 
@@ -341,6 +289,9 @@ def load_assr_data(xnat, project_filter, proctype_filter):
         logging.warn('failed to load assessor data:' + str(err))
         df = pd.DataFrame(columns=ASSR_RENAME.keys())
 
+    # Filter out excluded types
+    df = df[~df['PROCTYPE'].isin(ASSR_EXCLUDE_LIST)]
+
     # return the assessor data
     logging.info('loaded {} assessors'.format(len(df)))
     return df
@@ -351,22 +302,14 @@ def load_scan_data(xnat, project_filter, scantype_filter):
 
     # Load scan data
     logging.debug('loading scan data')
-    print('project_filter=', project_filter)
-    print('scantype_filter=', scantype_filter)
+
     try:
         # Build the uri to query with filters
         scan_uri = '{}&project={}'.format(
             SCAN_URI,
             ','.join(project_filter))
 
-        # this doesn't work, but maybe we don't need to filter scans from
-        # the xnat query
-        # if type_list:
-        #     type_filter = 'xnat:imagescandata/type={}'.format(
-        # ','.join(self.scantype_filter))
-        #     scan_uri += '&' + type_filter
-
-        scan_json = get_json(xnat, scan_uri)
+        scan_json = utils.get_json(xnat, scan_uri)
         df = pd.DataFrame(scan_json['ResultSet']['Result'])
         logging.debug('finishing scan data')
 
@@ -380,13 +323,8 @@ def load_scan_data(xnat, project_filter, scantype_filter):
         # Create an empty table with column names from SCAN_RENAME
         df = pd.DataFrame(columns=SCAN_RENAME.keys())
 
-    # TODO: move this filtering to the uri if we can, not currently working
-    # Filter by scan type
-    if False:
-        df = df[df['SCANTYPE'].isin(scantype_filter)]
-    else:
-        # print(sorted(list(df['SCANTYPE'].unique())))
-        df = df[~df['SCANTYPE'].isin(EXCLUDE_LIST)]
+    # Filter out excluded types
+    df = df[~df['SCANTYPE'].isin(SCAN_EXCLUDE_LIST)]
 
     # remove test sessions
     df = df[df.SESSION != 'Pitt_Test_Upload_MR1']
@@ -395,8 +333,3 @@ def load_scan_data(xnat, project_filter, scantype_filter):
     logging.info('loaded {} scans'.format(len(df)))
 
     return df
-
-
-def get_json(xnat, uri):
-    _data = json.loads(xnat._exec(uri, 'GET'))
-    return _data

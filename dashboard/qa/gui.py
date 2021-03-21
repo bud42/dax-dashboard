@@ -8,8 +8,7 @@
 # and then:
 # add new colors for jobs that are NEED_INPUTS, JOB_RUNNING, JOB_FAILED (pink?)
 
-# tab for "By Site" and "By Time" (see timeline from old report)
-# filter for Site
+# tab for "By Site"
 
 # highlight session rows based on whether it's:
 # "all fail"=RED, "any tbd"=YELLOW, otherwise no color?
@@ -42,10 +41,9 @@ from dash.dependencies import Input, Output
 import dash
 
 from app import app
-from data import qadata
-from . import utils
-from .shared import QASTATUS2COLOR, RGB_DKBLUE
-
+import utils
+from shared import QASTATUS2COLOR, RGB_DKBLUE
+import qa.data as qadata
 
 logging.basicConfig(
     format='%(asctime)s %(levelname)-8s %(message)s',
@@ -297,8 +295,8 @@ def sessionsbytime_figure(df):
         aggfunc=pd.Series.nunique,
         fill_value=0)
 
-    print(dft)
-    print('qa df length=', len(dft))
+    #print(dft)
+    #print('qa df length=', len(dft))
     dft.reset_index(inplace=True)
     ydata = dft['PROJECT']
     xdata = dft['DATE']
@@ -566,17 +564,9 @@ def update_all(
 
     # Update lists of possible options for dropdowns (could have changed)
     # make these lists before we filter what to display
-    #proc = utils.make_options(sorted(df.TYPE.unique()))
-    #proj = utils.make_options(sorted(df.PROJECT.unique()))
     proj = utils.make_options(load_proj_options())
     scan = utils.make_options(load_scan_options(selected_proj))
     proc = utils.make_options(load_proc_options(selected_proj))
-
-    # Clear types as needed
-    #if selected_arttype == 'scan':
-    #    selected_proc = ['NONE']
-    #elif selected_arttype == 'assessor':
-    #    selected_scan = ['NONE']
 
     # Filter data based on dropdown values
     df = filter_qa_data(
@@ -604,8 +594,9 @@ def update_all(
 
     columns = utils.make_columns(selected_cols)
     records = dfp.reset_index().to_dict('records')
-    # TODO: should only include data for the selected columns here, to reduce
-    # amount of data sent?
+
+    # TODO: should we only include data for selected columns here,
+    # to reduce amount of data sent?
 
     # Return table, figure, dropdown options
     logging.debug('update_all:returning data')

@@ -12,8 +12,8 @@ from dash.dependencies import Input, Output
 import dash
 
 from app import app
-from data import statsdata
-from . import utils
+import stats.data as statsdata
+import utils
 
 
 VAR_LIST = ['accuracy', 'RT', 'trials']  # EDATQA
@@ -108,8 +108,7 @@ def get_stats_graph_content(df):
 
     # Add traces to figure
     for i, var in enumerate(var_list):
-        print('trace', i, var)
-
+        # Create boxplot for this var and add to figure
         fig.append_trace(
             go.Box(
                 y=df[var],

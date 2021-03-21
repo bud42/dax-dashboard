@@ -1,15 +1,13 @@
 import dash_core_components as dcc
 import dash_html_components as html
 from dash.dependencies import Input, Output
-import dash_auth
-from flask import request
 
 from app import app
-from apps import qa, ops, settings, stats
-from secrets import VALID_USERNAME_PASSWORD_PAIRS, USER_ACCESS
+from qa import gui as qa
+from stats import gui as stats
 
 
-server = app.server  # for gunicorn
+server = app.server  # for gunicorn to work correctly
 
 # Styling for the links to different pages
 link_style = {
@@ -26,10 +24,6 @@ app.css.append_css({
 # Set the title to appear on web pages
 app.title = 'DAX Dashboard'
 
-# Use very basic authentication
-# viewers cannot create their own account and cannot change their password
-auth = dash_auth.BasicAuth(app, VALID_USERNAME_PASSWORD_PAIRS)
-
 # Make the main app layout
 app.layout = html.Div([
     dcc.Location(id='url', refresh=False),
@@ -45,54 +39,29 @@ app.layout = html.Div([
     [Input('url', 'pathname')])
 def display_page(pathname):
     menu_content = []
-    username = request.authorization['username']
     layout = ''
 
-    # Determine what pages this user can access
-    cur_access = USER_ACCESS.get(username, [])
-
-    if pathname[1:] not in cur_access:
-        print('page not accessible to user')
-        # nope, no access to that page, but everybody can access ops
-        pathname = '/ops'
-
-        # check for a better default page
-        if 'qa' in cur_access:
-            pathname = '/qa'
-        elif 'stats' in cur_access:
-            pathname = '/stats'
-
-        print('rerouted to:' + pathname)
-
-    # Now that we know the path, get the content
-    if pathname == '/settings':
-        layout = settings.layout
-    elif pathname == '/qa':
-        layout = qa.layout
-    elif pathname == '/ops':
-        layout = ops.layout
-    elif pathname == '/stats':
+    if pathname == '/stats':
         layout = stats.layout
     else:
-        # we shouldn't be here
-        pass
+        layout = qa.layout
 
+    # Wrap the layout with a footer
     layout = html.Div([
         layout,
         html.Hr(),
         html.P(
-            'Hi {}, thanks for using DAX Dashboard!'.format(username),
+            'Hi, thanks for using DAX Dashboard!',
             style={'textAlign': 'right'})])
 
     # Build the top menu based on access to pages
-    if len(cur_access) > 1:
-        for i in cur_access:
-            menu_content.append(
-                dcc.Link(i, href='/' + i, style=link_style, target='_blank'))
+    cur_access = ['qa', 'stats']
+    for i in cur_access:
+        menu_content.append(
+            dcc.Link(i, href='/' + i, style=link_style, target='_blank'))
 
     return [layout, menu_content]
 
 
 if __name__ == '__main__':
-    # app.run_server(host='0.0.0.0'), debug=True)
-    app.run_server(host='0.0.0.0', ssl_context='adhoc')
+    app.run_server(host='0.0.0.0')

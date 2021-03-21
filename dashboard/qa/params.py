@@ -1,59 +1,21 @@
-# This file contains parameters used across the dax dashboard apps.
-# This file can contain user names but no passwords or server names should
-# be stored here. Also no subject IDs should be stored here.
+ASSR_EXCLUDE_LIST = [
+    'ASHS_v2',
+    'BrainAgeGap_v1',
+    'FMRIQA_v4',
+    'surf_postproc_v1',
+    'surf_quant_stat_v1',
+    'surf_quant_v1',
+    'slant_v1',
+    'LST_v2',
+    'Multi_Atlas_v2',
+    'RWML_v1',
+    'fMRIQA_v3',
+    'Temporal_Lobe_v3',
+    'RSFC_CONN_v1',
+    'dtiQA_v6'
+]
 
-
-SQUEUE_USER = ['vuiis_archive_singularity', 'vuiis_daily_singularity']
-
-UPLOAD_DIR = [
-    '/scratch/vuiis_archive_singularity/Spider_Upload_Dir',
-    '/scratch/vuiis_daily_singularity/Spider_Upload_Dir']
-
-XNAT_USER = 'boydb1'
-
-TIMEZONE = 'US/Central'
-
-REDCAP_FILE = '/home/boydb1/dashboard.redcap.yaml'
-
-PROCTYPES = [
-    'EDATQA_v1',
-    'fmriqa_v4',
-    'LST_v1',
-    'AMYVIDQA_v1',
-    'FS6_v1',
-    'fs7_v1',
-    'slant_gpu_v1',
-    'struct_preproc_v1',
-    'dtiQA_rpe_v7',
-    'dtiQA_synb0_v7',
-    'EDP_v1',
-    'biscuit_fs_v2',
-    'BrainAgeGap_v2',
-    'RSFC_CONN_v1']
-
-PROJECTS = ['CHAMP', 'REMBRANDT', 'NIC', 'TAYLOR_CAARE', 'D3', 'DepMIND2']
-
-STATS_RENAME = {
-    'experiment': 'SESSION',
-    'proctype': 'TYPE',
-    'project': 'PROJECT',
-    'proc_date': 'DATE',
-    'stats_edatqa_acc_mean': 'accuracy',
-    'stats_edatqa_rt_mean': 'RT',
-    'stats_edatqa_trial_count': 'trials',
-    'lst_stats_wml_volume': 'WML',
-    'fmriqa_stats_wide_voxel_displacement_mm_95prctile': 'VOXD',
-    'fmriqa_stats_wide_dvars_mean': 'DVARS',
-    'stats_amyvid_compgm_suvr': 'compgm_suvr',
-    'stats_recon_estimatedtotalintracranialvol_etiv': 'ETIV',
-    'stats_recon_left_hippocampus_volume_mm3': 'LHPC',
-    'stats_recon_right_hippocampus_volume_mm3': 'RHPC',
-    'stats_recon_left_lateral_ventricle_volume_mm3': 'LVENT',
-    'stats_recon_right_lateral_ventricle_volume_mm3': 'RVENT',
-    'stats_recon_lh_superiorfrontal_thickavg': 'LSUPFLOBE',
-    'stats_recon_rh_superiorfrontal_thickavg': 'RSUPFLOBE'}
-
-EXCLUDE_LIST = [
+SCAN_EXCLUDE_LIST = [
     'ARC_GRE_field_mapping',
     'ARC_GRE_field_mapping ',
     ' ARC_GRE_field_mapping ',
