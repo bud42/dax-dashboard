@@ -1,11 +1,14 @@
 import logging
 import os
 
-import pandas as pd
 import dax
 
 import utils
 from qa.params import SCAN_EXCLUDE_LIST, ASSR_EXCLUDE_LIST
+
+import warnings
+warnings.simplefilter(action='ignore', category=FutureWarning)
+import pandas as pd
 
 # should just have a "reload options" button and always requery xnat but
 # only change options when "reload" is clicked. or will this actually make
@@ -55,8 +58,38 @@ from qa.params import SCAN_EXCLUDE_LIST, ASSR_EXCLUDE_LIST
 
 logging.basicConfig(
     format='%(asctime)s %(levelname)-8s %(message)s',
-    level=logging.DEBUG, datefmt='%Y-%m-%d %H:%M:%S')
+    level=logging.INFO, datefmt='%Y-%m-%d %H:%M:%S')
 
+
+BOTH_URI = '/REST/experiments?xsiType=xnat:imagesessiondata\
+&columns=\
+project,\
+subject_label,\
+session_label,\
+xnat:imagesessiondata/acquisition_site,\
+xnat:imagescandata/id,\
+xnat:imagescandata/type,\
+xnat:imagescandata/quality,\
+xnat:imagesessiondata/date,\
+xnat:imagesessiondata/label,\
+proc:genprocdata/label,\
+proc:genprocdata/procstatus,\
+proc:genprocdata/proctype,\
+proc:genprocdata/validation/status'
+
+BOTH_RENAME = {
+    'project': 'PROJECT',
+    'subject_label': 'SUBJECT',
+    'session_label': 'SESSION',
+    'xnat:imagesessiondata/date': 'DATE',
+    'xnat:imagesessiondata/acquisition_site': 'SITE',
+    'proc:genprocdata/label': 'ASSR',
+    'proc:genprocdata/procstatus': 'PROCSTATUS',
+    'proc:genprocdata/proctype': 'PROCTYPE',
+    'proc:genprocdata/validation/status': 'QCSTATUS',
+    'xnat:imagescandata/id': 'SCANID',
+    'xnat:imagescandata/type': 'SCANTYPE',
+    'xnat:imagescandata/quality': 'QUALITY'}
 
 ASSR_URI = '/REST/experiments?xsiType=proc:genprocdata\
 &columns=\
@@ -160,7 +193,7 @@ def load_scan_options(project_filter=None):
         logging.debug('refreshing data for file:{}'.format(filename))
         run_refresh()
 
-    logging.debug('reading data from file:{}'.format(filename))
+    logging.info('reading data from file:{}'.format(filename))
     df = pd.read_pickle(filename)
 
     if project_filter:
@@ -215,7 +248,7 @@ def load_data(proj_filter=None, scan_filter=None, proc_filter=None, refresh=Fals
         # TODO: check for old file and refresh too
         run_refresh(filename)
 
-    logging.debug('reading data from file:{}'.format(filename))
+    logging.info('reading data from file:{}'.format(filename))
     return read_data(filename)
 
 
@@ -231,8 +264,9 @@ def save_data(df, filename):
 
 def get_data(xnat, proj_filter, stype_filter, ptype_filter):
     # Load that data
-    assr_df = load_assr_data(xnat, proj_filter, ptype_filter)
-    scan_df = load_scan_data(xnat, proj_filter, stype_filter)
+    #assr_df = load_assr_data(xnat, proj_filter, ptype_filter)
+    #scan_df = load_scan_data(xnat, proj_filter, stype_filter)
+    scan_df, assr_df = load_both_data(xnat, proj_filter)
 
     # Make a common column for type
     assr_df['TYPE'] = assr_df['PROCTYPE']
@@ -252,12 +286,63 @@ def get_data(xnat, proj_filter, stype_filter, ptype_filter):
     df['ISBASELINE'] = df['SESSION'].apply(is_baseline_session)
 
     # remove test sessions
-    df = df[df.SESSION != 'Pitt_Test_Upload_MR1']
+    #df = df[df.SESSION != 'Pitt_Test_Upload_MR1']
 
     # relabel caare
     df.PROJECT = df.PROJECT.replace(['TAYLOR_CAARE'], 'CAARE')
 
     return df
+
+
+def load_both_data(xnat, project_filter):
+    #  Load data
+    logging.info('loading assr and scan data')
+
+    # Build the uri to query with filters
+    both_uri = BOTH_URI
+    both_uri += '&project={}'.format(','.join(project_filter))
+
+    # Query xnat
+    both_json = utils.get_json(xnat, both_uri)
+    df = pd.DataFrame(both_json['ResultSet']['Result'])
+
+    # Rename columns
+    df.rename(columns=BOTH_RENAME, inplace=True)
+
+    # remove test sessions
+    df = df[~df.SESSION.isin(['Pitt_Test_Upload_MR1', 'UIC_test_v2_MR1'])]
+
+    # assessors
+    dfa = df[[
+        'PROJECT', 'SESSION', 'SUBJECT', 'DATE',
+        'ASSR', 'QCSTATUS', 'PROCSTATUS', 'PROCTYPE']]
+
+    dfa.drop_duplicates(inplace=True)
+
+    # Filter out excluded types
+    dfa = dfa[~dfa['PROCTYPE'].isin(ASSR_EXCLUDE_LIST)]
+
+    # Drop any rows with empty proctype
+    dfa.dropna(subset=['PROCTYPE'], inplace=True)
+    dfa = dfa[dfa.PROCTYPE != '']
+
+    # Create shorthand status
+    dfa['STATUS'] = dfa['QCSTATUS'].map(ASSR_STATUS_MAP).fillna('Q')
+
+    # scans
+    dfs = df[[
+        'PROJECT', 'SESSION', 'SUBJECT', 'SITE', 'DATE',
+        'SCANID', 'SCANTYPE', 'QUALITY']]
+
+    dfs.drop_duplicates(inplace=True)
+
+    # Filter out excluded types
+    dfs = dfs[~dfs['SCANTYPE'].isin(SCAN_EXCLUDE_LIST)]
+
+    # Create shorthand status
+    dfs['STATUS'] = dfs['QUALITY'].map(SCAN_STATUS_MAP).fillna('U')
+
+    return (dfs, dfa)
 
 
 def load_assr_data(xnat, project_filter, proctype_filter):

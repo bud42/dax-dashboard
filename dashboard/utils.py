@@ -20,7 +20,6 @@ def get_user_favorites(xnat):
     fav_json = get_json(xnat, FAV_URI)
     data = [x['id'] for x in fav_json['ResultSet']['Result']]
 
-    print('favorite projects=', data)
     return data
 
 
@@ -35,11 +34,4 @@ def get_user_projects(xnat, username):
     # so we split on the underscore
     data = sorted([x.rsplit('_', 1)[0] for x in data])
 
-    print('user projects=', data)
-
     return data
-
-
-#if xnat is None:
-#        xnat = XnatUtils.get_interface()
-#    logging.debug('loading user projects')
