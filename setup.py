@@ -10,5 +10,11 @@ setup(
     license='MIT',
     packages=find_packages(),
     install_requires=[
-        'plotly', 'dash', 'dash-core-components',
-        'dash-html-components', 'dash-renderer', 'dash-table-experiments'])
+        'dax',
+        'dash',
+        'dash-core-components',
+        'dash-html-components',
+        'dash-renderer',
+        'dash-table',
+        'pandas',
+        'pycap'])
