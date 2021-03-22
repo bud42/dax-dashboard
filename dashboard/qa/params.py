@@ -1,4 +1,5 @@
 ASSR_EXCLUDE_LIST = [
+    'ASHS_v1',
     'ASHS_v2',
     'BrainAgeGap_v1',
     'FMRIQA_v4',
@@ -12,7 +13,8 @@ ASSR_EXCLUDE_LIST = [
     'fMRIQA_v3',
     'Temporal_Lobe_v3',
     'RSFC_CONN_v1',
-    'dtiQA_v6'
+    'dtiQA_v6',
+    'dtiQA_BL3_v7'
 ]
 
 SCAN_EXCLUDE_LIST = [
