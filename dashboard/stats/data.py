@@ -3,11 +3,14 @@ import os
 
 import yaml
 import redcap
-import pandas as pd
 import dax
 
 import utils
-from stats.params import REDCAP_FILE, STATS_RENAME
+from stats.params import REDCAP_FILE, STATS_RENAME, DEFAULT_COLUMNS
+
+import warnings
+warnings.simplefilter(action='ignore', category=FutureWarning)
+import pandas as pd
 
 
 # Data sources are:
@@ -21,7 +24,7 @@ from stats.params import REDCAP_FILE, STATS_RENAME
 
 logging.basicConfig(
     format='%(asctime)s %(levelname)-8s %(message)s',
-    level=logging.DEBUG, datefmt='%Y-%m-%d %H:%M:%S')
+    level=logging.INFO, datefmt='%Y-%m-%d %H:%M:%S')
 
 
 def is_baseline_session(session):
@@ -93,9 +96,14 @@ def load_stats_data():
     # Load assr data
     logging.debug('loading stats data')
 
-    # Read inputs yaml as dictionary
-    with open(REDCAP_FILE, 'rt') as file:
-        redcap_data = yaml.load(file, yaml.SafeLoader)
+    try:
+        # Read inputs yaml as dictionary
+        with open(REDCAP_FILE, 'rt') as file:
+            redcap_data = yaml.load(file, yaml.SafeLoader)
+    except FileNotFoundError:
+        logging.info('REDCap settings file not found, not loading stats')
+        df = pd.DataFrame(columns=DEFAULT_COLUMNS)
+        return df
 
     api_url = redcap_data['api_url']
 
@@ -115,21 +123,24 @@ def load_stats_data():
             my_redcaps.append(r)
 
     # Load data from each redcap
-    for r in my_redcaps:
+    icount = len(my_redcaps)
+    for i, r in enumerate(my_redcaps):
         name = r['name']
         key = r['key']
         (proj, proc, res) = parse_redcap_name(name)
-        logging.debug('loading redcap:{}'.format(name))
+        logging.info('{}/{} loading redcap:{}'.format(i, icount, name))
         try:
-            cur_df = redcap.Project(api_url, key).export_records(format='df')
+            cur_df = redcap.Project(api_url, key, lazy=True).export_records(format='df', df_kwargs={'index_col': 'record_id'})
 
             if 'wml_volume' in cur_df:
                 #print('rename wml for NIC')
                 cur_df['lst_stats_wml_volume'] = cur_df['wml_volume']
 
             df = pd.concat([df, cur_df], ignore_index=True, sort=False)
-        except:
-            print('error exporting:' + name)
+        except Exception as err:
+            logging.error('error exporting redcap:{}:{}'.format(name, err))
+            import traceback
+            traceback.print_exc()
             continue
 
     # Rename columns
