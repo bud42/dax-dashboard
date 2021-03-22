@@ -24,4 +24,10 @@ STATS_RENAME = {
 
 REDCAP_FILE = os.path.join(
     os.path.expanduser("~"),
-    'dashboard.redcap.yaml')
+    'redcap.yaml')
+
+DEFAULT_COLUMNS = [
+    'assessor_label',
+    'PROJECT',
+    'SESSION',
+    'TYPE']

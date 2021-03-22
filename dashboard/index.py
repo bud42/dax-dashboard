@@ -54,7 +54,7 @@ def display_page(pathname):
             'Hi, thanks for using DAX Dashboard!',
             style={'textAlign': 'right'})])
 
-    # Build the top menu based on access to pages
+    # Build the top menu
     cur_access = ['qa', 'stats']
     for i in cur_access:
         menu_content.append(
