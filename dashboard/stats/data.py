@@ -89,6 +89,20 @@ def parse_redcap_name(name):
     return (proj, proc, res)
 
 
+def load_redcap_stats(api_url, api_key):
+    # Load the redcap project, lazy for speed
+    _rc = redcap.Project(api_url, api_key, lazy=True)
+
+    # Load the data, specify index since we loaded lazy
+    _df = _rc.export_records(format='df', df_kwargs={'index_col': 'record_id'})
+
+    if 'wml_volume' in _df:
+        # rename wml for NIC
+        _df['lst_stats_wml_volume'] = _df['wml_volume']
+
+    return _df
+
+
 def load_stats_data():
     my_redcaps = []
     df = pd.DataFrame()
@@ -126,16 +140,11 @@ def load_stats_data():
     icount = len(my_redcaps)
     for i, r in enumerate(my_redcaps):
         name = r['name']
-        key = r['key']
+        api_key = r['key']
         (proj, proc, res) = parse_redcap_name(name)
         logging.info('{}/{} loading redcap:{}'.format(i, icount, name))
         try:
-            cur_df = redcap.Project(api_url, key, lazy=True).export_records(format='df', df_kwargs={'index_col': 'record_id'})
-
-            if 'wml_volume' in cur_df:
-                #print('rename wml for NIC')
-                cur_df['lst_stats_wml_volume'] = cur_df['wml_volume']
-
+            cur_df = load_redcap_stats(api_url, api_key)
             df = pd.concat([df, cur_df], ignore_index=True, sort=False)
         except Exception as err:
             logging.error('error exporting redcap:{}:{}'.format(name, err))
