@@ -52,19 +52,20 @@ def filter_stats_data(df, projects, proctypes, timeframe, sesstype):
         logging.debug('not filtering by time')
         pass
 
-    # Filter by sesstype
-    if sesstype == 'baseline':
-        logging.debug('filtering by baseline only')
-        df = df[df['ISBASELINE']]
-    elif sesstype == 'followup':
-        logging.debug('filtering by followup only')
-        df = df[~df['ISBASELINE']]
-    else:
-        logging.debug('not filtering by sesstype')
-        pass
+    if len(df) > 0:
+        # Filter by sesstype
+        if sesstype == 'baseline':
+            logging.debug('filtering by baseline only')
+            df = df[df['ISBASELINE']]
+        elif sesstype == 'followup':
+            logging.debug('filtering by followup only')
+            df = df[~df['ISBASELINE']]
+        else:
+            logging.debug('not filtering by sesstype')
+            pass
 
-    # remove test sessions
-    df = df[df.SESSION != 'Pitt_Test_Upload_MR1']
+        # remove test sessions
+        df = df[df.SESSION != 'Pitt_Test_Upload_MR1']
 
     return df
 
