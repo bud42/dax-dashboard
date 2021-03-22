@@ -114,7 +114,7 @@ def get_stats_graph_content(df):
             go.Box(
                 y=df[var],
                 name=var,
-                boxpoints='all',
+                boxpoints='outliers',  # 'all'
                 text=df.assessor_label),
             1,
             i + 1)

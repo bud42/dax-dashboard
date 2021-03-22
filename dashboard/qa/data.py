@@ -193,7 +193,7 @@ def load_scan_options(project_filter=None):
         logging.debug('refreshing data for file:{}'.format(filename))
         run_refresh()
 
-    logging.info('reading data from file:{}'.format(filename))
+    logging.debug('reading data from file:{}'.format(filename))
     df = pd.read_pickle(filename)
 
     if project_filter:
@@ -296,7 +296,7 @@ def get_data(xnat, proj_filter, stype_filter, ptype_filter):
 
 def load_both_data(xnat, project_filter):
     #  Load data
-    logging.info('loading assr and scan data')
+    logging.info('loading XNAT data')
 
     # Build the uri to query with filters
     both_uri = BOTH_URI
