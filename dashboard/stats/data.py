@@ -105,7 +105,7 @@ def load_redcap_stats(api_url, api_key):
 
 def load_stats_data():
     my_redcaps = []
-    df = pd.DataFrame(columns=DEFAULT_COLUMNS)
+    df = pd.DataFrame()
 
     # Load assr data
     logging.debug('loading stats data')
@@ -114,8 +114,9 @@ def load_stats_data():
         # Read inputs yaml as dictionary
         with open(REDCAP_FILE, 'rt') as file:
             redcap_data = yaml.load(file, yaml.SafeLoader)
-    except FileNotFoundError:
+    except EnvironmentError:
         logging.info('REDCap settings file not found, not loading stats')
+        df = pd.DataFrame(columns=DEFAULT_COLUMNS)
         return df
 
     api_url = redcap_data['api_url']
