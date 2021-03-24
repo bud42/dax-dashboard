@@ -162,7 +162,8 @@ def is_baseline_session(session):
     return (
         session.endswith('a') or
         session.endswith('_bl') or
-        session.endswith('_MR1'))
+        session.endswith('_MR1') or
+        session.endswith('-01'))
 
 
 def get_filename():
@@ -264,8 +265,6 @@ def save_data(df, filename):
 
 def get_data(xnat, proj_filter, stype_filter, ptype_filter):
     # Load that data
-    #assr_df = load_assr_data(xnat, proj_filter, ptype_filter)
-    #scan_df = load_scan_data(xnat, proj_filter, stype_filter)
     scan_df, assr_df = load_both_data(xnat, proj_filter)
 
     # Make a common column for type
@@ -285,9 +284,6 @@ def get_data(xnat, proj_filter, stype_filter, ptype_filter):
     # ends with a or MR1 or something else, otherwise it's a followup
     df['ISBASELINE'] = df['SESSION'].apply(is_baseline_session)
 
-    # remove test sessions
-    #df = df[df.SESSION != 'Pitt_Test_Upload_MR1']
-
     # relabel caare
     df.PROJECT = df.PROJECT.replace(['TAYLOR_CAARE'], 'CAARE')
 
@@ -296,7 +292,7 @@ def get_data(xnat, proj_filter, stype_filter, ptype_filter):
 
 def load_both_data(xnat, project_filter):
     #  Load data
-    logging.info('loading XNAT data')
+    logging.info('loading XNAT data, projects={}'.format(project_filter))
 
     # Build the uri to query with filters
     both_uri = BOTH_URI
@@ -338,6 +334,10 @@ def load_both_data(xnat, project_filter):
 
     # Filter out excluded types
     dfs = dfs[~dfs['SCANTYPE'].isin(SCAN_EXCLUDE_LIST)]
+
+    # Drop any rows with empty proctype
+    dfs.dropna(subset=['SCANTYPE'], inplace=True)
+    dfs = dfs[dfs.SCANTYPE != '']
 
     # Create shorthand status
     dfs['STATUS'] = dfs['QUALITY'].map(SCAN_STATUS_MAP).fillna('U')
