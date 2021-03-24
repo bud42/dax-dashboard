@@ -13,14 +13,8 @@
 # highlight session rows based on whether it's:
 # "all fail"=RED, "any tbd"=YELLOW, otherwise no color?
 
-# And then: show how long ago the data was updated using humanized time
-# and move the refresh button beside that display?
-
-# And later: display the sentence version of what question we are answering,
-# then allow the question to be chosen from a list? if the combination of
-# filters is in our list of questions
-
-# do we need last_mod field of session, what we were going to do with that?
+# show how long ago the data was updated using humanized time
+# and move the refresh button beside that display
 
 # the table is by session using a pivottable that aggregates the statuses
 # for each scan/assr type. then we have dropdowns to filter by project,
@@ -261,7 +255,7 @@ def sessionsbytime_figure(df):
     fig = plotly.subplots.make_subplots(rows=1, cols=1)
     fig.update_layout(margin=dict(l=40, r=40, t=40, b=40))
 
-    # TODO: if weekly is chosen, show the actual session name
+    # TODO: if weekly is chosen, show the actual session name instead of a dot.
 
     # TODO: use different shapes for PET vs MR, different colors for baseline
     # vs. followup

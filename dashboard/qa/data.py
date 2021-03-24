@@ -10,51 +10,17 @@ import warnings
 warnings.simplefilter(action='ignore', category=FutureWarning)
 import pandas as pd
 
-# should just have a "reload options" button and always requery xnat but
-# only change options when "reload" is clicked. or will this actually make
-# filtering take longer? maybe it will be fast enough.
-
 
 # Data sources are:
 # XNAT (VUIIS XNAT at Vanderbilt)
+
 # TODO: use REDCap (project settings REDCap instance to filter types)
-#
-# Note this app does not access ACCRE or SLURM. The ony local file access
-# is to write the cached data in a pickle file. This file is named with the
-# xnat user name as <username>.pkl
 
+# This app does not access ACCRE or SLURM. The ony local file access is to 
+# write/read the cached data in a pickle file. We save to pickle the results
+#  of each query, we reuse the pickle data when a filter changes. Then anytime 
+# user clicks refresh, we query xnat again.
 
-# Save projects.pkl that is the result of the projects this user can access,
-# we could save some other stuff here too.
-
-# Save to pickle the results of each query, i.e. scans.pkl, assessors.pkl
-# we reuse the pickle data when a filter changes. Then anytime user clicks 
-# refresh, we query xnat again.
-
-# what we could do is anytime we requery xnat again we apply the currently selected
-# filters in order to make the query faster. but then if a filter changes in a way
-# that we don't have the data , we need to know that we should requery. so how
-# can we track that?  the filter changes in a way that we don't have the data already
-# we have to requery.
-
-# we load the pickle, determine what assessors are included, determine if they are
-# the same as those in the list. and compare list of projects in the assessors
-# if it's the same or fewer in the list, then we don't need to requery, where was this going...
-# wait, what we wanna do differently is to apply the selected projects as a filter
-# unless no projects are selected or if a project is selected that has not been 
-# selected previoulsy, in which case we must requery.
-# so different things:
-
-# 1. when we don't have a file or filters, on load: we get the users projects,
-# then get all the scans and assessors for that project
-# and save a pickle with project scan/assr types for user.
-
-# 2. then next time we load the pickle, determine what 
-
-
-# what we're trying to help is when a project filter or proctype filter is selected
-# when refresh is clicked, we should be able to apply the filters in the query instead 
-# of after.
 
 logging.basicConfig(
     format='%(asctime)s %(levelname)-8s %(message)s',
@@ -156,15 +122,6 @@ ASSR_STATUS_MAP = {
 QA_COLS = ['SESSION', 'PROJECT', 'DATE', 'TYPE', 'STATUS', 'ARTTYPE', 'SCANTYPE', 'PROCTYPE']
 
 
-def is_baseline_session(session):
-    # TODO: re-implement this by getting list of sessions for each subject,
-    # sorted by date and set the first session to basline
-    return (
-        session.endswith('a') or
-        session.endswith('_bl') or
-        session.endswith('_MR1') or
-        session.endswith('-01'))
-
 
 def get_filename():
     return '{}.pkl'.format('qadata')
@@ -185,6 +142,7 @@ def run_refresh(filename):
     return df
 
 
+# TODO: combine these load_x_options to only read the file once
 def load_scan_options(project_filter=None):
     # Read stypes from file and filter by projects
 
@@ -282,7 +240,7 @@ def get_data(xnat, proj_filter, stype_filter, ptype_filter):
 
     # set a column for session visit type, i.e. baseline if session name
     # ends with a or MR1 or something else, otherwise it's a followup
-    df['ISBASELINE'] = df['SESSION'].apply(is_baseline_session)
+    df['ISBASELINE'] = df['SESSION'].apply(utils.is_baseline_session)
 
     # relabel caare
     df.PROJECT = df.PROJECT.replace(['TAYLOR_CAARE'], 'CAARE')
@@ -311,7 +269,7 @@ def load_both_data(xnat, project_filter):
     # assessors
     dfa = df[[
         'PROJECT', 'SESSION', 'SUBJECT', 'DATE',
-        'ASSR', 'QCSTATUS', 'PROCSTATUS', 'PROCTYPE']]
+        'ASSR', 'QCSTATUS', 'PROCSTATUS', 'PROCTYPE']].copy()
 
     dfa.drop_duplicates(inplace=True)
 
@@ -328,7 +286,7 @@ def load_both_data(xnat, project_filter):
     # scans
     dfs = df[[
         'PROJECT', 'SESSION', 'SUBJECT', 'SITE', 'DATE',
-        'SCANID', 'SCANTYPE', 'QUALITY']]
+        'SCANID', 'SCANTYPE', 'QUALITY']].copy()
 
     dfs.drop_duplicates(inplace=True)
 

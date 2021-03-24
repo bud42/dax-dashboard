@@ -18,10 +18,6 @@
 # 2. overview of what data we have across projects
 # 3. overview of what data needs to be inspected (QA'd)
 
-
-
-TODO:
-
 DONE: keep cache of data files so we can go back through time
 DONE: per project counts of each type of assessor, or can this be on per session page?
 DONE: PET data
@@ -33,23 +29,11 @@ DONE: group by site instead of project, also group by assessor type instead of p
 DONE: when selecting a project, filter out columns that don't apply
 DONE: graph of sessions by time, similar to jobs
 
-TODO: eventually have dax keep track of queue status on XNAT
-so we don't have to get directly from cluster
-
-TODO: prearchive, auto-archive counts
-
+TODO: eventually have dax keep track of queue status on XNAT so we don't have to get directly from cluster
 TODO: per session page with columns for scans and assessors with filters
 for project, scan type (passed), assr type (passed)
 
-TODO: get custom statuses for orphaned jobs, more specific accre statuses
-
-TODO: make sure all tasks appear somewhere
-
-TODO: at bottom of jobs report, show list of warnings about jobs that have
-been running for a long time, etc.
-
 TODO: selecting rows in table affect graphs
-
 TODO: scans/assessors: if any are questionable count usable and questionable and yellow,
 if no questionable and any are usable, count the usable and green,
 else if all are unusable count the unusable and red
@@ -57,135 +41,37 @@ if questcount > 0, usecount+questcount,yellow
 elif usecount > 0, usecount,green
 else: totcount,red
 
-update_data.py updates data files, could write file with on dax build/update - 
-since we are accessing the same data we can just save it to a file (and upload to xnat?)
-
 # TODO: save state in tabs
-
-# TODO: use sqlite instead of a json file
-
-# TODO: job running should fall under NeedsQA,DoNoRun should be ignored
-
-# TODO: display settings.xml stuff
-
-# TODO: structural tab where you can pick rows and
-# they are highlighted in boxplots: wml, ICV, etc. thickness?
-
-# TODO: TRACULA tab
-
 # TODO: help button on each tab that explains how it operates
-
 # TODO: info button that explains the purpose of this report and how it works
 
-# TODO: use a logger
-
-# TODO: transition from data_table_experiments to data_table, requires a lot
+# DONE: transition from data_table_experiments to data_table, requires a lot
 # of keyword changes (rows as recrods to data as rows, sortable to soring,
 # filterable to filtering,
 # selected_row_indices to selected_rows, columms is list of dicts instead of
 # just list) and probably some formatting
 
-
-# _user = self.config['squeue_user']
-# _file = self.datadir + '/squeue-' + self.curtime + '.txt
-# cmd = 'squeue -u ' + _user + ' --format="%all" > ' + _file
-# os.system(cmd)
-# _cols = ['NAME', 'USER', 'TIME', 'ST', 'START_TIME', 'JOBID']
-# self.squeue_df = pd.read_csv(_file, delimiter='|', usecols=_cols)
-# self.squeue_df.rename(
-#    columns={
-#        'NAME': 'name', 'USER': 'user', 'ST': 'state',
-#        'TIME': 'elapsed_time', 'START_TIME': 'start_time',
-#        'JOBID': 'jobid'
-#    }, inplace=True)
-
-
 # Try vertically column names, or try to make it work like redcap does, such that
 # ony the table is extra wide and the controls and graph stay in place
 
-# v0.2 - this version loads the diskq files, runs squeue to get status of slurm
-# queue, merges the data and to display a table and stacked bar chart.
-# There is an update button but it doesn't really work. The formatting could
-# use some work too. The table/graph can be filtered by a set of dropdowns.
-# The graph can be filterd by clicking in the legend. The table can be filtered
-# by using the filter cells. The table can also be sorted by clicking
-# the arrows in the header. The Export button can be clicked to save
-# an .xlsx of the table as displayed. The hardcoded variables are currently
-# using vuiis_archive_singularity,vuiis_daily_singularity as the squeue users
-# and the corresonding Spider_Upload_Dir paths. This version does not query
-# XNAT at all, yet.
-
-# Next we will try to use dcc.Store to store the data and then connect other
-# callbacks to the store, including the update button.
-
-
-# SOON: determine which projects are currentl buidling and how long they've
-# been running,and maybe even show recent log
-
-# LATER: look at this:
 # https://dash-bootstrap-components.opensource.faculty.ai/examples/iris/
 # https://dash-bootstrap-components.opensource.faculty.ai/examples/graphs-in-tabs/
 # https://hackernoon.com/visualizing-bitcoin-prices-moving-averages-using-dash-aac93c994301
 # https://dash.plotly.com/datatable/conditional-formatting
 
 https://levelup.gitconnected.com/dashboards-in-python-for-beginners-using-dash-live-updates-and-streaming-data-into-a-dashboard-37660c1ba661
-
 https://medium.com/swlh/dashboards-in-python-using-dash-creating-a-data-table-using-data-from-reddit-1d6c0cecb4bd
-
 https://medium.com/swlh/dashboards-in-python-for-beginners-using-dash-exporting-data-from-a-dashboard-fe0c5dec3ddb
-
-# DONE: hide columns for project/proctype/user, since we have dropdowns
-
-
-# DONE: finish filters as dropdowns for proctype/user/project, etc.
-# we only need columns for label/status, maybe project
-
-
-# TODO: export more data by including columns that are in the data but hidden
-
-
-# TODO: make a column for time that is displayed as a partially filled cell
-# with colors, we also might be able to calculate how long jobs have been
-# pending or waiting
-
-
-# DONE: radio buttons to select group by User/Project/Processing Type.
-
-
-# TODO: load an additional list (from disk by listing
-# in the upload dir) as the upload queue and display them as
-# "actually" uploading vs queued for upload
-
 
 # TODO: add a dropdown to filter by status, so we can limit the table to
 # only inlcude specific status (this could be done by filter too, but this
 # would be more convenient)
-
-
-# TODO: tabs for jobs that aren't in both queues
-# Tab #1: jobs that are both in the task queue and slurm queue or are complete
-# jobs that complete will use walltimeuse, jobs that are still running will
-# use elapsed time
-# Tab #2: jobs that are JOB_RUNNING on xnat but missing
-# Tab #3: finished jobs from xnat
-
-
-
-
 
 good step by step on dashboard
 https://medium.com/analytics-vidhya/building-a-dashboard-app-using-plotlys-dash-a-complete-guide-from-beginner-to-pro-e7657a4eb707
 
 try using persistence with various graphs
 https://dash.plotly.com/persistence
-
-try using basic auth or through flask. probably need to go out to flask to figure out who is logged in
-https://community.plotly.com/t/get-username-for-authenticated-user-for-basic-auth/13613/5
-https://github.com/RafaelMiquelino/dash-flask-login
-https://stackoverflow.com/questions/51639020/python-dash-basic-auth-get-username-in-app
-
-eventually ldap authentication:
-https://stackoverflow.com/questions/60585165/how-to-achieve-ldap-authentication-for-dash-plotly-app
 
 more about urls link location:
 https://dash.plotly.com/urls
@@ -196,104 +82,4 @@ https://towardsdatascience.com/beginners-guide-to-building-a-multi-page-dashboar
 
 tabs and links and locations...
 https://community.plotly.com/t/combining-dcc-tabs-and-dcc-location/27831/6
-
-
-# what you're really saving is the settings, so maybe that should get saved
-# to a file and then we refresh the data if the settings have changed when
-# we go to load a report?
-# should we return immediately with a display of the progress? probably
-# but then when do we reload the qa data?
-
-# we have two levels of filtering.
-# 1st level is when we query xnat, we only want to include relevant
-# projects and relevant types (the fewer projects and fewer proctypes, the
-# faster the query), filtering proctype improves performance moreso than
-# filtering by project.
-
-# 2nd level is based on dropdowns
-
-# the 1st level should be liberal enough to include most projects a user would
-# want. the 2nd level should be what the user needs on a daily basis, i.e.
-# active QA projects.
-
-
-#ALL_MY_PROJECTS = [
-#    'NewhouseCC', 'R21Perfusion', 'TAYLOR_DepMIND', 'NewhouseMDDHx', 'CHAMP',
-#    'ACOBA', 'CHANGES', 'NIC', 'REMBRANDT', 'TAYLOR_CAARE']
-
-#ACTIVE_PROJECTS = ['CHAMP', 'CHANGES', 'NIC', 'REMBRANDT']
-
-#TEST_PROJECTS = ['REMBRANDT']
-
-#ALL_PROCTYPES = [
-#    'Multi_Atlas_v2', 'biscuit_fs_v2', 'FMRIQA_v4', 'Multi_Atlas_v3',
-#    'RWML_v1', 'ASHS_v1', 'BrainAgeGap_v2', 'dtiQA_rpe_v7', 'dtiQA_synb0_v7',
-#    'dtiQA_v6', 'EDATQA_v1', 'FS6_v1', 'RSFC_CONN_v1', 'slant_v1',
-#    'Temporal_Lobe_v3']
-
-#ACTIVE_PROCTYPES = [
-#    'biscuit_fs_v2', 'FMRIQA_v4', 'Multi_Atlas_v3', 'BrainAgeGap_v2',
-#    'dtiQA_rpe_v7', 'dtiQA_synb0_v7', 'EDATQA_v1', 'FS6_v1', 'RSFC_CONN_v1',
-#    'slant_v1']
-
-#TEST_PROCTYPES = [
-#    'FMRIQA_v4', 'Multi_Atlas_v3', 'BrainAgeGap_v2', 'struct_preproc',
-#    'EDATQA_v1', 'FS6_v1', 'LST_v1', 'struct_preproc_v1']
-
-#ALL_SCANTYPES = ['T1', 'DTI', 'FLAIR', 'fMRI_Resting']
-#ACTIVE_SCANTYPES = ['T1', 'DTI', 'FLAIR', 'fMRI_Resting']
-#TEST_SCANTYPES = ['T1', 'FLAIR', 'fMRI_Resting']
-
-# change this to change which list of projects to use by default
-#PROJ_LIST = ACTIVE_PROJECTS
-
-
-
-# ASSR_STATUS_MAP = {
-#     'Passed': 'P',
-#     'Good': 'P',
-#     'Passed with edits': 'P',
-#     'Questionable': 'P',
-#     'Failed': 'F',
-#     'Bad': 'F',
-#     'Needs QA': 'Q',
-#     'Do Not Run': 'N'}
-
-
-# SCAN_STATUS_MAP = {
-#     'usable': 'P',
-#     'questionable': 'Q',
-#     'unusable': 'F'}
-
-#QA_COLS = ['SESSION', 'PROJECT', 'DATE', 'TYPE', 'STATUS']
-
-
-
-
-#ASSR_RENAME = {
-#    'ID': 'ID',
-#    'label': 'LABEL',
-#    'project': 'PROJECT',
-#    'proc:genprocdata/proctype': 'PROCTYPE'}
-
-
-# SCAN_URI = '/REST/experiments?xsiType=xnat:imagesessiondata\
-# &columns=\
-# ID,\
-# label,\
-# project,\
-# URI,\
-# subject_label,\
-# xnat:imagesessiondata/acquisition_site,\
-# xnat:imagescandata/id,\
-# xnat:imagescandata/type,\
-# xnat:imagescandata/quality,\
-# xnat:imagesessiondata/date'
-
-#SCAN_RENAME = {
-#    'ID': 'ID',
-#    'label': 'SESSION',
-#    'project': 'PROJECT',
-#    'xnat:imagescandata/id': 'SCANID',
-#    'xnat:imagescandata/type': 'SCANTYPE'}
 

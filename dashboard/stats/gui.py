@@ -16,6 +16,7 @@ import stats.data as statsdata
 import utils
 
 
+# need to build this dynamically, maybe from the params file or a yaml somehow
 VAR_LIST = ['accuracy', 'RT', 'trials']  # EDATQA
 VAR_LIST.extend(['WML'])  # LST
 VAR_LIST.extend(['VOXD', 'DVARS'])  # fmriqa
@@ -305,8 +306,10 @@ def update_all(
 
     # Update lists of possible options for dropdowns (could have changed)
     # make these lists before we filter what to display
+    #proc = utils.make_options(list(set(df.TYPE)))
+    #proj = utils.make_options(sorted(list(set(df.PROJECT))))
     proc = utils.make_options(df.TYPE.unique())
-    proj = utils.make_options(sorted(df.PROJECT.unique()))
+    proj = utils.make_options(df.PROJECT.unique())
 
     # Filter data based on dropdown values
     df = filter_stats_data(

@@ -35,3 +35,13 @@ def get_user_projects(xnat, username):
     data = sorted([x.rsplit('_', 1)[0] for x in data])
 
     return data
+
+
+def is_baseline_session(session):
+    # TODO: re-implement this by getting list of sessions for each subject,
+    # sorted by date and set the first session to basline
+    return (
+        session.endswith('a') or
+        session.endswith('_bl') or
+        session.endswith('_MR1') or
+        session.endswith('-01'))

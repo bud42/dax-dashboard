@@ -27,15 +27,6 @@ logging.basicConfig(
     level=logging.INFO, datefmt='%Y-%m-%d %H:%M:%S')
 
 
-def is_baseline_session(session):
-    # TODO: re-implement this by getting list of sessions for each subject,
-    # sorted by date and set the first session to basline
-    return (
-        str(session).endswith('a') or
-        str(session).endswith('_bl') or
-        str(session).endswith('_MR1'))
-
-
 def get_filename():
     return '{}.pkl'.format('stats')
 
@@ -69,7 +60,7 @@ def get_data():
 
     # set a column for session visit type, i.e. baseline if session name
     # ends with a or MR1 or something else, otherwise it's a followup
-    df['ISBASELINE'] = df['SESSION'].apply(is_baseline_session)
+    df['ISBASELINE'] = df['SESSION'].apply(utils.is_baseline_session)
 
     return df
 
