@@ -165,7 +165,6 @@ SCAN_EXCLUDE_LIST = [
     '[DetailBR_CTAC_1mm] Brain Dynamic (18)',
     '[DetailBR_CTAC_1mm] Brain Dynamic (19)',
     '[DetailBR_NAC_1MM] Brain Dynamic',
-    '[DetailBR_CTAC_1MM] Brain Dynamic',
     '[Not_for_Clinical_Use-SuperWB_CTAC_BODY3-15] Brain Dynamic',
     '[PREVIEW] Brain Dynamic',
     '[research_only-BR-DY1mm_CTAC_1mm+PSF] Brain Dynamic',
