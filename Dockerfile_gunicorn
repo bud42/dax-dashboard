@@ -13,12 +13,6 @@ RUN pip install gunicorn
 # Copy over files
 COPY dashboard /opt/dashboard
 
-#COPY ./deploy/dashboard.conf /etc/apache2/sites-available/dashboard.conf
-#COPY ./deploy/dashboard.wsgi /var/www/dashboard/dashboard.wsgi
-#COPY ./deploy/run.py /var/www/dashboard/run.py
-#COPY ./deploy/config.yaml /var/www/dashboard/config.yaml
-#COPY ./dashboard /var/www/dashboard/dashboard/
-
 EXPOSE 8000
 
 WORKDIR /opt/dashboard
