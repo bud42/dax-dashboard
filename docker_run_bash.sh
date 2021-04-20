@@ -1,1 +1,1 @@
-docker run -ti --rm --entrypoint /bin/bash bud42/dashboard
+docker run -ti --rm --entrypoint /bin/bash bud42/daxdashboard

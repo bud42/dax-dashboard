@@ -1,1 +1,1 @@
-docker build --no-cache . -t bud42/dashboard
+docker build --no-cache . -t bud42/daxdashboard
