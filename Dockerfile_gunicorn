@@ -1,0 +1,20 @@
+FROM python:3.8-slim-buster
+# should also use ubuntu 20.4, it's supposedly 20% faster
+
+# Install prereqs for dashboard
+RUN pip install dax
+RUN pip install dash
+RUN pip install pandas
+RUN pip install pycap
+
+# Install stuff to host the app
+RUN pip install gunicorn
+
+# Copy over files
+COPY dashboard /opt/dashboard
+
+EXPOSE 8000
+
+WORKDIR /opt/dashboard
+
+CMD [ "gunicorn", "--workers=1", "--threads=1", "-b 0.0.0.0:8000", "-t 180", "index:server"]

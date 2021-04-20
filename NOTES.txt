@@ -17,3 +17,69 @@
 # 1. easily find problems that need manual intervention
 # 2. overview of what data we have across projects
 # 3. overview of what data needs to be inspected (QA'd)
+
+DONE: keep cache of data files so we can go back through time
+DONE: per project counts of each type of assessor, or can this be on per session page?
+DONE: PET data
+DONE: site column on processing screen
+DONE: show when data was updated, later have button to update data
+DONE: group by baseline/followup
+DONE: session date column on processing screen
+DONE: group by site instead of project, also group by assessor type instead of project,
+DONE: when selecting a project, filter out columns that don't apply
+DONE: graph of sessions by time, similar to jobs
+
+TODO: eventually have dax keep track of queue status on XNAT so we don't have to get directly from cluster
+TODO: per session page with columns for scans and assessors with filters
+for project, scan type (passed), assr type (passed)
+
+TODO: selecting rows in table affect graphs
+TODO: scans/assessors: if any are questionable count usable and questionable and yellow,
+if no questionable and any are usable, count the usable and green,
+else if all are unusable count the unusable and red
+if questcount > 0, usecount+questcount,yellow
+elif usecount > 0, usecount,green
+else: totcount,red
+
+# TODO: save state in tabs
+# TODO: help button on each tab that explains how it operates
+# TODO: info button that explains the purpose of this report and how it works
+
+# DONE: transition from data_table_experiments to data_table, requires a lot
+# of keyword changes (rows as recrods to data as rows, sortable to soring,
+# filterable to filtering,
+# selected_row_indices to selected_rows, columms is list of dicts instead of
+# just list) and probably some formatting
+
+# Try vertically column names, or try to make it work like redcap does, such that
+# ony the table is extra wide and the controls and graph stay in place
+
+# https://dash-bootstrap-components.opensource.faculty.ai/examples/iris/
+# https://dash-bootstrap-components.opensource.faculty.ai/examples/graphs-in-tabs/
+# https://hackernoon.com/visualizing-bitcoin-prices-moving-averages-using-dash-aac93c994301
+# https://dash.plotly.com/datatable/conditional-formatting
+
+https://levelup.gitconnected.com/dashboards-in-python-for-beginners-using-dash-live-updates-and-streaming-data-into-a-dashboard-37660c1ba661
+https://medium.com/swlh/dashboards-in-python-using-dash-creating-a-data-table-using-data-from-reddit-1d6c0cecb4bd
+https://medium.com/swlh/dashboards-in-python-for-beginners-using-dash-exporting-data-from-a-dashboard-fe0c5dec3ddb
+
+# TODO: add a dropdown to filter by status, so we can limit the table to
+# only inlcude specific status (this could be done by filter too, but this
+# would be more convenient)
+
+good step by step on dashboard
+https://medium.com/analytics-vidhya/building-a-dashboard-app-using-plotlys-dash-a-complete-guide-from-beginner-to-pro-e7657a4eb707
+
+try using persistence with various graphs
+https://dash.plotly.com/persistence
+
+more about urls link location:
+https://dash.plotly.com/urls
+
+multi page app with bootstrap navbar
+https://towardsdatascience.com/create-a-multipage-dash-application-eceac464de91
+https://towardsdatascience.com/beginners-guide-to-building-a-multi-page-dashboard-using-dash-5d06dbfc7599
+
+tabs and links and locations...
+https://community.plotly.com/t/combining-dcc-tabs-and-dcc-location/27831/6
+
