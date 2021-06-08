@@ -11,8 +11,8 @@ This assumes you have already configured your environment to use DAX. You will h
 
 dax-dashboard will load all projects from XNAT that you have designated as a favorite. You can add/remove from your favorites in XNAT by browsing to project page and clicking in the Actions box.
 
-If you are using the dax module Module_redcap_sync, you can view these data by mounting a yaml file that contain your REDCap keys.
-The file should be mounted to docker home director in /root/redcap.yaml.
+If you are using the dax module Module_redcap_sync, you can view these data by mounting a yaml file that contains your REDCap keys.
+The file should be mounted to the docker container home directory in /root/redcap.yaml.
 ```
 docker run -ti --rm -p 8050:8050 -e USER -e XNAT_HOST -v $HOME/.netrc:/root/.netrc -v $HOME/dashboard.redcap.yaml:/root/redcap.yaml bud42/daxdashboard
 ```
