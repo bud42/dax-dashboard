@@ -1,3 +1,6 @@
+import os
+import yaml
+
 ASSR_EXCLUDE_LIST = [
     'ASHS_v1',
     'ASHS_v2',
@@ -207,3 +210,16 @@ SCAN_EXCLUDE_LIST = [
     'DTI',
     'DTI_PA',
     'LOC_3-P_FGRE']
+
+
+# check for a qaparams.yaml file to override the exclude lists
+try:
+    # Read inputs yaml as dictionary
+    PARAMSFILE = os.path.join(os.path.expanduser("~"), 'qaparams.yaml')
+    with open(PARAMSFILE, 'rt') as file:
+        print('loading params from file')
+        params_data = yaml.load(file, yaml.SafeLoader)
+        ASSR_EXCLUDE_LIST = params_data['ASSR_EXCLUDE_LIST']
+        SCAN_EXCLUDE_LIST = params_data['SCAN_EXCLUDE_LIST']
+except EnvironmentError:
+    print('params file not found, not loading')

@@ -21,7 +21,6 @@ import pandas as pd
 #  of each query, we reuse the pickle data when a filter changes. Then anytime 
 # user clicks refresh, we query xnat again.
 
-
 logging.basicConfig(
     format='%(asctime)s %(levelname)-8s %(message)s',
     level=logging.INFO, datefmt='%Y-%m-%d %H:%M:%S')
@@ -120,7 +119,6 @@ ASSR_STATUS_MAP = {
     'Do Not Run': 'N'}
 
 QA_COLS = ['SESSION', 'PROJECT', 'DATE', 'TYPE', 'STATUS', 'ARTTYPE', 'SCANTYPE', 'PROCTYPE']
-
 
 
 def get_filename():
@@ -263,9 +261,6 @@ def load_both_data(xnat, project_filter):
     # Rename columns
     df.rename(columns=BOTH_RENAME, inplace=True)
 
-    # remove test sessions
-    df = df[~df.SESSION.isin(['Pitt_Test_Upload_MR1', 'UIC_test_v2_MR1'])]
-
     # assessors
     dfa = df[[
         'PROJECT', 'SESSION', 'SUBJECT', 'DATE',
@@ -368,9 +363,6 @@ def load_scan_data(xnat, project_filter, scantype_filter):
 
     # Filter out excluded types
     df = df[~df['SCANTYPE'].isin(SCAN_EXCLUDE_LIST)]
-
-    # remove test sessions
-    df = df[df.SESSION != 'Pitt_Test_Upload_MR1']
 
     # return the scan data
     logging.info('loaded {} scans'.format(len(df)))
