@@ -1,10 +1,7 @@
 FROM python:3.8-slim-buster
 
 # Install prereqs for dashboard
-RUN pip install pandas
-RUN pip install dax
-RUN pip install dash
-RUN pip install pycap
+RUN pip install pandas dax dash pycap dash_auth
 
 # Copy over dashboard code
 COPY dashboard /opt/dashboard

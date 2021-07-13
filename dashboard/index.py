@@ -1,3 +1,5 @@
+import os
+
 import dash_core_components as dcc
 import dash_html_components as html
 
@@ -51,6 +53,13 @@ app.css.append_css({
 
 # Set the title to appear on web pages
 app.title = 'DAX Dashboard'
+
+# Check for user passwords file
+if os.path.exists('/opt/dashboard/dashboardsecrets.py'):
+    # Use very basic authentication
+    import dash_auth
+    from dashboardsecrets import VALID_USERNAME_PASSWORD_PAIRS
+    auth = dash_auth.BasicAuth(app, VALID_USERNAME_PASSWORD_PAIRS)
 
 # Set the content
 app.layout = get_layout()

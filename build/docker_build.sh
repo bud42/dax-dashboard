@@ -1,1 +1,1 @@
-docker build . -t bud42/daxdashboard
+docker build ../. -t bud42/daxdashboard
