@@ -1,20 +1,48 @@
 import dash_core_components as dcc
 import dash_html_components as html
-from dash.dependencies import Input, Output
 
 from app import app
 from qa import gui as qa
+from activity import gui as activity
 from stats import gui as stats
 
 
-server = app.server  # for gunicorn to work correctly
+def get_layout():
+    qa_content = qa.get_content()
+    activity_content = activity.get_content()
+    stats_content = stats.get_content()
 
-# Styling for the links to different pages
-link_style = {
-    'padding': '10px 14px',
-    'display': 'inline-block',
-    'text-decoration': 'none',
-    'text-align': 'center'}
+    report_content = [
+        html.Div(
+            dcc.Tabs(id='tabs', value='1', vertical=False, children=[
+                dcc.Tab(
+                    label='QA', value='1', children=qa_content),
+                dcc.Tab(
+                    label='Activity', value='2', children=activity_content),
+                dcc.Tab(
+                    label='Stats', value='3', children=stats_content),
+            ]),
+            #style={
+            #    'width': '100%', 'display': 'flex',
+            #    'align-items': 'center', 'justify-content': 'left'}
+            style={
+                'width': '90%', 'display': 'flex',
+                'align-items': 'center', 'justify-content': 'center'}
+            )]
+
+    footer_content = [
+        html.Hr(),
+        html.H5('F: Failed'),
+        html.H5('P: Passed QA'),
+        html.H5('Q: To be determined')]
+
+    return html.Div([
+        html.Div(children=report_content, id='report-content'),
+        html.Div(children=footer_content, id='footer-content')])
+
+
+# For gunicorn to work correctly
+server = app.server  
 
 # This loads a css template maintained by the Dash developer
 app.css.config.serve_locally = False
@@ -24,43 +52,8 @@ app.css.append_css({
 # Set the title to appear on web pages
 app.title = 'DAX Dashboard'
 
-# Make the main app layout
-app.layout = html.Div([
-    dcc.Location(id='url', refresh=False),
-    html.Div(id='menu-content', style={'float': 'right'}),
-    html.Div([html.H1('DAX Dashboard')]),
-    html.Div(id='page-content')])
-
-
-# Make the callback for the links to load app pages
-@app.callback(
-    [Output('page-content', 'children'),
-     Output('menu-content', 'children')],
-    [Input('url', 'pathname')])
-def display_page(pathname):
-    menu_content = []
-    layout = ''
-
-    if pathname == '/stats':
-        layout = stats.layout
-    else:
-        layout = qa.layout
-
-    # Wrap the layout with a footer
-    layout = html.Div([
-        layout,
-        html.Hr(),
-        html.P(
-            'Hi, thanks for using DAX Dashboard!',
-            style={'textAlign': 'right'})])
-
-    # Build the top menu
-    cur_access = ['qa', 'stats']
-    for i in cur_access:
-        menu_content.append(
-            dcc.Link(i, href='/' + i, style=link_style, target='_blank'))
-
-    return [layout, menu_content]
+# Set the content
+app.layout = get_layout()
 
 
 if __name__ == '__main__':

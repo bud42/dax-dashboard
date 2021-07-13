@@ -1,5 +1,6 @@
 import logging
 import os
+from datetime import datetime
 
 import yaml
 import redcap
@@ -31,27 +32,24 @@ def get_filename():
     return '{}.pkl'.format('stats')
 
 
-def load_data():
+def load_data(refresh=False):
     filename = get_filename()
 
-    if os.path.exists(filename):
-        df = pd.read_pickle(filename)
-    else:
-        # no filters
-        df = get_data()
+    if refresh or not os.path.exists(filename):
+        run_refresh(filename)
 
-        # save to cache
-        save_data(df)
+    logging.info('reading data from file:{}'.format(filename))
+    return read_data(filename)
 
+
+def read_data(filename):
+    df = pd.read_pickle(filename)
     return df
 
 
-def save_data(df):
-    filename = get_filename()
-
+def save_data(df, filename):
     # save to cache
     df.to_pickle(filename)
-    return df
 
 
 def get_data():
@@ -65,11 +63,10 @@ def get_data():
     return df
 
 
-def refresh_data():
+def run_refresh(filename):
     df = get_data()
 
-    # save to cache
-    save_data(df)
+    save_data(df, filename)
 
     return df
 
@@ -133,7 +130,7 @@ def load_stats_data():
         name = r['name']
         api_key = r['key']
         (proj, proc, res) = parse_redcap_name(name)
-        logging.info('{}/{} loading redcap:{}'.format(i, icount, name))
+        logging.info('{}/{} loading redcap:{}'.format(i+1, icount, name))
         try:
             cur_df = load_redcap_stats(api_url, api_key)
             df = pd.concat([df, cur_df], ignore_index=True, sort=False)
@@ -148,4 +145,45 @@ def load_stats_data():
 
     # return the stats data
     logging.info('loaded {} stats'.format(len(df)))
+    return df
+
+
+def filter_data(df, projects, proctypes, timeframe, sesstype):
+    # Filter by project
+    if projects:
+        logging.debug('filtering by project:')
+        logging.debug(projects)
+        df = df[df['PROJECT'].isin(projects)]
+
+    # Filter by proctype
+    if proctypes:
+        logging.debug('filtering by proctypes:')
+        logging.debug(proctypes)
+        df = df[df['TYPE'].isin(proctypes)]
+
+    # Filter by timeframe
+    if timeframe in ['1day', '7day', '30day', '365day']:
+        logging.debug('filtering by ' + timeframe)
+        then_datetime = datetime.now() - pd.to_timedelta(timeframe)
+        df = df[pd.to_datetime(df.DATE) > then_datetime]
+    else:
+        # ALL
+        logging.debug('not filtering by time')
+        pass
+
+    if len(df) > 0:
+        # Filter by sesstype
+        if sesstype == 'baseline':
+            logging.debug('filtering by baseline only')
+            df = df[df['ISBASELINE']]
+        elif sesstype == 'followup':
+            logging.debug('filtering by followup only')
+            df = df[~df['ISBASELINE']]
+        else:
+            logging.debug('not filtering by sesstype')
+            pass
+
+        # remove test sessions
+        df = df[df.SESSION != 'Pitt_Test_Upload_MR1']
+
     return df

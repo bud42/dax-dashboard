@@ -1,5 +1,4 @@
 import logging
-from datetime import datetime
 
 import pandas as pd
 import plotly
@@ -12,8 +11,8 @@ from dash.dependencies import Input, Output
 import dash
 
 from app import app
-import stats.data as statsdata
 import utils
+import stats.data as data
 
 
 # need to build this dynamically, maybe from the params file or a yaml somehow
@@ -25,53 +24,15 @@ VAR_LIST.extend([
     'ETIV', 'LHPC', 'RHPC', 'LVENT', 'RVENT', 'LSUPFLOBE', 'RSUPFLOBE'])  # FS6
 
 
+VAR_LIST = ['accuracy', 'trials', 'WML', 'VOXD', 'ETIV', 'LHPC', 'compgm_suvr']
+
+
 logging.basicConfig(
     format='%(asctime)s %(levelname)-8s %(message)s',
     level=logging.DEBUG, datefmt='%Y-%m-%d %H:%M:%S')
 
 
-def filter_stats_data(df, projects, proctypes, timeframe, sesstype):
-    # Filter by project
-    if projects:
-        logging.debug('filtering by project:')
-        logging.debug(projects)
-        df = df[df['PROJECT'].isin(projects)]
-
-    # Filter by proctype
-    if proctypes:
-        logging.debug('filtering by proctypes:')
-        logging.debug(proctypes)
-        df = df[df['TYPE'].isin(proctypes)]
-
-    # Filter by timeframe
-    if timeframe in ['1day', '7day', '30day', '365day']:
-        logging.debug('filtering by ' + timeframe)
-        then_datetime = datetime.now() - pd.to_timedelta(timeframe)
-        df = df[pd.to_datetime(df.DATE) > then_datetime]
-    else:
-        # ALL
-        logging.debug('not filtering by time')
-        pass
-
-    if len(df) > 0:
-        # Filter by sesstype
-        if sesstype == 'baseline':
-            logging.debug('filtering by baseline only')
-            df = df[df['ISBASELINE']]
-        elif sesstype == 'followup':
-            logging.debug('filtering by followup only')
-            df = df[~df['ISBASELINE']]
-        else:
-            logging.debug('not filtering by sesstype')
-            pass
-
-        # remove test sessions
-        df = df[df.SESSION != 'Pitt_Test_Upload_MR1']
-
-    return df
-
-
-def get_stats_graph_content(df):
+def get_graph_content(df):
     tabs_content = []
     tab_value = 0
     var_list = VAR_LIST
@@ -83,7 +44,7 @@ def get_stats_graph_content(df):
         logging.debug('empty data, using empty figure')
         return [plotly.subplots.make_subplots(rows=1, cols=1)]
 
-    var_list = [x for x in VAR_LIST if not pd.isnull(df[x]).all()]
+    var_list = [x for x in VAR_LIST if x in df and not pd.isnull(df[x]).all()]
 
     logging.debug('get_stats_figure')
 
@@ -141,8 +102,9 @@ def get_stats_graph_content(df):
     return tabs_content
 
 
-def get_stats_content(df):
-    stats_graph_content = get_stats_graph_content(df)
+def get_content():
+    df = load_stats()
+    stats_graph_content = get_graph_content(df)
 
     # Get the rows and colums for the table
     stats_columns = [{"name": i, "id": i} for i in df.columns]
@@ -210,42 +172,8 @@ def get_stats_content(df):
     return stats_content
 
 
-def get_layout():
-    logging.debug('get_layout')
-
-    stats_content = get_stats_content(load_data())
-
-    report_content = [
-        html.Div(
-            dcc.Tabs(id='tabs', value='1', vertical=False, children=[
-                dcc.Tab(
-                    label='STATS', value='1', children=stats_content)
-            ]),
-            # style={
-            #    'width': '100%', 'display': 'flex',
-            #    'align-items': 'center', 'justify-content': 'left'})]
-            style={
-                'width': '90%', 'display': 'flex',
-                'align-items': 'center', 'justify-content': 'left'})]
-
-    footer_content = [
-        html.Hr(),
-        html.H5('F: Failed'),
-        html.H5('P: Passed QA'),
-        html.H5('Q: To be determined')]
-
-    return html.Div([
-        html.Div(children=report_content, id='report-content'),
-        html.Div(children=footer_content, id='footer-content')])
-
-
-def load_data():
-    return statsdata.load_data()
-
-
-def refresh_data():
-    logging.debug('refresh data')
-    return statsdata.refresh_data()
+def load_stats(refresh=False):
+    return data.load_data(refresh=refresh)
 
 
 def was_triggered(callback_ctx, button_id):
@@ -256,23 +184,6 @@ def was_triggered(callback_ctx, button_id):
     return result
 
 
-# Now we initialize the callbacks for the app
-
-# With more recent dash, we can set multiple inputs AND multiple
-# outputs instead of having to create a new callback per output.
-# update_all() handles all of the data tab interface
-
-# inputs:
-# values from assr proc types dropdown
-# values from project dropdown
-# values from timeframe dropdown
-# number of clicks on refresh button
-
-# returns:
-# options for the assessor proc types dropdown
-# options for the assessor projects dropdown
-# data for the table
-# content for the graph tabs
 @app.callback(
     [Output('dropdown-stats-proc', 'options'),
      Output('dropdown-stats-proj', 'options'),
@@ -284,13 +195,15 @@ def was_triggered(callback_ctx, button_id):
      Input('dropdown-stats-time', 'value'),
      Input('radio-stats-sesstype', 'value'),
      Input('button-stats-refresh', 'n_clicks')])
-def update_all(
+def update_stats(
     selected_proc,
     selected_proj,
     selected_time,
     selected_sesstype,
     n_clicks
 ):
+    refresh = False
+
     logging.debug('update_all')
 
     # Load our data
@@ -300,19 +213,18 @@ def update_all(
     if was_triggered(ctx, 'button-stats-refresh'):
         # Refresh data if refresh button clicked
         logging.debug('refresh:clicks={}'.format(n_clicks))
-        df = refresh_data()
-    else:
-        df = load_data()
+        refresh = True
+
+    # Load data with refresh if requested
+    df = load_stats(refresh=refresh)
 
     # Update lists of possible options for dropdowns (could have changed)
     # make these lists before we filter what to display
-    #proc = utils.make_options(list(set(df.TYPE)))
-    #proj = utils.make_options(sorted(list(set(df.PROJECT))))
     proc = utils.make_options(df.TYPE.unique())
     proj = utils.make_options(df.PROJECT.unique())
 
     # Filter data based on dropdown values
-    df = filter_stats_data(
+    df = data.filter_data(
         df,
         selected_proj,
         selected_proc,
@@ -320,7 +232,7 @@ def update_all(
         selected_sesstype)
 
     # Get the graph content in tabs (currently only one tab)
-    tabs = get_stats_graph_content(df)
+    tabs = get_graph_content(df)
 
     # Get the table data
     selected_cols = ['assessor_label', 'PROJECT', 'SESSION', 'TYPE']
@@ -337,7 +249,3 @@ def update_all(
     # Return table, figure, dropdown options
     logging.debug('update_all:returning data')
     return [proc, proj, records, columns, tabs]
-
-
-# Build the layout that will used by top level index.py
-layout = get_layout()

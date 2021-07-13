@@ -22,7 +22,6 @@
 
 import logging
 import re
-from datetime import datetime
 
 import pandas as pd
 import plotly
@@ -37,65 +36,15 @@ import dash
 from app import app
 import utils
 from shared import QASTATUS2COLOR, RGB_DKBLUE
-import qa.data as qadata
+import qa.data as data
+
 
 logging.basicConfig(
     format='%(asctime)s %(levelname)-8s %(message)s',
     level=logging.DEBUG, datefmt='%Y-%m-%d %H:%M:%S')
 
 
-def filter_qa_data(df, projects, proctypes, scantypes, timeframe, sesstype, arttype):
-    # Filter by project
-    if projects:
-        logging.debug('filtering by project:')
-        logging.debug(projects)
-        df = df[df['PROJECT'].isin(projects)]
-
-    # Filter by artefact type
-    if arttype == 'assessor':
-        # only assessors
-        df = df[df['ARTTYPE'] == 'assessor']
-    elif arttype == 'scan':
-        # only scans
-        df = df[df['ARTTYPE'] == 'scan']
-
-    # Filter by proc type
-    if proctypes:
-        logging.debug('filtering by proc types:')
-        logging.debug(proctypes)
-        df = df[(df['PROCTYPE'].isin(proctypes)) | (df['ARTTYPE'] == 'scan')]
-
-    # Filter by scan type
-    if scantypes:
-        logging.debug('filtering by scan types:')
-        logging.debug(scantypes)
-        df = df[(df['SCANTYPE'].isin(scantypes)) | (df['ARTTYPE'] == 'assessor')]
-
-    # Filter by timeframe
-    if timeframe in ['1day', '7day', '30day', '365day']:
-        logging.debug('filtering by ' + timeframe)
-        then_datetime = datetime.now() - pd.to_timedelta(timeframe)
-        df = df[pd.to_datetime(df.DATE) > then_datetime]
-    else:
-        # ALL
-        logging.debug('not filtering by time')
-        pass
-
-    # Filter by sesstype
-    if sesstype == 'baseline':
-        logging.debug('filtering by baseline only')
-        df = df[df['ISBASELINE']]
-    elif sesstype == 'followup':
-        logging.debug('filtering by followup only')
-        df = df[~df['ISBASELINE']]
-    else:
-        logging.debug('not filtering by sesstype')
-        pass
-
-    return df
-
-
-def get_qa_graph_content(dfp):
+def get_graph_content(dfp):
     tabs_content = []
     tab_value = 0
 
@@ -309,7 +258,7 @@ def sessionsbytime_figure(df):
     return fig
 
 
-def get_qa_content(df):
+def get_content():
     # The data will be pivoted by session to show a row per session and
     # a column per scan/assessor type,
     # the values in the column a string of characters
@@ -317,9 +266,11 @@ def get_qa_content(df):
     # the number of characters is the number of scans or assessors
     # the columns will be the merged
     # status column with harmonized values to be red/yellow/green/blue
+    df = data.load_data()
+
     dfp = qa_pivot(df)
 
-    qa_graph_content = get_qa_graph_content(dfp)
+    qa_graph_content = get_graph_content(dfp)
 
     # Get the rows and colums for the table
     qa_columns = [{"name": i, "id": i} for i in dfp.index.names]
@@ -427,36 +378,6 @@ def get_metastatus(status):
     return metastatus
 
 
-def get_layout():
-    logging.debug('get_layout')
-
-    qa_content = get_qa_content(load_data())
-
-    report_content = [
-        html.Div(
-            dcc.Tabs(id='tabs', value='1', vertical=False, children=[
-                dcc.Tab(
-                    label='QA', value='1', children=qa_content)
-            ]),
-            #style={
-            #    'width': '100%', 'display': 'flex',
-            #    'align-items': 'center', 'justify-content': 'left'}
-            style={
-                'width': '90%', 'display': 'flex',
-                'align-items': 'center', 'justify-content': 'center'}
-            )]
-
-    footer_content = [
-        html.Hr(),
-        html.H5('F: Failed'),
-        html.H5('P: Passed QA'),
-        html.H5('Q: To be determined')]
-
-    return html.Div([
-        html.Div(children=report_content, id='report-content'),
-        html.Div(children=footer_content, id='footer-content')])
-
-
 def qa_pivot(df):
     dfp = df.pivot_table(
         index=('SESSION', 'PROJECT', 'DATE'),
@@ -469,23 +390,20 @@ def qa_pivot(df):
 
 
 # This is where the data gets initialized
-def load_data(proj_filter=None, proc_filter=None, scan_filter=None, refresh=False):
-    return qadata.load_data(
-        proj_filter=proj_filter,
-        proc_filter=proc_filter,
-        scan_filter=scan_filter, refresh=refresh)
+def load_data(refresh=False):
+    return data.load_data(refresh=refresh)
 
 
 def load_proj_options():
-    return qadata.load_proj_options()
+    return data.load_proj_options()
 
 
 def load_scan_options(proj_filter=None):
-    return qadata.load_scan_options(proj_filter)
+    return data.load_scan_options(proj_filter)
 
 
 def load_proc_options(proj_filter=None):
-    return qadata.load_proc_options(proj_filter)
+    return data.load_proc_options(proj_filter)
 
 
 def was_triggered(callback_ctx, button_id):
@@ -550,11 +468,12 @@ def update_all(
         refresh = True
 
     logging.debug('loading data')
-    df = load_data(
-        proj_filter=selected_proj,
-        proc_filter=selected_proc,
-        scan_filter=selected_scan,
-        refresh=refresh)
+    #df = load_data(
+    #    proj_filter=selected_proj,
+    #    proc_filter=selected_proc,
+    #    scan_filter=selected_scan,
+    #    refresh=refresh)
+    df = load_data(refresh=refresh)
 
     # Update lists of possible options for dropdowns (could have changed)
     # make these lists before we filter what to display
@@ -563,7 +482,7 @@ def update_all(
     proc = utils.make_options(load_proc_options(selected_proj))
 
     # Filter data based on dropdown values
-    df = filter_qa_data(
+    df = data.filter_data(
         df,
         selected_proj,
         selected_proc,
@@ -575,7 +494,7 @@ def update_all(
     # Get the qa pivot from the filtered data
     dfp = qa_pivot(df)
 
-    tabs = get_qa_graph_content(dfp)
+    tabs = get_graph_content(dfp)
 
     # Get the table data
     selected_cols = ['SESSION', 'PROJECT', 'DATE']
@@ -595,7 +514,3 @@ def update_all(
     # Return table, figure, dropdown options
     logging.debug('update_all:returning data')
     return [proc, scan, proj, records, columns, tabs]
-
-
-# Build the layout that will used by top level index.py
-layout = get_layout()
