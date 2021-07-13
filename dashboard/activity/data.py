@@ -101,8 +101,6 @@ def get_data(xnat, proj_filter):
     # Concatentate all the dataframes into one
     df = pd.concat([dfi, dfc, dfq, dfj], ignore_index=True)
     df.sort_values(by=['DATETIME'], inplace=True, ascending=False)
-    #df['DATETIME'] = df['DATETIME'].astype('datetime64[s]')
-    #df['DATETIME'] = df.DATETIME.dt.ceil(freq='s')
     df.reset_index(inplace=True)
     df['ID'] = df.index
 
@@ -192,8 +190,7 @@ def load_issues_file():
 
     df['DESCRIPTION'] = 'ISSUE' + ':' + df['CATEGORY'] + ':' + df['LABEL'] + ':' + df['description']
 
-    df['DATETIME'] = datetime.datetime.fromtimestamp(
-        os.path.getmtime(ISSUESFILE)).strftime('%Y-%m-%d %H:%M:%S')
+    df['DATETIME'] = df['datetime']
 
     return df
 
