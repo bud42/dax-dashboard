@@ -38,9 +38,13 @@ def get_layout():
         html.H5('P: Passed QA'),
         html.H5('Q: To be determined')]
 
-    return html.Div([
+    # Make the main app layout
+    main_content = html.Div([
+        html.Div([html.H1('DAX Dashboard')]),
         html.Div(children=report_content, id='report-content'),
         html.Div(children=footer_content, id='footer-content')])
+
+    return main_content
 
 
 # For gunicorn to work correctly
