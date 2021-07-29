@@ -153,8 +153,8 @@ def load_recent_jobs(df, startdate):
     df['LABEL'] = df['ASSR']
     df['CATEGORY'] = df['PROCTYPE']
 
-    # Filter by jobstartdate date
-    df = df[df['JOBDATE'] >= startdate]
+    # Filter by jobstartdate date, include anything with job running
+    df = df[(df['JOBDATE'] >= startdate) | (df['PROCSTATUS'] == 'JOB_RUNNING')]
 
     df['STATUS'] = df['PROCSTATUS'].map({
         'COMPLETE': 'COMPLETE',
