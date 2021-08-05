@@ -19,7 +19,8 @@ STATS_RENAME = {
     'stats_recon_left_lateral_ventricle_volume_mm3': 'LVENT',
     'stats_recon_right_lateral_ventricle_volume_mm3': 'RVENT',
     'stats_recon_lh_superiorfrontal_thickavg': 'LSUPFLOBE',
-    'stats_recon_rh_superiorfrontal_thickavg': 'RSUPFLOBE'}
+    'stats_recon_rh_superiorfrontal_thickavg': 'RSUPFLOBE',
+    'stats_bag_age_pred': 'bag_age_pred'}
 
 
 REDCAP_FILE = os.path.join(

@@ -24,7 +24,7 @@ VAR_LIST.extend([
     'ETIV', 'LHPC', 'RHPC', 'LVENT', 'RVENT', 'LSUPFLOBE', 'RSUPFLOBE'])  # FS6
 
 
-VAR_LIST = ['accuracy', 'trials', 'WML', 'VOXD', 'ETIV', 'LHPC', 'compgm_suvr']
+VAR_LIST = ['accuracy', 'trials', 'WML', 'VOXD', 'ETIV', 'LHPC', 'RHPC', 'compgm_suvr', 'bag_age_pred']
 
 
 logging.basicConfig(
