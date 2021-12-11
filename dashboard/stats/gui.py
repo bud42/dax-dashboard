@@ -16,15 +16,12 @@ import stats.data as data
 
 
 # need to build this dynamically, maybe from the params file or a yaml somehow
-VAR_LIST = ['accuracy', 'RT', 'trials']  # EDATQA
-VAR_LIST.extend(['WML'])  # LST
-VAR_LIST.extend(['VOXD', 'DVARS'])  # fmriqa
-VAR_LIST.extend(['compgm_suvr'])  # amyvidqa
-VAR_LIST.extend([
-    'ETIV', 'LHPC', 'RHPC', 'LVENT', 'RVENT', 'LSUPFLOBE', 'RSUPFLOBE'])  # FS6
+# use same method as qaparams.yaml, i.e. statsparams.yaml
+# need a default list when you first load the tab and then a full list of
+# everything allowed to add
 
-
-VAR_LIST = ['accuracy', 'trials', 'WML', 'VOXD', 'ETIV', 'LHPC', 'RHPC', 'compgm_suvr', 'bag_age_pred']
+# TODO: by default just use the first variable, then allow list is based
+# VAR_LIST in params.py, which can be overriden in statsparams.yaml
 
 
 logging.basicConfig(
@@ -35,7 +32,6 @@ logging.basicConfig(
 def get_graph_content(df):
     tabs_content = []
     tab_value = 0
-    var_list = VAR_LIST
     box_width = 150
     min_box_count = 4
 
@@ -44,7 +40,12 @@ def get_graph_content(df):
         logging.debug('empty data, using empty figure')
         return [plotly.subplots.make_subplots(rows=1, cols=1)]
 
-    var_list = [x for x in VAR_LIST if x in df and not pd.isnull(df[x]).all()]
+    # Filter var list to only include those that have data
+    # Do we need this filtering?
+    #var_list = [x for x in VAR_LIST if x in df and not pd.isnull(df[x]).all()]
+    #var_list = [x for x in df.columns if not pd.isnull(df[x]).all()]
+    var_list  = df.columns
+    print('var_list', var_list)
 
     logging.debug('get_stats_figure')
 
@@ -238,13 +239,16 @@ def update_stats(
     selected_cols = ['assessor_label', 'PROJECT', 'SESSION', 'TYPE']
 
     if selected_proc:
-        var_list = [x for x in VAR_LIST if not pd.isnull(df[x]).all()]
+        #var_list = [x for x in VAR_LIST if not pd.isnull(df[x]).all()]
+        var_list = df.columns
+        print('var_list', var_list)
         selected_cols += var_list
+    else:
+        # Nothing selected so grab the first three?
+        selected_cols += var_list[0:3]
 
     columns = utils.make_columns(selected_cols)
     records = df.reset_index().to_dict('records')
-    # TODO: should only include data for the selected columns here, to reduce
-    # amount of data sent?
 
     # Return table, figure, dropdown options
     logging.debug('update_all:returning data')

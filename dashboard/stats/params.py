@@ -1,5 +1,18 @@
 import os
 
+# TODO: instead of a VAR_LIST, allow a subset filter for each proctype,
+# so that by default we include everything, unless there's a subset filter.
+# then we don't need to update this list for new stuff.
+
+
+VAR_LIST = [
+    'accuracy', 'RT', 'trials', # EDATQA
+    'WML', # LST
+    'VOXD', 'DVARS',  # fmriqa
+    'compgm_suvr'.  # amyvidqa
+    'ETIV', 'LHPC', 'RHPC', 'LVENT', 'RVENT', 'LSUPFLOBE', 'RSUPFLOBE',  # FS6
+    'bag_age_pred',  # BAG
+    ]
 
 STATS_RENAME = {
     'experiment': 'SESSION',
@@ -20,7 +33,7 @@ STATS_RENAME = {
     'stats_recon_right_lateral_ventricle_volume_mm3': 'RVENT',
     'stats_recon_lh_superiorfrontal_thickavg': 'LSUPFLOBE',
     'stats_recon_rh_superiorfrontal_thickavg': 'RSUPFLOBE',
-    'stats_bag_age_pred': 'bag_age_pred'}
+    'stats_bag_age_pred': 'bag_age_pred',}
 
 
 REDCAP_FILE = os.path.join(
@@ -32,3 +45,15 @@ DEFAULT_COLUMNS = [
     'PROJECT',
     'SESSION',
     'TYPE']
+
+# check for a statsparams.yaml file to override var lists
+try:
+    # Read inputs yaml as dictionary
+    PARAMSFILE = os.path.join(os.path.expanduser("~"), 'statsparams.yaml')
+    with open(PARAMSFILE, 'rt') as file:
+        print('loading params from file')
+        params_data = yaml.load(file, yaml.SafeLoader)
+        VAR_LIST = params_data['VAR_LIST']
+        STATS_RENAME = params_data['STATS_RENAME']
+except EnvironmentError:
+    print('params file not found, not loading')

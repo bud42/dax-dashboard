@@ -7,7 +7,7 @@ import redcap
 import dax
 
 import utils
-from stats.params import REDCAP_FILE, STATS_RENAME, DEFAULT_COLUMNS
+from stats.params import REDCAP_FILE, STATS_RENAME, DEFAULT_COLUMNS, VAR_LIST
 
 import warnings
 warnings.simplefilter(action='ignore', category=FutureWarning)
@@ -65,6 +65,10 @@ def get_data():
 
 def run_refresh(filename):
     df = get_data()
+
+    # Apply the var list filter here?
+    #df = df[df.
+    #var_list = [x for x in VAR_LIST if x in df and not pd.isnull(df[x]).all()]
 
     save_data(df, filename)
 
@@ -142,6 +146,9 @@ def load_stats_data():
 
     # Rename columns
     df.rename(columns=STATS_RENAME, inplace=True)
+
+    # Filter out columns we don't want
+    df = df[[DEFAULT_COLUMNS + VAR_LIST]]
 
     # return the stats data
     logging.info('loaded {} stats'.format(len(df)))
