@@ -4,9 +4,7 @@ import pandas as pd
 import plotly
 import plotly.graph_objs as go
 import plotly.subplots
-import dash_core_components as dcc
-import dash_html_components as html
-import dash_table as dt
+from dash import dcc, html, dash_table as dt
 from dash.dependencies import Input, Output
 import dash
 
@@ -15,14 +13,7 @@ import utils
 import stats.data as data
 
 
-# need to build this dynamically, maybe from the params file or a yaml somehow
-# use same method as qaparams.yaml, i.e. statsparams.yaml
-# need a default list when you first load the tab and then a full list of
-# everything allowed to add
-
-# TODO: by default just use the first variable, then allow list is based
 # VAR_LIST in params.py, which can be overriden in statsparams.yaml
-
 
 logging.basicConfig(
     format='%(asctime)s %(levelname)-8s %(message)s',
@@ -32,8 +23,10 @@ logging.basicConfig(
 def get_graph_content(df):
     tabs_content = []
     tab_value = 0
-    box_width = 150
+    box_width = 250
     min_box_count = 4
+
+    logging.debug('get_stats_figure')
 
     # Check for empty data
     if len(df) == 0:
@@ -41,13 +34,10 @@ def get_graph_content(df):
         return [plotly.subplots.make_subplots(rows=1, cols=1)]
 
     # Filter var list to only include those that have data
-    # Do we need this filtering?
-    #var_list = [x for x in VAR_LIST if x in df and not pd.isnull(df[x]).all()]
-    #var_list = [x for x in df.columns if not pd.isnull(df[x]).all()]
-    var_list  = df.columns
-    print('var_list', var_list)
+    var_list = [x for x in df.columns if not pd.isnull(df[x]).all()]
 
-    logging.debug('get_stats_figure')
+    # Filter var list to only stats variables
+    var_list = [x for x in var_list if x in data.get_variables()]
 
     # Determine how many boxplots we're making, depends on how many vars, use
     # minimum so graph doesn't get too small
@@ -57,12 +47,20 @@ def get_graph_content(df):
 
     graph_width = box_width * box_count
 
-    # Horizontal spacing cannot be greater than (1 / (cols - 1))
-    hspacing = 1 / (box_count * 2)
+    print('box_count', box_count)
+    print('graph_width', graph_width)
 
-    # Make the figure
+    # Horizontal spacing cannot be greater than (1 / (cols - 1))
+    #hspacing = 1 / (box_count * 2)
+    hspacing = 1 / (box_count * 4)
+    print('hspacing=', hspacing)
+
+    # Make the figure with 1 row and a column for each var we are plotting
     fig = plotly.subplots.make_subplots(
-        rows=1, cols=box_count, horizontal_spacing=hspacing)
+        rows=1,
+        cols=box_count, 
+        horizontal_spacing=hspacing,
+        subplot_titles=var_list)
 
     # box plots
     # each proctype has specific set of fields to plot,
@@ -72,27 +70,47 @@ def get_graph_content(df):
 
     # Add traces to figure
     for i, var in enumerate(var_list):
+        _row = 1
+        _col = i + 1
         # Create boxplot for this var and add to figure
         fig.append_trace(
             go.Box(
                 y=df[var],
-                name=var,
-                boxpoints='outliers',  # 'all'
-                text=df.assessor_label),
-            1,
-            i + 1)
+                x=df['SITE'],
+                boxpoints='all',
+                text=df['assessor_label']),
+            _row,
+            _col)
 
-    # Customize figure
+        # if it looks lika beta, set beta formatting
+        _var_mean = df[var].mean() 
+        if _var_mean < 1 and _var_mean > -1:
+            print(_var_mean, 'setting beta range')
+            #fig.update_layout(yaxis=dict(range=[-1,1], autorange=False))
+            fig.update_yaxes(range=[-1,1], autorange=False) 
+        else:
+            fig.update_yaxes(autorange=True)
+            pass
+
+    # Move the subtitles to bottom instead of top of each subplot
+    for i in range(len(fig.layout.annotations)):
+        fig.layout.annotations[i].update(y=-.15) #, font={'size': 18})
+
+    # Customize figure to hide legend and fit the graph
     fig.update_layout(
         showlegend=False,
         autosize=False,
         width=graph_width,
-        margin=dict(l=20, r=0, t=40, b=40, pad=0))
+        margin=dict(l=20, r=40, t=40, b=80, pad=0))
 
     # Build the tab
+    # We set the graph to overflow and then limit the size to 1000px, this
+    # makes the graph stay in a scrollable section
     label = 'ALL'
-    graph = html.Div(dcc.Graph(figure=fig), style={
-        'width': '100%', 'display': 'inline-block'})
+    graph = html.Div(
+        dcc.Graph(figure=fig, style={'overflow': 'scroll'}), 
+        style={'width': '1000px'})
+
     tab = dcc.Tab(label=label, value=str(tab_value), children=[graph])
     tab_value += 1
 
@@ -150,7 +168,10 @@ def get_content():
             page_action='none',
             sort_action='native',
             id='datatable-stats',
-            style_table={'overflowY': 'scroll', 'overflowX': 'scroll'},
+            style_table={
+                'overflowY': 'scroll',
+                'overflowX': 'scroll', 
+                'width': '1000px'},
             style_cell={
                 'textAlign': 'left',
                 'padding': '5px 5px 0px 5px',
@@ -224,6 +245,13 @@ def update_stats(
     proc = utils.make_options(df.TYPE.unique())
     proj = utils.make_options(df.PROJECT.unique())
 
+    # if none chose, default to the first proc
+    #if not selected_proc:
+    #    selected_proc = [(df.TYPE.unique())[0]]
+    #    if 'fmri_msit_v2' in df.TYPE.unique():
+    #        selected_proc = ['fmri_msit_v2']
+    print(selected_proc)
+
     # Filter data based on dropdown values
     df = data.filter_data(
         df,
@@ -235,18 +263,13 @@ def update_stats(
     # Get the graph content in tabs (currently only one tab)
     tabs = get_graph_content(df)
 
+    # Determine columns to be included in the table
+    _vars = data.get_vars()
+    selected_cols = list(data.static_columns())
+    selected_cols.extend(
+        [x for x in df.columns if (x in _vars and not pd.isnull(df[x]).all())])
+
     # Get the table data
-    selected_cols = ['assessor_label', 'PROJECT', 'SESSION', 'TYPE']
-
-    if selected_proc:
-        #var_list = [x for x in VAR_LIST if not pd.isnull(df[x]).all()]
-        var_list = df.columns
-        print('var_list', var_list)
-        selected_cols += var_list
-    else:
-        # Nothing selected so grab the first three?
-        selected_cols += var_list[0:3]
-
     columns = utils.make_columns(selected_cols)
     records = df.reset_index().to_dict('records')
 

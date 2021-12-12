@@ -7,7 +7,7 @@ import redcap
 import dax
 
 import utils
-from stats.params import REDCAP_FILE, STATS_RENAME, DEFAULT_COLUMNS, VAR_LIST
+from stats.params import REDCAP_FILE, STATS_RENAME, STATIC_COLUMNS, VAR_LIST
 
 import warnings
 warnings.simplefilter(action='ignore', category=FutureWarning)
@@ -26,6 +26,18 @@ import pandas as pd
 logging.basicConfig(
     format='%(asctime)s %(levelname)-8s %(message)s',
     level=logging.INFO, datefmt='%Y-%m-%d %H:%M:%S')
+
+
+def static_columns():
+    return STATIC_COLUMNS
+
+
+def get_vars():
+    return get_variables()
+
+
+def get_variables():
+    return VAR_LIST
 
 
 def get_filename():
@@ -60,6 +72,9 @@ def get_data():
     # ends with a or MR1 or something else, otherwise it's a followup
     df['ISBASELINE'] = df['SESSION'].apply(utils.is_baseline_session)
 
+    # set the site
+    df['SITE'] = df['SESSION'].apply(utils.set_site)
+
     return df
 
 
@@ -92,6 +107,8 @@ def load_redcap_stats(api_url, api_key):
         # rename wml for NIC
         _df['lst_stats_wml_volume'] = _df['wml_volume']
 
+    print(_df.columns)
+
     return _df
 
 
@@ -108,7 +125,7 @@ def load_stats_data():
             redcap_data = yaml.load(file, yaml.SafeLoader)
     except EnvironmentError:
         logging.info('REDCap settings file not found, not loading stats')
-        df = pd.DataFrame(columns=DEFAULT_COLUMNS)
+        df = pd.DataFrame(columns=static_columns())
         return df
 
     api_url = redcap_data['api_url']
@@ -147,8 +164,13 @@ def load_stats_data():
     # Rename columns
     df.rename(columns=STATS_RENAME, inplace=True)
 
-    # Filter out columns we don't want
-    df = df[[DEFAULT_COLUMNS + VAR_LIST]]
+    # Filter out columns we don't want by keeping intersection
+    _static = static_columns()
+    _var = get_vars()
+    _keep = df.columns
+    _keep = [x for x in _keep if (x in _var or x in _static)]
+    print('_keep', _keep)
+    df = df[_keep]
 
     # return the stats data
     logging.info('loaded {} stats'.format(len(df)))
@@ -167,6 +189,9 @@ def filter_data(df, projects, proctypes, timeframe, sesstype):
         logging.debug('filtering by proctypes:')
         logging.debug(proctypes)
         df = df[df['TYPE'].isin(proctypes)]
+    else:
+        logging.debug('no proctypes')
+        df = df[df['TYPE'].isin([])]
 
     # Filter by timeframe
     if timeframe in ['1day', '7day', '30day', '365day']:

@@ -4,9 +4,7 @@ import pandas as pd
 import plotly
 import plotly.graph_objs as go
 import plotly.subplots
-import dash_core_components as dcc
-import dash_html_components as html
-import dash_table as dt
+from dash import dcc, html, dash_table as dt
 from dash.dependencies import Input, Output
 import dash
 

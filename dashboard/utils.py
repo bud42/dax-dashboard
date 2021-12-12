@@ -45,3 +45,18 @@ def is_baseline_session(session):
         session.endswith('_bl') or
         session.endswith('_MR1') or
         session.endswith('-01'))
+
+
+def set_site(session):
+    site = 'UNKNOWN'
+
+    _c = session[0]
+
+    if _c == '3':
+        site = 'UIC'
+    elif _c == '2' or _c == 'P':
+        site = 'PITT'
+    elif _c == '1' or _c == 'V':
+        site = 'VUMC'
+
+    return site

@@ -1,6 +1,6 @@
 import logging
 import os
-import datetime
+from datetime import datetime
 
 import dax
 
@@ -197,6 +197,9 @@ def get_data(xnat, proj_filter, stype_filter, ptype_filter):
     # relabel caare
     df.PROJECT = df.PROJECT.replace(['TAYLOR_CAARE'], 'CAARE')
 
+    # set the site
+    #df['SITE'] = df['SESSION'].apply(utils.set_site)
+
     return df
 
 
@@ -280,7 +283,7 @@ def filter_data(df, projects, proctypes, scantypes, timeframe, sesstype, arttype
         df = df[(df['SCANTYPE'].isin(scantypes)) | (df['ARTTYPE'] == 'assessor')]
 
     # Filter by timeframe
-    if timeframe in ['1day', '7day', '30day', '365day']:
+    if timeframe in ['1day', '7day', '30day', '60day', '365day']:
         logging.debug('filtering by ' + timeframe)
         then_datetime = datetime.now() - pd.to_timedelta(timeframe)
         df = df[pd.to_datetime(df.DATE) > then_datetime]

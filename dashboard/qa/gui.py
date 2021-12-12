@@ -27,9 +27,7 @@ import pandas as pd
 import plotly
 import plotly.graph_objs as go
 import plotly.subplots
-import dash_core_components as dcc
-import dash_html_components as html
-import dash_table as dt
+from dash import dcc, html, dash_table as dt
 from dash.dependencies import Input, Output
 import dash
 
@@ -201,6 +199,7 @@ def get_graph_content(dfp):
 
 
 def sessionsbytime_figure(df):
+    print('sessionsbytime_figure')
     fig = plotly.subplots.make_subplots(rows=1, cols=1)
     fig.update_layout(margin=dict(l=40, r=40, t=40, b=40))
 
@@ -215,8 +214,7 @@ def sessionsbytime_figure(df):
     # or could have "by subject" choice that has a subject per y value
 
     # Customize figure
-    fig['layout'].update(
-        xaxis=dict(automargin=True), yaxis=dict(automargin=True))
+    fig['layout'].update(xaxis={'automargin': True}, yaxis={'automargin': True})
 
     #if selected_groupby == 'project':
     #    ygroupby = dft['project']
@@ -232,28 +230,39 @@ def sessionsbytime_figure(df):
     # we could use size of marker as count on that date but it looked weird so
     # we are not currently doing anything to highlight multiple sessions on
     # the same day.
-    dft = df.pivot_table(
-        index=('PROJECT', 'DATE'),
-        values='SESSION',
-        aggfunc=pd.Series.nunique,
-        fill_value=0)
+    if 'SITE' not in df:
+        print('setting site')
+        df['SITE'] = df['SESSION'].apply(utils.set_site)
 
-    #print(dft)
-    #print('qa df length=', len(dft))
-    dft.reset_index(inplace=True)
-    ydata = dft['PROJECT']
-    xdata = dft['DATE']
+    print('building figure')
 
-    # Add trace for MRI to figure
-    fig.append_trace({
-        'name': '{} ({})'.format('MRI', len(dft)),
-        'x': xdata,
-        'y': ydata,
-        #'text': dft['SESSION'],
-        'mode': 'markers',
-        #'marker': dict(size=10*dft['SESSION'], line=dict(width=1), opacity=0.9)
-        'marker': dict(size=10, line=dict(width=1), opacity=0.9)
-    }, 1, 1)
+    for site in df.SITE.unique():
+        print('site=', site)
+        # Get subset for this site
+        dfs = df[df.SITE == site]
+
+        dft = dfs.pivot_table(
+            index=('PROJECT', 'DATE'),
+            values='SESSION',
+            aggfunc=pd.Series.nunique,
+            fill_value=0)
+
+        #print(dft)
+        #print('qa df length=', len(dft))
+        dft.reset_index(inplace=True)
+        ydata = dft['PROJECT']
+        xdata = dft['DATE']
+
+        # Add trace to figure
+        fig.append_trace({
+            'name': '{} ({})'.format(site, len(dft)),
+            'x': xdata,
+            'y': ydata,
+            #'text': dft['SESSION'],
+            'mode': 'markers',
+            #'marker': dict(size=10*dft['SESSION'], line=dict(width=1), opacity=0.9)
+            'marker': dict(size=10, line=dict(width=1), opacity=0.9)
+        }, 1, 1)
 
     return fig
 
@@ -302,6 +311,7 @@ def get_content():
                 {'label': '1 day', 'value': '1day'},
                 {'label': '1 week', 'value': '7day'},
                 {'label': '1 month', 'value': '30day'},
+                {'label': '2 months', 'value': '60day'},
                 {'label': '1 year', 'value': '365day'}],
             value='ALL'),
         dcc.Dropdown(
