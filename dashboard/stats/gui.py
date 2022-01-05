@@ -36,8 +36,9 @@ def get_graph_content(df):
     # Filter var list to only include those that have data
     var_list = [x for x in df.columns if not pd.isnull(df[x]).all()]
 
-    # Filter var list to only stats variables
-    var_list = [x for x in var_list if x in data.get_variables()]
+    # Filter var list to only stats variables, this also helps sort
+    # by order in params yaml
+    var_list = [x for x in data.get_variables() if x in var_list]
 
     # Determine how many boxplots we're making, depends on how many vars, use
     # minimum so graph doesn't get too small
@@ -47,13 +48,13 @@ def get_graph_content(df):
 
     graph_width = box_width * box_count
 
-    print('box_count', box_count)
-    print('graph_width', graph_width)
+    #print('box_count', box_count)
+    #print('graph_width', graph_width)
 
     # Horizontal spacing cannot be greater than (1 / (cols - 1))
     #hspacing = 1 / (box_count * 2)
     hspacing = 1 / (box_count * 4)
-    print('hspacing=', hspacing)
+    #print('hspacing=', hspacing)
 
     # Make the figure with 1 row and a column for each var we are plotting
     fig = plotly.subplots.make_subplots(
@@ -82,11 +83,8 @@ def get_graph_content(df):
             _row,
             _col)
 
-        # if it looks lika beta, set beta formatting
-        _var_mean = df[var].mean() 
-        if _var_mean < 1 and _var_mean > -1:
-            print(_var_mean, 'setting beta range')
-            #fig.update_layout(yaxis=dict(range=[-1,1], autorange=False))
+        if var.startswith('con_') or var.startswith('inc_'):
+            print(var, 'setting beta range')
             fig.update_yaxes(range=[-1,1], autorange=False) 
         else:
             fig.update_yaxes(autorange=True)
@@ -250,7 +248,6 @@ def update_stats(
     #    selected_proc = [(df.TYPE.unique())[0]]
     #    if 'fmri_msit_v2' in df.TYPE.unique():
     #        selected_proc = ['fmri_msit_v2']
-    print(selected_proc)
 
     # Filter data based on dropdown values
     df = data.filter_data(

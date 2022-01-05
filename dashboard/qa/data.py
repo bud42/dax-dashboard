@@ -1,6 +1,6 @@
 import logging
 import os
-from datetime import datetime
+from datetime import datetime, date, timedelta
 
 import dax
 
@@ -27,15 +27,14 @@ logging.basicConfig(
     level=logging.INFO, datefmt='%Y-%m-%d %H:%M:%S')
 
 
-BOTH_URI = '/REST/experiments?xsiType=xnat:imagesessiondata\
+
+ASSR_URI = '/REST/experiments?xsiType=xnat:imagesessiondata\
 &columns=\
 project,\
 subject_label,\
 session_label,\
+session_type,\
 xnat:imagesessiondata/acquisition_site,\
-xnat:imagescandata/id,\
-xnat:imagescandata/type,\
-xnat:imagescandata/quality,\
 xnat:imagesessiondata/date,\
 xnat:imagesessiondata/label,\
 proc:genprocdata/label,\
@@ -43,24 +42,53 @@ proc:genprocdata/procstatus,\
 proc:genprocdata/proctype,\
 proc:genprocdata/validation/status'
 
-BOTH_RENAME = {
+
+ASSR_RENAME = {
     'project': 'PROJECT',
     'subject_label': 'SUBJECT',
     'session_label': 'SESSION',
+    'session_type': 'SESSTYPE',
     'xnat:imagesessiondata/date': 'DATE',
     'xnat:imagesessiondata/acquisition_site': 'SITE',
     'proc:genprocdata/label': 'ASSR',
     'proc:genprocdata/procstatus': 'PROCSTATUS',
     'proc:genprocdata/proctype': 'PROCTYPE',
     'proc:genprocdata/validation/status': 'QCSTATUS',
+    'xsiType': 'XSITYPE'}
+
+
+SCAN_URI = '/REST/experiments?xsiType=xnat:imagesessiondata\
+&columns=\
+project,\
+subject_label,\
+session_label,\
+session_type,\
+xnat:imagesessiondata/date,\
+xnat:imagesessiondata/label,\
+xnat:imagesessiondata/acquisition_site,\
+xnat:imagescandata/id,\
+xnat:imagescandata/type,\
+xnat:imagescandata/quality'
+
+
+SCAN_RENAME = {
+    'project': 'PROJECT',
+    'subject_label': 'SUBJECT',
+    'session_label': 'SESSION',
+    'session_type': 'SESSTYPE',
+    'xnat:imagesessiondata/date': 'DATE',
+    'xnat:imagesessiondata/acquisition_site': 'SITE',
     'xnat:imagescandata/id': 'SCANID',
     'xnat:imagescandata/type': 'SCANTYPE',
-    'xnat:imagescandata/quality': 'QUALITY'}
+    'xnat:imagescandata/quality': 'QUALITY',
+    'xsiType': 'XSITYPE'}
+
 
 SCAN_STATUS_MAP = {
     'usable': 'P',
     'questionable': 'P',
     'unusable': 'F'}
+
 
 ASSR_STATUS_MAP = {
     'Passed': 'P',
@@ -72,7 +100,10 @@ ASSR_STATUS_MAP = {
     'Needs QA': 'Q',
     'Do Not Run': 'N'}
 
-QA_COLS = ['SESSION', 'PROJECT', 'DATE', 'TYPE', 'STATUS', 'ARTTYPE', 'SCANTYPE', 'PROCTYPE']
+
+QA_COLS = [
+    'SESSION', 'PROJECT', 'SITE', 'DATE', 'TYPE', 'STATUS',
+    'ARTTYPE', 'SCANTYPE', 'PROCTYPE', 'XSITYPE', 'SESSTYPE']
 
 
 def get_filename():
@@ -116,6 +147,28 @@ def load_scan_options(project_filter=None):
 
     return sorted(scantypes)
 
+# TODO: combine these load_x_options to only read the file once
+def load_sess_options(project_filter=None):
+    # Read stypes from file and filter by projects
+
+    filename = get_filename()
+
+    if not os.path.exists(filename):
+        logging.debug('refreshing data for file:{}'.format(filename))
+        run_refresh()
+
+    logging.debug('reading data from file:{}'.format(filename))
+    df = pd.read_pickle(filename)
+
+    if project_filter:
+        sesstypes = df[df.PROJECT.isin(project_filter)].SESSTYPE.unique()
+    else:
+        sesstypes = df.SESSTYPE.unique()
+
+    sesstypes = [x for x in sesstypes if x]
+
+    return sorted(sesstypes)
+
 
 def load_proc_options(project_filter=None):
     # Read ptypes from file and filter by projects
@@ -149,7 +202,7 @@ def load_proj_options():
     logging.debug('reading data from file:{}'.format(filename))
     df = pd.read_pickle(filename)
 
-    return df.PROJECT.unique()
+    return sorted(df.PROJECT.unique())
 
 
 def load_data(refresh=False):
@@ -173,9 +226,27 @@ def save_data(df, filename):
     df.to_pickle(filename)
 
 
+def set_modality(row):
+    xsi = row['XSITYPE']
+    mod = 'UNK'
+    
+    # TODO: use a dict/map with default value
+
+    if xsi == 'xnat:eegSessionData':
+        mod = 'EEG'
+    elif xsi == 'xnat:mrSessionData':
+        mod = 'MR'
+    elif xsi == 'xnat:petSessionData':
+        mod = 'PET'
+
+    return mod
+
+
+
 def get_data(xnat, proj_filter, stype_filter, ptype_filter):
     # Load that data
-    scan_df, assr_df = load_both_data(xnat, proj_filter)
+    scan_df = load_scan_data(xnat, proj_filter)
+    assr_df = load_assr_data(xnat, proj_filter)
 
     # Make a common column for type
     assr_df['TYPE'] = assr_df['PROCTYPE']
@@ -190,38 +261,34 @@ def get_data(xnat, proj_filter, stype_filter, ptype_filter):
     # Concatenate the common cols to a new dataframe
     df = pd.concat([assr_df[QA_COLS], scan_df[QA_COLS]], sort=False)
 
-    # set a column for session visit type, i.e. baseline if session name
-    # ends with a or MR1 or something else, otherwise it's a followup
-    df['ISBASELINE'] = df['SESSION'].apply(utils.is_baseline_session)
-
     # relabel caare
     df.PROJECT = df.PROJECT.replace(['TAYLOR_CAARE'], 'CAARE')
 
-    # set the site
-    #df['SITE'] = df['SESSION'].apply(utils.set_site)
+    # set modality
+    df['MODALITY'] = df.apply(set_modality, axis=1)
+
+    print('end of get_data columns=', df.columns)
 
     return df
 
 
-def load_both_data(xnat, project_filter):
-    #  Load data
+def load_assr_data(xnat, project_filter):
     logging.info('loading XNAT data, projects={}'.format(project_filter))
 
-    # Build the uri to query with filters
-    both_uri = BOTH_URI
-    both_uri += '&project={}'.format(','.join(project_filter))
-
-    # Query xnat
-    both_json = utils.get_json(xnat, both_uri)
-    df = pd.DataFrame(both_json['ResultSet']['Result'])
+    # Build the uri to query with filters and run it
+    _uri = ASSR_URI
+    _uri += '&project={}'.format(','.join(project_filter))
+    print(_uri)
+    _json = utils.get_json(xnat, _uri)
+    dfa = pd.DataFrame(_json['ResultSet']['Result'])
 
     # Rename columns
-    df.rename(columns=BOTH_RENAME, inplace=True)
+    dfa.rename(columns=ASSR_RENAME, inplace=True)
 
-    # assessors
-    dfa = df[[
-        'PROJECT', 'SESSION', 'SUBJECT', 'DATE',
-        'ASSR', 'QCSTATUS', 'PROCSTATUS', 'PROCTYPE']].copy()
+    # Get subset of columns
+    dfa = dfa[[
+        'PROJECT', 'SESSION', 'SUBJECT', 'DATE', 'SITE', 'ASSR',
+        'QCSTATUS', 'PROCSTATUS', 'PROCTYPE', 'XSITYPE', 'SESSTYPE']].copy()
 
     dfa.drop_duplicates(inplace=True)
 
@@ -235,27 +302,48 @@ def load_both_data(xnat, project_filter):
     # Create shorthand status
     dfa['STATUS'] = dfa['QCSTATUS'].map(ASSR_STATUS_MAP).fillna('Q')
 
-    # scans
-    dfs = df[[
-        'PROJECT', 'SESSION', 'SUBJECT', 'SITE', 'DATE',
-        'SCANID', 'SCANTYPE', 'QUALITY']].copy()
+    # Handle failed jobs
+    dfa['STATUS'][dfa.PROCSTATUS == 'JOB_FAILED'] = 'X'
 
+    # Handle running jobs
+    dfa['STATUS'][dfa.PROCSTATUS == 'JOB_RUNNING'] = 'R'
+
+    return dfa
+
+
+def load_scan_data(xnat, project_filter):
+    #  Load data
+    logging.info('loading XNAT scan data, projects={}'.format(project_filter))
+
+    # Build the uri query with filters and run it
+    _uri = SCAN_URI
+    _uri += '&project={}'.format(','.join(project_filter))
+    print(_uri)
+    _json = utils.get_json(xnat, _uri)
+    dfs = pd.DataFrame(_json['ResultSet']['Result'])
+
+    # Rename columns, get subset and drop dupes
+    dfs.rename(columns=SCAN_RENAME, inplace=True)
+    dfs = dfs[[
+        'PROJECT', 'SESSION', 'SUBJECT', 'DATE', 'SITE', 'SCANID',
+        'SCANTYPE', 'QUALITY', 'XSITYPE', 'SESSTYPE']].copy()
     dfs.drop_duplicates(inplace=True)
 
     # Filter out excluded types
     dfs = dfs[~dfs['SCANTYPE'].isin(SCAN_EXCLUDE_LIST)]
 
-    # Drop any rows with empty proctype
+    # Drop any rows with empty type
     dfs.dropna(subset=['SCANTYPE'], inplace=True)
     dfs = dfs[dfs.SCANTYPE != '']
 
     # Create shorthand status
     dfs['STATUS'] = dfs['QUALITY'].map(SCAN_STATUS_MAP).fillna('U')
 
-    return (dfs, dfa)
+    return dfs
 
 
-def filter_data(df, projects, proctypes, scantypes, timeframe, sesstype, arttype):
+def filter_data(df, projects, proctypes, scantypes, timeframe, sesstypes):
+
     # Filter by project
     if projects:
         logging.debug('filtering by project:')
@@ -263,12 +351,12 @@ def filter_data(df, projects, proctypes, scantypes, timeframe, sesstype, arttype
         df = df[df['PROJECT'].isin(projects)]
 
     # Filter by artefact type
-    if arttype == 'assessor':
-        # only assessors
-        df = df[df['ARTTYPE'] == 'assessor']
-    elif arttype == 'scan':
-        # only scans
-        df = df[df['ARTTYPE'] == 'scan']
+    #if arttype == 'assessor':
+    #    # only assessors
+    #    df = df[df['ARTTYPE'] == 'assessor']
+    #elif arttype == 'scan':
+    #    # only scans
+    #    df = df[df['ARTTYPE'] == 'scan']
 
     # Filter by proc type
     if proctypes:
@@ -283,24 +371,25 @@ def filter_data(df, projects, proctypes, scantypes, timeframe, sesstype, arttype
         df = df[(df['SCANTYPE'].isin(scantypes)) | (df['ARTTYPE'] == 'assessor')]
 
     # Filter by timeframe
-    if timeframe in ['1day', '7day', '30day', '60day', '365day']:
+    if timeframe in ['1day', '7day', '30day', '365day']:
         logging.debug('filtering by ' + timeframe)
         then_datetime = datetime.now() - pd.to_timedelta(timeframe)
         df = df[pd.to_datetime(df.DATE) > then_datetime]
+    elif timeframe == 'lastmonth':
+        logging.debug('filtering by ' + timeframe)
+
+        # Set range to first and last day of previous month
+        _end = date.today().replace(day=1) - timedelta(days=1)
+        _start = date.today().replace(day=1) - timedelta(days=_end.day)
+        print(_start, _end)
+        df = df[pd.to_datetime(df.DATE).isin(pd.date_range(_start, _end))]
     else:
         # ALL
         logging.debug('not filtering by time')
         pass
 
     # Filter by sesstype
-    if sesstype == 'baseline':
-        logging.debug('filtering by baseline only')
-        df = df[df['ISBASELINE']]
-    elif sesstype == 'followup':
-        logging.debug('filtering by followup only')
-        df = df[~df['ISBASELINE']]
-    else:
-        logging.debug('not filtering by sesstype')
-        pass
+    if sesstypes:
+        df = df[df['SESSTYPE'].isin(sesstypes)]
 
     return df

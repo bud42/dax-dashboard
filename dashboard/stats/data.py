@@ -28,6 +28,28 @@ logging.basicConfig(
     level=logging.INFO, datefmt='%Y-%m-%d %H:%M:%S')
 
 
+SESS_URI = '/REST/experiments?xsiType=xnat:imagesessiondata\
+&columns=\
+xsiType,\
+project,\
+subject_label,\
+session_label,\
+session_type,\
+xnat:imagesessiondata/acquisition_site,\
+xnat:imagesessiondata/date,\
+xnat:imagesessiondata/label'
+
+
+SESS_RENAME = {
+    'project': 'PROJECT',
+    'subject_label': 'SUBJECT',
+    'session_label': 'SESSION',
+    'xnat:imagesessiondata/date': 'DATE',
+    'xnat:imagesessiondata/acquisition_site': 'SITE',
+    'xsiType': 'XSITYPE',
+    'session_type': 'SESSTYPE'}
+
+
 def static_columns():
     return STATIC_COLUMNS
 
@@ -54,6 +76,34 @@ def load_data(refresh=False):
     return read_data(filename)
 
 
+def get_xnat_data(xnat, project_filter):
+    # TODO: recode this to get_session_data and move somewhere shared
+
+    #  Load data
+    logging.info('loading XNAT data, projects={}'.format(project_filter))
+
+    # Build the uri to query with filters
+    xnat_uri = SESS_URI
+    xnat_uri += '&project={}'.format(','.join(project_filter))
+
+    #print(xnat_uri)
+
+    # Query xnat
+    both_json = utils.get_json(xnat, xnat_uri)
+    df = pd.DataFrame(both_json['ResultSet']['Result'])
+
+    # Rename columns
+    df.rename(columns=SESS_RENAME, inplace=True)
+
+    # sessions
+    dfs = df[[
+        'PROJECT', 'SESSION', 'SUBJECT', 'DATE', 'SITE', 'XSITYPE', 'SESSTYPE']].copy()
+
+    dfs.drop_duplicates(inplace=True)
+
+    return dfs
+
+
 def read_data(filename):
     df = pd.read_pickle(filename)
     return df
@@ -67,13 +117,23 @@ def save_data(df, filename):
 def get_data():
     # Load that data
     df = load_stats_data()
+    #print(df.columns)
 
-    # set a column for session visit type, i.e. baseline if session name
-    # ends with a or MR1 or something else, otherwise it's a followup
-    df['ISBASELINE'] = df['SESSION'].apply(utils.is_baseline_session)
+    # Merge in XNAT data to get SITE, SESSTYPE
+    projects = list(df.PROJECT.unique())
+    if projects:
+        #print('merging in xnat data for projects=', projects)
+        with dax.XnatUtils.get_interface() as xnat:
+            dfp = get_xnat_data(xnat, projects)
+            print(dfp.columns)
 
-    # set the site
-    df['SITE'] = df['SESSION'].apply(utils.set_site)
+        # Merge by session to get SITE and SESSTYPE
+        #print(dfp.SESSION)
+        #print(df.SESSION)
+        df = df.merge(dfp[['SESSION', 'SESSTYPE', 'SITE']], on='SESSION', how='left')
+        #print(df.columns)
+
+    df['ISBASELINE'] = False
 
     return df
 
@@ -107,7 +167,7 @@ def load_redcap_stats(api_url, api_key):
         # rename wml for NIC
         _df['lst_stats_wml_volume'] = _df['wml_volume']
 
-    print(_df.columns)
+    #print(_df.columns)
 
     return _df
 
@@ -169,7 +229,7 @@ def load_stats_data():
     _var = get_vars()
     _keep = df.columns
     _keep = [x for x in _keep if (x in _var or x in _static)]
-    print('_keep', _keep)
+    #print('_keep', _keep)
     df = df[_keep]
 
     # return the stats data

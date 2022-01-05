@@ -39,7 +39,8 @@ STATIC_COLUMNS = [
     'PROJECT',
     'SESSION',
     'TYPE',
-    'SITE']
+    'SITE',
+    'SESSTYPE']
 
 # check for a statsparams.yaml file to override var lists
 try:

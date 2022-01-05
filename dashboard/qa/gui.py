@@ -1,14 +1,41 @@
+# make the CHAMP report
+# make the D3 report
+# make the REMBRANDT report
+# make the DepMIND2 report
+
+
+# TODO:
+# show scans acquired during timeframe or assessors created or jobs started
+# (later maybe jobs that finished) 
+# default filtering should select this month and then select the sessiontypes
+# and projects and scans and assessors that are found in this data
+
+
+# configure default filtering to be:
+# time should be:  by acquisition date or processing date or either
+# PI: [*]Both []Newhouse []Taylor 
+# "last 30 days" and then select the 
+# select the assessor types created in those 30 days
+# and then the scan types that are inputs to those assessors
+# then have a single "reset" button that reselects
+# so effectively we set the selected items to active projects
+# and active pipeolines
+# TODO: use exclude list to autofilter and select those types,
+# then try to make an include list based on which scans are used as inputs
+# then advise users to use the little x to clear the box and see them all
+# then make a Reset or Filter button to apply the auto filtering again if 
+# the user has made changes.
+
+
+# TODO: sessionsbytime should alow last week, this week, last month, this month,
+# and the graphs should stack by session type and have hover esp for weekly,
+# bins should be by day/week/month depending on what timeframe is selected
+# e.g. last week should show each day, weekly should show each monday date
+# then last year/this year should be monthly
+
 # TODO: show session notes in a popup?
-
-# TODO: filter by scanner or site (need to make sure these data are available, 
-# could do this with a script in ccm_utils)
-
 # TODO: show help in a clickable dialog
-
-# and then:
-# add new colors for jobs that are NEED_INPUTS, JOB_RUNNING, JOB_FAILED (pink?)
-
-# tab for "By Site"
+# TODO: add new colors for jobs that are NEED_INPUTS, JOB_RUNNING, JOB_FAILED
 
 # highlight session rows based on whether it's:
 # "all fail"=RED, "any tbd"=YELLOW, otherwise no color?
@@ -16,12 +43,14 @@
 # show how long ago the data was updated using humanized time
 # and move the refresh button beside that display
 
+# DESCRIPTION:
 # the table is by session using a pivottable that aggregates the statuses
 # for each scan/assr type. then we have dropdowns to filter by project,
 # processing type, scan type, etc.
 
 import logging
 import re
+import itertools
 
 import pandas as pd
 import plotly
@@ -42,7 +71,7 @@ logging.basicConfig(
     level=logging.DEBUG, datefmt='%Y-%m-%d %H:%M:%S')
 
 
-def get_graph_content(dfp):
+def get_graph_content(dfp, selected_groupby='PROJECT'):
     tabs_content = []
     tab_value = 0
 
@@ -87,7 +116,15 @@ def get_graph_content(dfp):
 
     # use pandas melt function to unpivot our pivot table
     df = pd.melt(
-        dfp_copy, id_vars=('SESSION', 'PROJECT', 'DATE'), value_name='STATUS')
+        dfp_copy,
+        id_vars=(
+            'SESSION',
+            'PROJECT',
+            'DATE',
+            'SITE',
+            'SESSTYPE',
+            'MODALITY'),
+        value_name='STATUS')
 
     # We use fill_value to replace nan with 0
     dfpp = df.pivot_table(
@@ -183,7 +220,8 @@ def get_graph_content(dfp):
     tab_value += 1
 
     # Append the by-time graph (this was added later with separate function)
-    fig = sessionsbytime_figure(df)
+    dfs = df[['PROJECT', 'DATE', 'SESSION', 'SESSTYPE', 'SITE', 'MODALITY']].drop_duplicates()
+    fig = sessionsbytime_figure(dfs, selected_groupby)
     label = 'By {}'.format('TIME')
     graph = html.Div(dcc.Graph(figure=fig), style={
         'width': '100%', 'display': 'inline-block'})
@@ -198,71 +236,158 @@ def get_graph_content(dfp):
     return tabs_content
 
 
-def sessionsbytime_figure(df):
-    print('sessionsbytime_figure')
+def sessionsbytime_figure(df, selected_groupby):
     fig = plotly.subplots.make_subplots(rows=1, cols=1)
     fig.update_layout(margin=dict(l=40, r=40, t=40, b=40))
 
-    # TODO: if weekly is chosen, show the actual session name instead of a dot.
+    # TODO: if weekly is chosen, show the actual session name instead of a dot
 
-    # TODO: use different shapes for PET vs MR, different colors for baseline
-    # vs. followup
+    # TODO: use different shapes for PET vs MR
 
-    # TODO: jitter
-
-    # TODO: try to connect basline with followup with arc line or something
+    # TODO: try to connect baseline with followup with arc line or something
     # or could have "by subject" choice that has a subject per y value
 
     # Customize figure
-    fig['layout'].update(xaxis={'automargin': True}, yaxis={'automargin': True})
+    #fig['layout'].update(xaxis={'automargin': True}, yaxis={'automargin': True})
 
-    #if selected_groupby == 'project':
-    #    ygroupby = dft['project']
-    #else:
-    #    ygroupby = dft['site']
+    from itertools import cycle
+    import plotly.express as px
+    palette = cycle(px.colors.qualitative.Plotly)
+    #palette = cycle(px.colors.qualitative.Vivid)
+    #palette = cycle(px.colors.qualitative.Bold)
 
-    # Pivot show us how many sessions for project on that date
-    # df columns are: SESSION PROJECT DATE TYPE STATUS
-    # we want the count of sessions on each project/date and then we
-    # clear the index and plot with
-    # xdata as date
-    # ydata as project
-    # we could use size of marker as count on that date but it looked weird so
-    # we are not currently doing anything to highlight multiple sessions on
-    # the same day.
-    if 'SITE' not in df:
-        print('setting site')
-        df['SITE'] = df['SESSION'].apply(utils.set_site)
+    for mod, sesstype in itertools.product(df.MODALITY.unique(), df.SESSTYPE.unique()):
+        print(sesstype, mod)
 
-    print('building figure')
+        # Get subset for this session type
+        dfs = df[(df.SESSTYPE == sesstype) & (df.MODALITY == mod)]
 
-    for site in df.SITE.unique():
-        print('site=', site)
-        # Get subset for this site
-        dfs = df[df.SITE == site]
+        # Nothing to plot so go to next session type
+        if dfs.empty:
+            continue
 
-        dft = dfs.pivot_table(
-            index=('PROJECT', 'DATE'),
-            values='SESSION',
-            aggfunc=pd.Series.nunique,
-            fill_value=0)
+        # Plot base on view
+        view = 'default'
 
-        #print(dft)
-        #print('qa df length=', len(dft))
-        dft.reset_index(inplace=True)
-        ydata = dft['PROJECT']
-        xdata = dft['DATE']
+        if view == "month":
+            # TBD
+            pass
 
-        # Add trace to figure
-        fig.append_trace({
-            'name': '{} ({})'.format(site, len(dft)),
-            'x': xdata,
-            'y': ydata,
-            #'text': dft['SESSION'],
-            'mode': 'markers',
-            #'marker': dict(size=10*dft['SESSION'], line=dict(width=1), opacity=0.9)
-            'marker': dict(size=10, line=dict(width=1), opacity=0.9)
-        }, 1, 1)
+        elif view == 'all':
+            # Let's do this for the all time view to see histograms by year
+            # or quarter or whatever fits well
+    
+            # Plot this session type
+            fig.append_trace(
+                go.Histogram(
+                    hovertext=dfs['SESSION'],
+                    name='{} ({})'.format(sesstype, len(dfs)),
+                    x=dfs['DATE'],
+                    y=dfs['PROJECT'],
+                    ),
+                _row,
+                _col)
+
+         
+        elif view == 'weekly':
+            # Let's do this only for the weekly view and customize it specifically
+            # for Mon thru Fri and allow you to choose this week and last week
+
+            dfs['ONE'] = 1
+
+            # Plot this session type
+            fig.append_trace(
+                go.Bar(
+                    hovertext=dfs['SESSION'],
+                    name='{} ({})'.format(sesstype, len(dfs)),
+                    x=dfs['DATE'],
+                    y=dfs['ONE'],
+                    ),
+                _row,
+                _col)
+
+            # width function of number of days being plotted
+            #@width = 
+            print(fig.layout.xaxis.width)
+
+            fig.update_layout(
+                barmode='stack',
+                width=1000,
+                #bargroupgap=0,
+                #wbidth=100,
+                bargap=0.1)
+        else:
+            # Create boxplot for this var and add to figure
+            # Default to the jittered boxplot with no boxes
+
+            # markers symbols, see https://plotly.com/python/marker-style/
+            if mod == 'MR':
+                symb = 'circle-dot'
+            elif mod == 'PET':
+                symb = 'diamond-wide-dot'
+            else:
+                symb = 'diamond-tall-dot'
+
+            _color = next(palette)
+
+            # Convert hex to rgba with alpha of 0.5
+            if _color.startswith('#'):
+                _rgba = 'rgba({},{},{},{})'.format(
+                    int(_color[1:3], 16),
+                    int(_color[3:5], 16),
+                    int(_color[5:7], 16),
+                    0.7)
+            else:
+                _r,_g,_b = _color[4:-1].split(',')
+                _a = 0.7
+                _rgba = 'rgba({},{},{},{})'.format(_r, _g, _b, _a)
+
+            # Plot this session type
+            _row = 1
+            _col = 1
+            fig.append_trace(
+                go.Box(
+                    name='{} {} ({})'.format(sesstype, mod, len(dfs)),
+                    x=dfs['DATE'],
+                    y=dfs[selected_groupby],
+                    boxpoints='all',
+                    jitter=0.7,
+                    text=dfs['SESSION'],
+                    pointpos=0.5,
+                    orientation='h',
+                    marker={
+                        'symbol': symb,
+                        'color': _rgba, 
+                        'size': 12,
+                        'line': dict(width=2, color=_color)
+                    },
+                    line={'color': 'rgba(0,0,0,0)'},
+                    fillcolor='rgba(0,0,0,0)',
+                    hoveron='points',
+                   ),
+                _row,
+                _col)
+
+            # show lines so we can better distinguish categories
+            fig.update_yaxes(showgrid=True)
+
+            #fig.update_xaxes(range=[])
+            #full_fig = fig.full_figure_for_development()
+            #print(full_fig.layout.xaxis.range)
+            x_mins = []
+            x_maxs = []
+            for trace_data in fig.data:
+                x_mins.append(min(trace_data.x))
+                x_maxs.append(max(trace_data.x))
+
+            x_min = min(x_mins)
+            x_max = max(x_maxs)
+            print('x_min=', x_min, 'x_max=', x_max)
+
+            if x_min == '2021-11-01' or x_min == '2021-11-10':
+                fig.update_xaxes(range=('2021-10-31', '2021-12-01'), tickvals=[
+                    '2021-11-01', '2021-11-08', '2021-11-15', '2021-11-22', '2021-11-29'])
+
 
     return fig
 
@@ -294,14 +419,6 @@ def get_content():
                 children=qa_graph_content,
                 vertical=True))]),
         html.Button('Refresh Data', id='button-qa-refresh'),
-        dcc.RadioItems(
-            options=[
-                {'label': 'Both', 'value': 'both'},
-                {'label': 'Scans Only', 'value': 'scan'},
-                {'label': 'Assessors Only', 'value': 'assessor'}],
-            value='both',
-            id='radio-qa-arttype',
-            labelStyle={'display': 'inline-block'}),
         dcc.Dropdown(
             id='dropdown-qa-time',
             # Change filters to "Today", "this week", "last week",
@@ -311,26 +428,30 @@ def get_content():
                 {'label': '1 day', 'value': '1day'},
                 {'label': '1 week', 'value': '7day'},
                 {'label': '1 month', 'value': '30day'},
-                {'label': '2 months', 'value': '60day'},
+                #{'label': 'this week', 'value': 'thisweek'},
+                #{'label': 'this month', 'value': 'thismonth'},
+                {'label': 'last month', 'value': 'lastmonth'},
                 {'label': '1 year', 'value': '365day'}],
             value='ALL'),
+        dcc.RadioItems(
+            options=[
+                {'label': 'Group by Project', 'value': 'PROJECT'},
+                {'label': 'Group by Site', 'value': 'SITE'}],
+            value='PROJECT',
+            id='radio-qa-groupby',
+            labelStyle={'display': 'inline-block'}),
         dcc.Dropdown(
             id='dropdown-qa-proj', multi=True,
             placeholder='Select Project(s)'),
+        dcc.Dropdown(
+            id='dropdown-qa-sess', multi=True,
+            placeholder='Select Session Type(s)'),
         dcc.Dropdown(
             id='dropdown-qa-proc', multi=True,
             placeholder='Select Processing Type(s)'),
         dcc.Dropdown(
             id='dropdown-qa-scan', multi=True,
             placeholder='Select Scan Type(s)'),
-        dcc.RadioItems(
-            options=[
-                {'label': 'All Sessions', 'value': 'all'},
-                {'label': 'Baseline Only', 'value': 'baseline'},
-                {'label': 'Followup Only', 'value': 'followup'}],
-            value='all',
-            id='radio-qa-sesstype',
-            labelStyle={'display': 'inline-block'}),
         dt.DataTable(
             columns=qa_columns,
             data=qa_data,
@@ -381,6 +502,10 @@ def get_metastatus(status):
     elif 'F' in status:
         # at this point if one failed, then they all failed, so 'FAILED'
         metastatus = 'FAIL'
+    elif 'X' in status:
+        metastatus = 'JOBF'
+    elif 'R' in status:
+        metastatus = 'JOBR'
     else:
         # whatever else is UNKNOWN, grey
         metastatus = 'NONE'
@@ -390,7 +515,7 @@ def get_metastatus(status):
 
 def qa_pivot(df):
     dfp = df.pivot_table(
-        index=('SESSION', 'PROJECT', 'DATE'),
+        index=('SESSION', 'PROJECT', 'DATE', 'SESSTYPE', 'SITE', 'MODALITY'),
         columns='TYPE',
         values='STATUS',
         aggfunc=lambda x: ''.join(x))
@@ -406,6 +531,10 @@ def load_data(refresh=False):
 
 def load_proj_options():
     return data.load_proj_options()
+
+
+def load_sess_options(proj_filter=None):
+    return data.load_sess_options(proj_filter)
 
 
 def load_scan_options(proj_filter=None):
@@ -439,29 +568,32 @@ def was_triggered(callback_ctx, button_id):
 # returns:
 # options for the assessor proc types dropdown
 # options for the assessor projects dropdown
+# options for the assessor scans dropdown
+# options for the assessor sessions dropdown
 # data for the table
 # content for the graph tabs
 @app.callback(
     [Output('dropdown-qa-proc', 'options'),
      Output('dropdown-qa-scan', 'options'),
+     Output('dropdown-qa-sess', 'options'),
      Output('dropdown-qa-proj', 'options'),
      Output('datatable-qa', 'data'),
      Output('datatable-qa', 'columns'),
      Output('tabs-qa', 'children')],
     [Input('dropdown-qa-proc', 'value'),
      Input('dropdown-qa-scan', 'value'),
+     Input('dropdown-qa-sess', 'value'),
      Input('dropdown-qa-proj', 'value'),
      Input('dropdown-qa-time', 'value'),
-     Input('radio-qa-sesstype', 'value'),
-     Input('radio-qa-arttype', 'value'),
+     Input('radio-qa-groupby', 'value'),
      Input('button-qa-refresh', 'n_clicks')])
 def update_all(
     selected_proc,
     selected_scan,
+    selected_sess,
     selected_proj,
     selected_time,
-    selected_sesstype,
-    selected_arttype,
+    selected_groupby,
     n_clicks
 ):
     refresh = False
@@ -489,6 +621,7 @@ def update_all(
     # make these lists before we filter what to display
     proj = utils.make_options(load_proj_options())
     scan = utils.make_options(load_scan_options(selected_proj))
+    sess = utils.make_options(load_sess_options(selected_proj))
     proc = utils.make_options(load_proc_options(selected_proj))
 
     # Filter data based on dropdown values
@@ -498,16 +631,15 @@ def update_all(
         selected_proc,
         selected_scan,
         selected_time,
-        selected_sesstype,
-        selected_arttype)
+        selected_sess)
 
     # Get the qa pivot from the filtered data
     dfp = qa_pivot(df)
 
-    tabs = get_graph_content(dfp)
+    tabs = get_graph_content(dfp, selected_groupby)
 
     # Get the table data
-    selected_cols = ['SESSION', 'PROJECT', 'DATE']
+    selected_cols = ['SESSION', 'PROJECT', 'DATE', 'SESSTYPE', 'SITE']
 
     if selected_proc:
         selected_cols += selected_proc
@@ -523,4 +655,4 @@ def update_all(
 
     # Return table, figure, dropdown options
     logging.debug('update_all:returning data')
-    return [proc, scan, proj, records, columns, tabs]
+    return [proc, scan, sess, proj, records, columns, tabs]
