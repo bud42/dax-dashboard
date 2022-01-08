@@ -257,7 +257,7 @@ def sessionsbytime_figure(df, selected_groupby):
     #palette = cycle(px.colors.qualitative.Bold)
 
     for mod, sesstype in itertools.product(df.MODALITY.unique(), df.SESSTYPE.unique()):
-        print(sesstype, mod)
+        #print(sesstype, mod)
 
         # Get subset for this session type
         dfs = df[(df.SESSTYPE == sesstype) & (df.MODALITY == mod)]
@@ -308,11 +308,11 @@ def sessionsbytime_figure(df, selected_groupby):
 
             # width function of number of days being plotted
             #@width = 
-            print(fig.layout.xaxis.width)
+            #print(fig.layout.xaxis.width)
 
             fig.update_layout(
                 barmode='stack',
-                width=1000,
+                width=900,
                 #bargroupgap=0,
                 #wbidth=100,
                 bargap=0.1)
@@ -382,11 +382,13 @@ def sessionsbytime_figure(df, selected_groupby):
 
             x_min = min(x_mins)
             x_max = max(x_maxs)
-            print('x_min=', x_min, 'x_max=', x_max)
+            #print('x_min=', x_min, 'x_max=', x_max)
 
             if x_min == '2021-11-01' or x_min == '2021-11-10':
                 fig.update_xaxes(range=('2021-10-31', '2021-12-01'), tickvals=[
                     '2021-11-01', '2021-11-08', '2021-11-15', '2021-11-22', '2021-11-29'])
+
+            fig.update_layout(width=900)
 
 
     return fig
