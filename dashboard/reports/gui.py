@@ -852,20 +852,20 @@ def get_content():
     reports_graph_content = get_graph_content('')
 
     reports_list_content = ''
-    reports_list_content += REPORTDIR
     for r in os.listdir(REPORTDIR):
         if r.endswith('_report.pdf'):
             reports_list_content += '{}<br>'.format(r)
 
     reports_content = [
         dcc.Loading(id="loading-reports", children=[
-            html.Div(
-                reports_list_content,
-                dcc.Tabs(
-                    id='tabs-reports',
-                    value='0',
-                    children=reports_graph_content,
-                    vertical=True))]),
+            html.H3(os.path.basename(REPORTDIR)),
+            html.P(reports_list_content),
+            html.Div(dcc.Tabs(
+                id='tabs-reports',
+                value='0',
+                children=reports_graph_content,
+                vertical=True))
+        ]),
         html.Button('Refresh', id='button-reports-refresh')]
 
     return reports_content
