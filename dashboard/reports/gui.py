@@ -851,20 +851,22 @@ def print_results(results):
 def get_content():
     reports_graph_content = get_graph_content('')
 
-    reports_list_content = ''
+    reports_list_content = []
     for r in os.listdir(REPORTDIR):
         if r.endswith('_report.pdf'):
-            reports_list_content += '{}<br>'.format(r)
+            reports_list_content.append(html.P('{}'.format(r)))
+
+    reports_list_content.append(html.Br())
 
     reports_content = [
         dcc.Loading(id="loading-reports", children=[
             html.H3(os.path.basename(REPORTDIR)),
-            html.P(reports_list_content),
-            html.Div(dcc.Tabs(
+            html.Div(children=reports_list_content),
+            dcc.Tabs(
                 id='tabs-reports',
                 value='0',
                 children=reports_graph_content,
-                vertical=True))
+                vertical=True)
         ]),
         html.Button('Refresh', id='button-reports-refresh')]
 
@@ -883,7 +885,7 @@ def get_graph_content(result):
 
 
 #==============================================================================
-# Initialize the callbacks for the app
+# Callbacks for the app
 
 # inputs:
 # number of clicks on update button
