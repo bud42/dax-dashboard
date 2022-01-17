@@ -849,19 +849,11 @@ def print_results(results):
 
 
 def get_content():
-    reports_graph_content = get_graph_content('')
-
-    reports_list_content = []
-    for r in os.listdir(REPORTDIR):
-        if r.endswith('_report.pdf'):
-            reports_list_content.append(html.P('{}'.format(r)))
-
-    reports_list_content.append(html.Br())
+    reports_graph_content = get_graph_content()
 
     reports_content = [
         dcc.Loading(id="loading-reports", children=[
             html.H3(os.path.basename(REPORTDIR)),
-            html.Div(children=reports_list_content),
             dcc.Tabs(
                 id='tabs-reports',
                 value='0',
@@ -880,8 +872,20 @@ def was_triggered(callback_ctx, button_id):
 
     return result
 
-def get_graph_content(result):
-    return 'result={}'.format(result)
+def get_graph_content():
+    graph_content = []
+
+    for r in os.listdir(REPORTDIR):
+        if r.endswith('_report.pdf'):
+            graph_content.append(html.P('{}'.format(r)))
+
+    graph_content.append(html.Br())
+
+    tabs = [dcc.Tab(label='Monthly', value='0', children=[html.Div(graph_content)])]
+
+    print('graph_content=', graph_content)
+
+    return tabs
 
 
 #==============================================================================
@@ -913,6 +917,6 @@ def update_all(
     result = update_reports(refresh=refresh)
 
     # Return result
-    tabs = get_graph_content(result)
+    tabs = get_graph_content()
     logging.debug('update_all:returning data')
     return [tabs]
