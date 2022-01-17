@@ -13,8 +13,6 @@ import utils
 import stats.data as data
 
 
-# VAR_LIST in params.py, which can be overriden in statsparams.yaml
-
 logging.basicConfig(
     format='%(asctime)s %(levelname)-8s %(message)s',
     level=logging.DEBUG, datefmt='%Y-%m-%d %H:%M:%S')
@@ -121,6 +119,10 @@ def get_graph_content(df):
 
 def get_content():
     df = load_stats()
+    if df.empty:
+        logging.debug('no stats loaded')
+        return 'no stats loaded'
+
     stats_graph_content = get_graph_content(df)
 
     # Get the rows and colums for the table

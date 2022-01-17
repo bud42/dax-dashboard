@@ -117,7 +117,8 @@ def save_data(df, filename):
 def get_data():
     # Load that data
     df = load_stats_data()
-    #print(df.columns)
+    if df.empty:
+        return df
 
     # Merge in XNAT data to get SITE, SESSTYPE
     projects = list(df.PROJECT.unique())
