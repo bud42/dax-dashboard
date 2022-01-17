@@ -59,13 +59,11 @@ def load_scanqa_info(project, scantypes):
     dfp = qa_pivot(df).reset_index()
     if not scantypes:
         scantypes = [x for x in dfp.columns if not re.search('_v\d+$', x)]
-        #print('scan_types=', scantypes)
 
     # Filter columns to include
     include_list = SESSCOLUMNS + scantypes
     include_list = [x for x in include_list if x in dfp.columns]
     include_list = list(set(include_list))
-    #print('include_list=', include_list)
     dfp = dfp[include_list]
 
     # Drop columns that are all empty
@@ -81,13 +79,11 @@ def load_assrqa_info(project, assrtypes):
     dfp = qa_pivot(df).reset_index()
     if not assrtypes:
         assrtypes = [x for x in dfp.columns if re.search('_v\d+$', x)]
-        #print('assr_types=', assrtypes)
 
     # Filter columns to include
     include_list = SESSCOLUMNS + assrtypes
     include_list = [x for x in include_list if x in dfp.columns]
     include_list = list(set(include_list))
-    #print('include_list=', include_list)
     dfp = dfp[include_list]
 
     return dfp
