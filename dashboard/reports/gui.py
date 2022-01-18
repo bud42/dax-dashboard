@@ -717,9 +717,7 @@ def make_pdf(info, filename):
         add_qa_page(pdf, scandf, assrdf, curtype)
 
     # QA/Jobs/Issues counts
-    if False:
-        # TODO: look for issues.csv and complete.log in local directory
-        add_activity_page(pdf, info)
+    add_activity_page(pdf, info)
 
     # Phantom pages
     if 'phantoms' in info:
@@ -899,10 +897,10 @@ def get_graph_content():
         graph_content.append(html.P(
             _txt,
             style={
-                'padding-top': '20px',
-                'padding-right': '80px',
-                'padding-bottom': '10px',
-                'padding-left': '80px'}))
+                'padding-top': '30px',
+                'padding-bottom': '20px',
+                'padding-left': '200px',
+                'padding-right': ' 200px'}))
 
         report_list = os.listdir('assets')
         report_list = sorted(report_list)
@@ -913,10 +911,9 @@ def get_graph_content():
                 html.Div(
                     html.A(r, download=r, href='assets/'+r),
                     style={
-                        'padding-top': '20px',
-                        'padding-right': '80px',
+                        'padding-top': '10px',
                         'padding-bottom': '10px',
-                        'padding-left': '80px'}))
+                        'padding-left': '50px'}))
 
     # Add some space
     graph_content.append(html.Br())
@@ -925,7 +922,8 @@ def get_graph_content():
     tab0 = dcc.Tab(
         label='Monthly',
         value='0',
-        children=[html.Div(graph_content)])
+        children=[html.Div(graph_content)],
+        style={'width': '900px'})
 
     # Concat the tabs
     tabs = [tab0]
