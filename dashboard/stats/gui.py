@@ -120,8 +120,15 @@ def get_graph_content(df):
 def get_content():
     df = load_stats()
     if df.empty:
-        logging.debug('no stats loaded')
-        return 'no stats loaded'
+        _txt = 'No stats loaded.'
+        logging.debug(_txt)
+        stats_content = html.Div(_txt, 
+             style={
+                'padding-top': '100px',
+                'padding-bottom': '200px',
+                'padding-left': '400px',
+                'padding-right': '400px'})
+        return stats_content
 
     stats_graph_content = get_graph_content(df)
 
