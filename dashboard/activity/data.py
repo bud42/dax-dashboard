@@ -128,6 +128,8 @@ def load_xnat_data(xnat, project_filter):
 
 
 def load_recent_qa(df, startdate):
+    df = df.copy()
+
     df['LABEL'] = df['ASSR']
     df['CATEGORY'] = df['PROCTYPE']
 
@@ -150,6 +152,7 @@ def load_recent_qa(df, startdate):
 
 
 def load_recent_jobs(df, startdate):
+    df = df.copy()
     df['LABEL'] = df['ASSR']
     df['CATEGORY'] = df['PROCTYPE']
 
