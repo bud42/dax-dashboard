@@ -1,5 +1,3 @@
-# TODO: show how long ago each type of data was updated using humanized time
-# TODO: button to refresh each type of data
 # TODO: start automatically refreshing the data and these reports by the dashboard
 # somehow periodically?
 import sys
@@ -10,7 +8,9 @@ import itertools
 import os
 import os.path
 from datetime import datetime, date, timedelta
+import time
 
+import humanize
 import pandas as pd
 import plotly
 import plotly.graph_objs as go
@@ -39,6 +39,12 @@ logger.debug('its log')
 
 REPORTDIR = os.path.join(os.path.expanduser("~"), 'REPORTS')
 PARAMSDIR  = os.path.join(os.path.expanduser("~"), 'PARAMS/audits')
+
+try:
+    os.mkdir('assets')
+except Exception:
+    pass
+
 
 class MYPDF(FPDF):
     def set_filename(self, filename):
@@ -747,7 +753,14 @@ def make_main_report():
     return
 
 
-def make_project_report(filename, project, scantypes=[], assrtypes=[], stattypes=[], xsesstypes=[]):
+def make_project_report(
+    filename,
+    project,
+    scantypes=[],
+    assrtypes=[],
+    stattypes=[],
+    xsesstypes=[]):
+
     results = []
 
     # stattypes: list of proc types to show stats
@@ -782,9 +795,11 @@ def make_project_report(filename, project, scantypes=[], assrtypes=[], stattypes
 
 def delete_reports():
     # Delete each report
-    for r in os.listdir(REPORTDIR):
+    #for r in os.listdir(REPORTDIR):
+    for r in os.listdir('assets'):
         if r.endswith('_report.pdf'):
-            rpath = os.path.join(REPORTDIR, r)
+            #rpath = os.path.join(REPORTDIR, r)
+            rpath = os.path.join('assets', r)
             logger.info('delete report:{}'.format(rpath))
             os.remove(rpath)
 
@@ -821,8 +836,7 @@ def update_reports(refresh=False):
             logger.debug('reports disabled:{}'.format(project_name))
             continue
 
-        # Determine the file name
-        filename = os.path.join(REPORTDIR, '{}_report.pdf'.format(project_name))
+        filename = os.path.join('assets', '{}_report.pdf'.format(project_name))
 
         # Check for existing
         if os.path.isfile(filename):
@@ -853,7 +867,6 @@ def get_content():
 
     reports_content = [
         dcc.Loading(id="loading-reports", children=[
-            html.H3(os.path.basename(REPORTDIR)),
             dcc.Tabs(
                 id='tabs-reports',
                 value='0',
@@ -872,19 +885,52 @@ def was_triggered(callback_ctx, button_id):
 
     return result
 
+
 def get_graph_content():
     graph_content = []
 
-    for r in os.listdir(REPORTDIR):
-        if r.endswith('_report.pdf'):
-            graph_content.append(html.P('{}'.format(r)))
+    #for r in os.listdir(REPORTDIR):
+    if not os.path.exists('assets'):
+        os.mkdir('assets')
+    else:
+        _time = time.ctime(os.path.getmtime('assets'))
+        _time = datetime.strptime(_time, "%a %b %d %H:%M:%S %Y")
+        _txt = 'Updated {} at {}'.format(humanize.naturaltime(_time), _time)
+        graph_content.append(html.P(
+            _txt,
+            style={
+                'padding-top': '20px',
+                'padding-right': '80px',
+                'padding-bottom': '10px',
+                'padding-left': '80px'}))
 
+        report_list = os.listdir('assets')
+        report_list = sorted(report_list)
+        report_list = [x for x in report_list if x.endswith('_report.pdf')]
+        for r in report_list:
+            # Add a link to project PDF
+            graph_content.append(
+                html.Div(
+                    html.A(r, download=r, href='assets/'+r),
+                    style={
+                        'padding-top': '20px',
+                        'padding-right': '80px',
+                        'padding-bottom': '10px',
+                        'padding-left': '80px'}))
+
+    # Add some space
     graph_content.append(html.Br())
 
-    tabs = [dcc.Tab(label='Monthly', value='0', children=[html.Div(graph_content)])]
+    # Wrap in a tab
+    tab0 = dcc.Tab(
+        label='Monthly',
+        value='0',
+        children=[html.Div(graph_content)])
 
-    print('graph_content=', graph_content)
+    # Concat the tabs
+    tabs = [tab0]
 
+    # Return the tabs
     return tabs
 
 
