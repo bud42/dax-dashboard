@@ -208,8 +208,12 @@ def load_completed_file():
         for line in f:
             pairs = line.strip().split(',')
             row = dict(keyval.split("=") for keyval in pairs)
+            if 'session' not in row:
+                row['session'] = ''
+
             data.append(row)
 
+    # Make a dataframe from all rows
     df = pd.DataFrame(data)
 
     LABELFIELDS = ['project', 'subject', 'session', 'event', 'field']
