@@ -31,11 +31,7 @@ def load_phantom_info(project):
 
 def load_activity_info(project):
     df = activity_data.load_data()
-    print(df)
-    print(df.columns)
     df = df[df.PROJECT == project]
-    print('activity_data=', df)
-
     return df
 
 
