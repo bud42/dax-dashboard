@@ -24,7 +24,7 @@ from PIL import Image
 
 from app import app
 import utils
-from shared import ASTATUS2COLOR
+from shared import ASTATUS2COLOR, QASTATUS2COLOR
 import reports.data as data
 from stats.data import get_variables
 from qa.gui import get_metastatus
