@@ -71,7 +71,6 @@ def get_data(xnat, proj_filter):
     # startdate = datetime.datetime.today().replace(day=1)
 
     # Past month
-    from datetime import datetime
     from dateutil.relativedelta import relativedelta
     startdate = datetime.today() - relativedelta(months=1)
     startdate = startdate.strftime('%Y-%m-%d')
@@ -93,10 +92,10 @@ def get_data(xnat, proj_filter):
     dfx = load_xnat_data(xnat, proj_filter)
 
     dfq = load_recent_qa(dfx, startdate=startdate)
-    logging.info('loaded {} records'.format(len(dfq)))
+    logging.info('loaded {} qa records'.format(len(dfq)))
 
     dfj = load_recent_jobs(dfx, startdate=startdate)
-    logging.info('loaded {} records'.format(len(dfj)))
+    logging.info('loaded {} job records'.format(len(dfj)))
 
     # Concatentate all the dataframes into one
     df = pd.concat([dfi, dfc, dfq, dfj], ignore_index=True)

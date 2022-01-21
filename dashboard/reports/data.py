@@ -1,9 +1,6 @@
 import logging
-import os
-from datetime import datetime, date, timedelta
 import re
 
-import utils
 import qa.data as qa_data
 from qa.gui import qa_pivot
 import stats.data as stats_data
@@ -15,7 +12,7 @@ logging.basicConfig(
     level=logging.INFO, datefmt='%Y-%m-%d %H:%M:%S')
 
 
-SESSCOLUMNS = ['SESSION', 'PROJECT', 'DATE', 'SESSTYPE', 'SITE', 'MODALITY'] 
+SESSCOLUMNS = ['SESSION', 'PROJECT', 'DATE', 'SESSTYPE', 'SITE', 'MODALITY']
 
 
 def load_session_info(project):
@@ -32,6 +29,7 @@ def load_phantom_info():
 def load_activity_info(project):
     df = activity_data.load_data()
     df = df[df.PROJECT == project]
+    print('activity_data=', df)
 
     return df
 
