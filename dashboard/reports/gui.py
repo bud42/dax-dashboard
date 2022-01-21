@@ -683,14 +683,6 @@ def make_pdf(info, filename):
     logger.debug('adding timeline page')
     add_timeline_page(pdf, info)
 
-    # Add stats pages
-    if info['stats'].empty:
-        logger.debug('no stats')
-    else:
-        for stat in info['stattypes']:
-            logger.info('add stats page:{}'.format(stat))
-            add_stats_page(pdf, info['stats'], stat)
-
     # Session type pages - counts per scans, counts per assessor
     logger.debug('adding qa pages')
     for curtype in info['sessions'].SESSTYPE.unique():
@@ -711,13 +703,21 @@ def make_pdf(info, filename):
         # Add the page for this session type
         add_qa_page(pdf, scandf, assrdf, curtype)
 
-    # QA/Jobs/Issues counts
-    add_activity_page(pdf, info)
+    # Add stats pages
+    if info['stats'].empty:
+        logger.debug('no stats')
+    else:
+        for stat in info['stattypes']:
+            logger.info('add stats page:{}'.format(stat))
+            add_stats_page(pdf, info['stats'], stat)
 
     # Phantom pages
     if 'phantoms' in info:
         logger.debug('adding phantom page')
         add_phantom_page(pdf, info)
+
+        # QA/Jobs/Issues counts
+    add_activity_page(pdf, info)
 
     # Save to file
     logger.debug('saving PDF to file:{}'.format(pdf.filename))
