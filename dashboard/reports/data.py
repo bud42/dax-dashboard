@@ -22,8 +22,11 @@ def load_session_info(project):
     return df
 
 
-def load_phantom_info():
-    return None
+def load_phantom_info(project):
+    df = qa_data.load_data()
+    df = df[df.PROJECT == project]
+    df = df[SESSCOLUMNS].drop_duplicates().sort_values('SESSION')
+    return df
 
 
 def load_activity_info(project):

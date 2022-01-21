@@ -1,5 +1,3 @@
-# TODO: start automatically refreshing the data and these reports by the dashboard
-# somehow periodically?
 import sys
 import logging
 import io
@@ -40,7 +38,7 @@ logger.debug('its log')
 
 
 REPORTDIR = os.path.join(os.path.expanduser("~"), 'REPORTS')
-PARAMSDIR  = os.path.join(os.path.expanduser("~"), 'PARAMS/audits')
+PARAMSDIR = os.path.join(os.path.expanduser("~"), 'PARAMS/audits')
 
 
 try:
@@ -335,7 +333,7 @@ def add_other_page(pdf, sessions):
 
     # Start a new page
     pdf.add_page()
-  
+
     # Show all session counts
     pdf.set_font('helvetica', size=18)
     pdf.cell(w=7.5, h=0.4, align='C', txt='Other Modalities')
@@ -372,7 +370,6 @@ def add_stats_page(pdf, stats, proctype):
     _img2 = image.crop((1000, 0, 2000, 500))
     _img3 = image.crop((2000, 0, 2500, 500))
 
-    #pdf.set_text_color(255, 0, 0)
     pdf.set_fill_color(114, 172, 77)
 
     # Draw the images on the pdf
@@ -412,8 +409,6 @@ def add_timeline_page(pdf, info):
     # Get the data for all
     df = info['sessions'].copy()
 
-    project = info['project']
-
     pdf.add_page()
     pdf.set_font('helvetica', size=18)
 
@@ -427,10 +422,6 @@ def add_timeline_page(pdf, info):
     # Get the dates of last month
     enddate = date.today().replace(day=1) - timedelta(days=1)
     startdate = date.today().replace(day=1) - timedelta(days=enddate.day)
-
-    # Filter the data to last month
-    #df = df[df.DATE >= _start.strftime('%Y-%m-%d')]
-    #df = df[df.DATE <= _end.strftime('%Y-%m-%d')]
 
     # Get the name of last month
     lastmonth = startdate.strftime("%B")
@@ -448,8 +439,6 @@ def add_phantom_page(pdf, info):
     # Get the data for all
     df = info['phantoms'].copy()
 
-    project = info['project']
-
     pdf.add_page()
     pdf.set_font('helvetica', size=18)
 
@@ -461,15 +450,14 @@ def add_phantom_page(pdf, info):
     pdf.ln(5)
 
     # Get the dates of last month
-    _end = date.today().replace(day=1) - timedelta(days=1)
-    _start = date.today().replace(day=1) - timedelta(days=_end.day)
+    enddate = date.today().replace(day=1) - timedelta(days=1)
+    startdate = date.today().replace(day=1) - timedelta(days=enddate.day)
 
-    # Filter the data to last month
-    df = df[df.DATE >= _start.strftime('%Y-%m-%d')]
-    df = df[df.DATE <= _end.strftime('%Y-%m-%d')]
+    # Get the name of last month
+    lastmonth = startdate.strftime("%B")
 
-    _txt = 'Phantoms (previous month)'
-    image = plot_timeline(df)
+    _txt = 'Phantoms ({})'.format(lastmonth)
+    image = plot_timeline(df, startdate=startdate, enddate=enddate)
     pdf.cell(w=7.5, align='C', txt=_txt)
     pdf.image(image, x=0.5, y=5.75, w=7.5)
     pdf.ln()
@@ -478,13 +466,13 @@ def add_phantom_page(pdf, info):
 
 
 def add_activity_page(pdf, info):
-    #'index', 'SESSION', 'SUBJECT', 'ASSR', 'JOBDATE', 'QCSTATUS',
+    # 'index', 'SESSION', 'SUBJECT', 'ASSR', 'JOBDATE', 'QCSTATUS',
     #   'session_ID', 'PROJECT', 'PROCSTATUS', 'URI', 'xsiType', 'PROCTYPE',
     #   'QCDATE', 'DATE', 'QCBY', 'LABEL', 'CATEGORY', 'STATUS', 'SOURCE',
     #   'DESCRIPTION', 'DATETIME', 'ID'],
     pdf.add_page()
     pdf.set_font('helvetica', size=16)
-                                                               
+
     df = info['activity'].copy()
     df = df[df.SOURCE == 'qa']
     image = plot_activity(df, 'CATEGORY')
@@ -607,7 +595,6 @@ def plot_stats(df, proctype):
     # Check for empty data
     if len(df) == 0:
         logging.debug('empty data, using empty figure')
-        #fig = plotly.subplots.make_subplots(rows=1, cols=1)
         fig = go.Figure()
         _png = fig.to_image(format="png")
         image = Image.open(io.BytesIO(_png))
@@ -633,7 +620,7 @@ def plot_stats(df, proctype):
     # Make the figure with 1 row and a column for each var we are plotting
     fig = plotly.subplots.make_subplots(
         rows=1,
-        cols=box_count, 
+        cols=box_count,
         horizontal_spacing=hspacing,
         subplot_titles=var_list)
 
@@ -655,16 +642,14 @@ def plot_stats(df, proctype):
 
         if var.startswith('con_') or var.startswith('inc_'):
             logger.debug('setting beta range:{}'.format(var))
-            #fig.update_yaxes(range=[-1,1], autorange=False)
             _yaxis = 'yaxis{}'.format(i + 1)
             fig['layout'][_yaxis].update(range=[-1, 1], autorange=False)
         else:
             logger.debug('setting autorange')
-            #fig.update_yaxes(autorange=True)
 
     # Move the subtitles to bottom instead of top of each subplot
     for i in range(len(fig.layout.annotations)):
-        fig.layout.annotations[i].update(y=-.15) #, font={'size': 18})
+        fig.layout.annotations[i].update(y=-.15)
 
     # Customize figure to hide legend and fit the graph
     fig.update_layout(
@@ -756,8 +741,8 @@ def make_main_report():
 
     # previous year
 
-
     # Print Note that all of these can be opened interactively in dashboard
+
     return
 
 
@@ -767,7 +752,9 @@ def make_project_report(
     scantypes=[],
     assrtypes=[],
     stattypes=[],
-    xsesstypes=[]):
+    xsesstypes=[],
+    phantom_project=None
+):
 
     results = []
 
@@ -779,7 +766,7 @@ def make_project_report(
     info['project'] = project
     info['stattypes'] = stattypes
     info['scantypes'] = scantypes
-    info['assrtypes'] =  assrtypes
+    info['assrtypes'] = assrtypes
 
     # Load the data
     info['sessions'] = data.load_session_info(project).sort_values('SESSION')
@@ -787,9 +774,12 @@ def make_project_report(
     info['stats'] = data.load_stats(project, stattypes)
     info['scanqa'] = data.load_scanqa_info(project, info['scantypes'])
     info['assrqa'] = data.load_assrqa_info(project, info['assrtypes'])
+    if phantom_project:
+        info['phantoms'] = data.load_phantom_info(phantom_project)
 
-    # Exclude sessions of specificed types
-    info['sessions']  = info['sessions'][~info['sessions'].SESSTYPE.isin(xsesstypes)]
+    # Exclude sessions of specified types
+    info['sessions'] = info['sessions'][~info['sessions'].SESSTYPE.isin(
+        xsesstypes)]
 
     # Make the pdf based on loaded info
     success = make_pdf(info, filename)
@@ -801,12 +791,11 @@ def make_project_report(
 
     return results
 
+
 def delete_reports():
     # Delete each report
-    #for r in os.listdir(REPORTDIR):
     for r in os.listdir('assets'):
         if r.endswith('_report.pdf'):
-            #rpath = os.path.join(REPORTDIR, r)
             rpath = os.path.join('assets', r)
             logger.info('delete report:{}'.format(rpath))
             os.remove(rpath)
@@ -821,7 +810,7 @@ def update_reports(refresh=False):
         delete_reports()
 
     # Load params and projects
-    params_dir  = PARAMSDIR
+    params_dir = PARAMSDIR
     logger.debug('loading params list:{}'.format(params_dir))
     params_list = load_params_list(params_dir)
     logger.debug('loaded params list:{}'.format(params_list))
@@ -844,6 +833,11 @@ def update_reports(refresh=False):
             logger.debug('reports disabled:{}'.format(project_name))
             continue
 
+        if 'phantoms' in params and 'project' in params['phantoms']:
+            phantom_project = params.get('phantoms').get('project')
+        else:
+            phantom_project = None
+
         filename = os.path.join('assets', '{}_report.pdf'.format(project_name))
 
         # Check for existing
@@ -858,7 +852,8 @@ def update_reports(refresh=False):
             scantypes=params.get('scantypes', []),
             assrtypes=params.get('assrtypes', []),
             stattypes=params.get('stattypes', []),
-            xsesstypes=params.get('xsesstypes', []))
+            xsesstypes=params.get('xsesstypes', []),
+            phantom_project=phantom_project)
 
     print_results(results)
     return results
@@ -887,9 +882,8 @@ def get_content():
 
 
 def was_triggered(callback_ctx, button_id):
-    result = (
-        callback_ctx.triggered and
-        callback_ctx.triggered[0]['prop_id'].split('.')[0] == button_id)
+    _bid = callback_ctx.triggered[0]['prop_id'].split('.')[0]
+    result = (callback_ctx.triggered and _bid == button_id)
 
     return result
 
@@ -897,7 +891,6 @@ def was_triggered(callback_ctx, button_id):
 def get_graph_content():
     graph_content = []
 
-    #for r in os.listdir(REPORTDIR):
     if not os.path.exists('assets'):
         os.mkdir('assets')
     else:
@@ -919,7 +912,7 @@ def get_graph_content():
             # Add a link to project PDF
             graph_content.append(
                 html.Div(
-                    html.A(r, download=r, href='assets/'+r),
+                    html.A(r, download=r, href='assets/' + r),
                     style={
                         'padding-top': '10px',
                         'padding-bottom': '10px',
@@ -942,7 +935,7 @@ def get_graph_content():
     return tabs
 
 
-#==============================================================================
+# =============================================================================
 # Callbacks for the app
 
 # inputs:
