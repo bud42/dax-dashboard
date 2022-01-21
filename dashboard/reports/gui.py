@@ -24,11 +24,12 @@ from PIL import Image
 
 from app import app
 import utils
-from shared import QASTATUS2COLOR, STATUS2RGB
+from shared import ASTATUS2COLOR
 import reports.data as data
 from stats.data import get_variables
 from qa.gui import get_metastatus
 from reports.params import load_params_list, load_project_params
+
 
 # Set up logs
 logging.basicConfig(
@@ -37,8 +38,10 @@ logging.basicConfig(
 logger = logging.getLogger()
 logger.debug('its log')
 
+
 REPORTDIR = os.path.join(os.path.expanduser("~"), 'REPORTS')
 PARAMSDIR  = os.path.join(os.path.expanduser("~"), 'PARAMS/audits')
+
 
 try:
     os.mkdir('assets')
@@ -52,10 +55,10 @@ class MYPDF(FPDF):
 
     def set_project(self, project):
         self.project = project
-        today  = datetime.now().strftime("%Y-%m-%d")
+        today = datetime.now().strftime("%Y-%m-%d")
         self.date = today
         self.title = '{} Monthly Report'.format(project)
-        self.subtitle =  '{}'.format(datetime.now().strftime("%B %Y"))
+        self.subtitle = '{}'.format(datetime.now().strftime("%B %Y"))
 
     def footer(self):
         self.set_y(-0.35)
@@ -212,7 +215,7 @@ def plot_timeline(df, startdate=None, enddate=None):
                 int(_color[5:7], 16),
                 0.7)
         else:
-            _r,_g,_b = _color[4:-1].split(',')
+            _r, _g, _b = _color[4:-1].split(',')
             _a = 0.7
             _rgba = 'rgba({},{},{},{})'.format(_r, _g, _b, _a)
 
@@ -232,14 +235,14 @@ def plot_timeline(df, startdate=None, enddate=None):
                     orientation='h',
                     marker={
                         'symbol': symb,
-                        'color': _rgba, 
+                        'color': _rgba,
                         'size': 12,
                         'line': dict(width=2, color=_color)
                     },
                     line={'color': 'rgba(0,0,0,0)'},
                     fillcolor='rgba(0,0,0,0)',
                     hoveron='points',
-                   ),
+                ),
                 _row,
                 _col)
         except Exception as err:
@@ -259,7 +262,7 @@ def plot_timeline(df, startdate=None, enddate=None):
 
 
 def plot_activity(df, pivot_index):
-    status2rgb = STATUS2RGB
+    status2rgb = ASTATUS2COLOR
 
     fig = plotly.subplots.make_subplots(rows=1, cols=1)
     fig.update_layout(margin=dict(l=40, r=40, t=40, b=40))
