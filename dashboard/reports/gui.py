@@ -258,7 +258,7 @@ def plot_timeline(df, startdate=None, enddate=None):
     return image
 
 
-def plot_activity_qa(df):
+def plot_activity(df, pivot_index):
     status2rgb = STATUS2RGB
 
     fig = plotly.subplots.make_subplots(rows=1, cols=1)
@@ -266,7 +266,7 @@ def plot_activity_qa(df):
 
     # Draw bar for each status, these will be displayed in order
     dfp = pd.pivot_table(
-        df, index='CATEGORY', values='LABEL', columns=['STATUS'],
+        df, index=pivot_index, values='LABEL', columns=['STATUS'],
         aggfunc='count', fill_value=0)
 
     for status, color in status2rgb.items():
@@ -475,23 +475,30 @@ def add_phantom_page(pdf, info):
 
 
 def add_activity_page(pdf, info):
+    #'index', 'SESSION', 'SUBJECT', 'ASSR', 'JOBDATE', 'QCSTATUS',
+    #   'session_ID', 'PROJECT', 'PROCSTATUS', 'URI', 'xsiType', 'PROCTYPE',
+    #   'QCDATE', 'DATE', 'QCBY', 'LABEL', 'CATEGORY', 'STATUS', 'SOURCE',
+    #   'DESCRIPTION', 'DATETIME', 'ID'],
     pdf.add_page()
     pdf.set_font('helvetica', size=16)
                                                                
-    # summary of dax activity
-    image = plot_activity_qa(info['activity'])
+    df = info['activity'].copy()
+    df = df[df.SOURCE == 'qa']
+    image = plot_activity(df, 'CATEGORY')
     pdf.image(image, x=1.6, y=0.2, h=3.3)
     pdf.ln(0.5)
     pdf.multi_cell(1.5, 0.3, txt='QA\n')
 
-    #image = plot_activity_dax()
-    image = plot_activity_qa(info['activity'])
+    df = info['activity'].copy()
+    df = df[df.SOURCE == 'dax']
+    image = plot_activity(df, 'CATEGORY')
     pdf.image(image, x=1.6, y=3.5, h=3.3)
     pdf.ln(3)
     pdf.multi_cell(1.5, 0.3, txt='Jobs\n')
 
-    #image = plot_activity_ccmutils()
-    image = plot_activity_qa(info['activity'])
+    df = info['activity'].copy()
+    df = df[df.SOURCE == 'ccmutils']
+    image = plot_activity(df, 'CATEGORY')
     pdf.image(image, x=1.6, y=7, h=3.3)
     pdf.ln(3)
     pdf.multi_cell(1.5, 0.3, txt='Other\nActivity\n&\nIssues\nthis month')
@@ -893,7 +900,7 @@ def get_graph_content():
     else:
         _time = time.ctime(os.path.getmtime('assets'))
         _time = datetime.strptime(_time, "%a %b %d %H:%M:%S %Y")
-        _txt = 'Updated {} at {}'.format(humanize.naturaltime(_time), _time)
+        _txt = 'Updated {} @ {}'.format(humanize.naturaltime(_time), _time)
         graph_content.append(html.P(
             _txt,
             style={

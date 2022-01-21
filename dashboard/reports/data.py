@@ -32,9 +32,6 @@ def load_phantom_info():
 def load_activity_info(project):
     df = activity_data.load_data()
     df = df[df.PROJECT == project]
-    df['CATEGORY'] = df['DESCRIPTION'].str.split(':', n=1).str[0]
-    df['LABEL'] = df['DESCRIPTION'].str.split(':', n=1).str[1]
-    df['STATUS'] = 'UNKNOWN'
 
     return df
 
