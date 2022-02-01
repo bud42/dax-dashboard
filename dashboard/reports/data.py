@@ -44,6 +44,9 @@ def load_stats(project, stattypes):
     # Filter by project
     df = df[df.PROJECT == project]
 
+    # Sort it
+    df = df.sort_values('SESSION')
+
     # Return the DataFrame
     return df
 
