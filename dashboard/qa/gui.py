@@ -203,6 +203,7 @@ def get_graph_content(dfp, selected_groupby='PROJECT'):
         go.Bar(
             x=ydata,
             y=xdata,
+            text=xdata,
             name=cur_name,
             marker=dict(color=cur_color),
             opacity=0.9),
