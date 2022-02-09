@@ -261,8 +261,9 @@ def get_data(xnat, proj_filter, stype_filter, ptype_filter):
     # Concatenate the common cols to a new dataframe
     df = pd.concat([assr_df[QA_COLS], scan_df[QA_COLS]], sort=False)
 
-    # relabel caare
+    # relabel caare, etc
     df.PROJECT = df.PROJECT.replace(['TAYLOR_CAARE'], 'CAARE')
+    df.PROJECT = df.PROJECT.replace(['TAYLOR_DepMIND'], 'DepMIND1')
 
     # set modality
     df['MODALITY'] = df.apply(set_modality, axis=1)
