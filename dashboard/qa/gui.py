@@ -114,6 +114,9 @@ def get_graph_content(dfp, selected_groupby='PROJECT'):
     # cell
     dfp_copy.reset_index(inplace=True)
 
+    # don't need subject
+    dfp_copy = dfp_copy.drop(columns=['SUBJECT'])
+
     # use pandas melt function to unpivot our pivot table
     df = pd.melt(
         dfp_copy,
@@ -275,9 +278,10 @@ def sessionsbytime_figure(df, selected_groupby):
             pass
 
         elif view == 'all':
+
             # Let's do this for the all time view to see histograms by year
             # or quarter or whatever fits well
-    
+
             # Plot this session type
             fig.append_trace(
                 go.Histogram(
@@ -518,7 +522,7 @@ def get_metastatus(status):
 
 def qa_pivot(df):
     dfp = df.pivot_table(
-        index=('SESSION', 'PROJECT', 'DATE', 'SESSTYPE', 'SITE', 'MODALITY'),
+        index=('SESSION', 'SUBJECT', 'PROJECT', 'DATE', 'SESSTYPE', 'SITE', 'MODALITY'),
         columns='TYPE',
         values='STATUS',
         aggfunc=lambda x: ''.join(x))
@@ -642,7 +646,7 @@ def update_all(
     tabs = get_graph_content(dfp, selected_groupby)
 
     # Get the table data
-    selected_cols = ['SESSION', 'PROJECT', 'DATE', 'SESSTYPE', 'SITE']
+    selected_cols = ['SESSION', 'SUBJECT', 'PROJECT', 'DATE', 'SESSTYPE', 'SITE']
 
     if selected_proc:
         selected_cols += selected_proc

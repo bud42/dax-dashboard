@@ -17,15 +17,14 @@ import pandas as pd
 
 # TODO: use REDCap (project settings REDCap instance to filter types)
 
-# This app does not access ACCRE or SLURM. The ony local file access is to 
+# This app does not access ACCRE or SLURM. The ony local file access is to
 # write/read the cached data in a pickle file. We save to pickle the results
-#  of each query, we reuse the pickle data when a filter changes. Then anytime 
+#  of each query, we reuse the pickle data when a filter changes. Then anytime
 # user clicks refresh, we query xnat again.
 
 logging.basicConfig(
     format='%(asctime)s %(levelname)-8s %(message)s',
     level=logging.INFO, datefmt='%Y-%m-%d %H:%M:%S')
-
 
 
 ASSR_URI = '/REST/experiments?xsiType=xnat:imagesessiondata\
@@ -102,7 +101,7 @@ ASSR_STATUS_MAP = {
 
 
 QA_COLS = [
-    'SESSION', 'PROJECT', 'SITE', 'DATE', 'TYPE', 'STATUS',
+    'SESSION', 'SUBJECT', 'PROJECT', 'SITE', 'DATE', 'TYPE', 'STATUS',
     'ARTTYPE', 'SCANTYPE', 'PROCTYPE', 'XSITYPE', 'SESSTYPE']
 
 
@@ -146,6 +145,7 @@ def load_scan_options(project_filter=None):
     scantypes = [x for x in scantypes if x]
 
     return sorted(scantypes)
+
 
 # TODO: combine these load_x_options to only read the file once
 def load_sess_options(project_filter=None):
@@ -229,7 +229,7 @@ def save_data(df, filename):
 def set_modality(row):
     xsi = row['XSITYPE']
     mod = 'UNK'
-    
+
     # TODO: use a dict/map with default value
 
     if xsi == 'xnat:eegSessionData':
@@ -240,7 +240,6 @@ def set_modality(row):
         mod = 'PET'
 
     return mod
-
 
 
 def get_data(xnat, proj_filter, stype_filter, ptype_filter):
