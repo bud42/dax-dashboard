@@ -1,6 +1,10 @@
 import os
 import yaml
 
+REDCAP_URL = ''
+
+DEMOG_KEYS = []
+
 ASSR_EXCLUDE_LIST = [
     'ASHS_v1',
     'ASHS_v2',
@@ -223,3 +227,17 @@ try:
         SCAN_EXCLUDE_LIST = params_data['SCAN_EXCLUDE_LIST']
 except EnvironmentError:
     print('params file not found, not loading')
+
+
+# check for a demog yaml file (this can be mounted into container in home)
+try:
+    # Read inputs yaml as dictionary
+    DEMOG_FILE = os.path.join(os.path.expanduser("~"), 'demogparams.yaml')
+    with open(DEMOG_FILE, 'rt') as file:
+        print('loading demographics keys from file')
+        _data = yaml.load(file, yaml.SafeLoader)
+        DEMOG_KEYS = _data['api_keys']
+        REDCAP_URL = _data['api_url']
+
+except EnvironmentError:
+    print('demographics keys not found, not loading')
