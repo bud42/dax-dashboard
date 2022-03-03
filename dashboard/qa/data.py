@@ -5,7 +5,7 @@ from datetime import datetime, date, timedelta
 import dax
 
 import utils
-from qa.params import SCAN_EXCLUDE_LIST, ASSR_EXCLUDE_LIST
+from qa.params import SCAN_EXCLUDE_LIST, ASSR_EXCLUDE_LIST, DEMOG_KEYS, REDCAP_URL
 
 import warnings
 warnings.simplefilter(action='ignore', category=FutureWarning)
@@ -267,7 +267,9 @@ def get_data(xnat, proj_filter, stype_filter, ptype_filter):
     # set modality
     df['MODALITY'] = df.apply(set_modality, axis=1)
 
-    print('end of get_data columns=', df.columns)
+    if DEMOG_KEYS:
+        dfd = load_demographic_data(REDCAP_URL, DEMOG_KEYS)
+        df = pd.merge(df, dfd, how='left', left_on='SUBJECT', right_on='SUBJECT')
 
     return df
 
@@ -340,6 +342,35 @@ def load_scan_data(xnat, project_filter):
     dfs['STATUS'] = dfs['QUALITY'].map(SCAN_STATUS_MAP).fillna('U')
 
     return dfs
+
+
+def load_demographic_data(df, redcapurl, redcapkeys):
+    if 'DepMIND2' in redcapkeys:
+        _key = redcapkeys['DepMIND2']
+        print('loading DepMIND2 demographic data')
+
+        _fields = [
+            'record_id',
+            'subject_number',
+            'age',
+            'sex_xcount']
+        _events = ['screening_arm_1']
+        _rename = {'subject_number': 'SUBJECT', 'age': 'AGE', 'sex_xcount': 'SEX'}
+
+        # Load the records from redcap
+        _proj = redcap.Project(redcapurl, _key)
+        df = _proj.export_records(raw_or_label='label', format='df', fields=_fields, events=_events)
+
+        # Transform for dashboard data
+        df = df.rename(columns=_rename)
+        df = df.dropna(subset=['SUBJECT'])
+        df['SUBJECT'] = df['SUBJECT'].astype(int).astype(str)
+        df = df.set_index('SUBJECT', verify_integrity=True)
+
+        # All DM2 are depressed
+        df['DEPRESS'] = '1'
+
+    return df
 
 
 def filter_data(df, projects, proctypes, scantypes, timeframe, sesstypes):
