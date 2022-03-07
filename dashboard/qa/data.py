@@ -2,6 +2,7 @@ import logging
 import os
 from datetime import datetime, date, timedelta
 
+import redcap
 import dax
 
 import utils
@@ -101,7 +102,8 @@ ASSR_STATUS_MAP = {
 
 
 QA_COLS = [
-    'SESSION', 'SUBJECT', 'PROJECT', 'SITE', 'DATE', 'TYPE', 'STATUS',
+    'SESSION', 'SUBJECT', 'PROJECT',
+    'SITE', 'DATE', 'TYPE', 'STATUS',
     'ARTTYPE', 'SCANTYPE', 'PROCTYPE', 'XSITYPE', 'SESSTYPE']
 
 
@@ -115,6 +117,7 @@ def run_refresh(filename):
     scan_filter = []
 
     # force a requery
+    logging.info('connecting to xnat')
     with dax.XnatUtils.get_interface() as xnat:
         proj_filter = utils.get_user_favorites(xnat)
         df = get_data(xnat, proj_filter, proc_filter, scan_filter)
@@ -267,9 +270,13 @@ def get_data(xnat, proj_filter, stype_filter, ptype_filter):
     # set modality
     df['MODALITY'] = df.apply(set_modality, axis=1)
 
-    if DEMOG_KEYS:
-        dfd = load_demographic_data(REDCAP_URL, DEMOG_KEYS)
-        df = pd.merge(df, dfd, how='left', left_on='SUBJECT', right_on='SUBJECT')
+    #if DEMOG_KEYS:
+    #    dfd = load_demographic_data(REDCAP_URL, DEMOG_KEYS)
+    #    df = pd.merge(df, dfd, how='left', left_on='SUBJECT', right_index=True)
+
+    #df['AGE'] = df['AGE'].fillna('')
+    #df['SEX'] = df['SEX'].fillna('')
+    #df['DEPRESS'] = df['DEPRESS'].fillna('')
 
     return df
 
@@ -344,22 +351,30 @@ def load_scan_data(xnat, project_filter):
     return dfs
 
 
-def load_demographic_data(df, redcapurl, redcapkeys):
-    if 'DepMIND2' in redcapkeys:
-        _key = redcapkeys['DepMIND2']
-        print('loading DepMIND2 demographic data')
+def load_demographic_data(redcapurl, redcapkeys):
+    df = pd.DataFrame()
 
+    if 'DepMIND2' in redcapkeys:
+        print('loading DepMIND2 demographic data')
+        _key = redcapkeys['DepMIND2']
         _fields = [
             'record_id',
             'subject_number',
             'age',
             'sex_xcount']
         _events = ['screening_arm_1']
-        _rename = {'subject_number': 'SUBJECT', 'age': 'AGE', 'sex_xcount': 'SEX'}
+        _rename = {
+            'subject_number': 'SUBJECT',
+            'age': 'AGE',
+            'sex_xcount': 'SEX'}
 
         # Load the records from redcap
         _proj = redcap.Project(redcapurl, _key)
-        df = _proj.export_records(raw_or_label='label', format='df', fields=_fields, events=_events)
+        df = _proj.export_records(
+            raw_or_label='label',
+            format='df',
+            fields=_fields,
+            events=_events)
 
         # Transform for dashboard data
         df = df.rename(columns=_rename)

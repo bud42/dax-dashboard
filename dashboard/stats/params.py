@@ -7,13 +7,12 @@ import yaml
 
 
 VAR_LIST = [
-    'accuracy', 'RT', 'trials', # EDATQA
-    'WML', # LST
+    'accuracy', 'RT', 'trials',  # EDATQA
+    'WML',  # LST
     'VOXD', 'DVARS',  # fmriqa
     'compgm_suvr',  # amyvidqa
     'ETIV', 'LHPC', 'LVENT', 'LSUPFLOBE',  # FS6
-    'bag_age_pred',  # BAG
-    ]
+    'bag_age_pred']  # BAG
 
 
 STATS_RENAME = {
@@ -38,9 +37,14 @@ STATIC_COLUMNS = [
     'assessor_label',
     'PROJECT',
     'SESSION',
+    'SUBJECT',
+    'AGE',
+    'SEX',
+    'DEPRESS',
     'TYPE',
     'SITE',
     'SESSTYPE']
+
 
 # check for a statsparams.yaml file to override var lists
 try:
@@ -49,14 +53,28 @@ try:
     with open(PARAMSFILE, 'rt') as file:
         print('loading stats params from file')
         params_data = yaml.load(file, yaml.SafeLoader)
-        
+
         if 'VAR_LIST' in params_data:
             print('setting VAR_LIST')
             VAR_LIST = params_data['VAR_LIST']
-        
+
         if 'STATS_RENAME' in params_data:
             print('setting STATS_RENAME')
             STATS_RENAME = params_data['STATS_RENAME']
 
 except EnvironmentError:
     print('params file not found, not loading')
+
+
+# check for a demog yaml file (this can be mounted into container in home)
+try:
+    # Read inputs yaml as dictionary
+    DEMOG_FILE = os.path.join(os.path.expanduser("~"), 'demogparams.yaml')
+    with open(DEMOG_FILE, 'rt') as file:
+        print('loading demographics keys from file')
+        _data = yaml.load(file, yaml.SafeLoader)
+        DEMOG_KEYS = _data['api_keys']
+        REDCAP_URL = _data['api_url']
+
+except EnvironmentError:
+    print('demographics keys not found, not loading')

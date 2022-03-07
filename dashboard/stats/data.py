@@ -7,7 +7,7 @@ import redcap
 import dax
 
 import utils
-from stats.params import REDCAP_FILE, STATS_RENAME, STATIC_COLUMNS, VAR_LIST
+from stats.params import REDCAP_FILE, STATS_RENAME, STATIC_COLUMNS, VAR_LIST, DEMOG_KEYS, REDCAP_URL
 
 import warnings
 warnings.simplefilter(action='ignore', category=FutureWarning)
@@ -123,18 +123,32 @@ def get_data():
     # Merge in XNAT data to get SITE, SESSTYPE
     projects = list(df.PROJECT.unique())
     if projects:
-        #print('merging in xnat data for projects=', projects)
+        # Merge in xnat information to get SITE and SESSTYPE
+        logging.debug('merging in xnat data for projects')
         with dax.XnatUtils.get_interface() as xnat:
             dfp = get_xnat_data(xnat, projects)
             print(dfp.columns)
 
         # Merge by session to get SITE and SESSTYPE
-        #print(dfp.SESSION)
-        #print(df.SESSION)
-        df = df.merge(dfp[['SESSION', 'SESSTYPE', 'SITE']], on='SESSION', how='left')
-        #print(df.columns)
+        _cols = ['SESSION', 'SUBJECT', 'SESSTYPE', 'SITE']
+        df = df.merge(dfp[_cols], on='SESSION', how='left')
 
     df['ISBASELINE'] = False
+
+    if DEMOG_KEYS:
+        _df = load_demographic_data(REDCAP_URL, DEMOG_KEYS)
+        df = pd.merge(df, _df, how='left', left_on='SUBJECT', right_index=True)
+
+    # TODO: load MADRS
+    #if DEMOG_KEYS:
+    #    _df = load_other_data()
+    #    df = pd.merge(df, _df, how='left', left_on='', right_on='')
+
+    # Fill with blanks so we don't lose to nans
+    df['AGE'] = df['AGE'].fillna('')
+    df['SEX'] = df['SEX'].fillna('')
+    df['DEPRESS'] = df['DEPRESS'].fillna('')
+    df['SESSTYPE'] = df['SESSTYPE'].fillna('UNKNOWN')
 
     return df
 
@@ -276,7 +290,41 @@ def filter_data(df, projects, proctypes, timeframe, sesstype):
             logging.debug('not filtering by sesstype')
             pass
 
-        # remove test sessions
-        df = df[df.SESSION != 'Pitt_Test_Upload_MR1']
+    return df
+
+
+def load_demographic_data(redcapurl, redcapkeys):
+    df = pd.DataFrame()
+
+    if 'DepMIND2' in redcapkeys:
+        print('loading DepMIND2 demographic data')
+        _key = redcapkeys['DepMIND2']
+        _fields = [
+            'record_id',
+            'subject_number',
+            'age',
+            'sex_xcount']
+        _events = ['screening_arm_1']
+        _rename = {
+            'subject_number': 'SUBJECT',
+            'age': 'AGE',
+            'sex_xcount': 'SEX'}
+
+        # Load the records from redcap
+        _proj = redcap.Project(redcapurl, _key)
+        df = _proj.export_records(
+            raw_or_label='label',
+            format='df',
+            fields=_fields,
+            events=_events)
+
+        # Transform for dashboard data
+        df = df.rename(columns=_rename)
+        df = df.dropna(subset=['SUBJECT'])
+        df['SUBJECT'] = df['SUBJECT'].astype(int).astype(str)
+        df = df.set_index('SUBJECT', verify_integrity=True)
+
+        # All DM2 are depressed
+        df['DEPRESS'] = '1'
 
     return df

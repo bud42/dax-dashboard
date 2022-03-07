@@ -118,22 +118,30 @@ def get_graph_content(df):
 
 
 def get_content():
+    # Load the data
     df = load_stats()
+
+    # Check for empty data
     if df.empty:
         _txt = 'No stats loaded.'
         logging.debug(_txt)
-        stats_content = html.Div(_txt, 
+        stats_content = html.Div(
+            _txt,
              style={
                 'padding-top': '100px',
                 'padding-bottom': '200px',
                 'padding-left': '400px',
-                'padding-right': '400px'})
+                'padding-right': '400px'}
+        )
         return stats_content
 
+    # Make the graphs
     stats_graph_content = get_graph_content(df)
 
     # Get the rows and colums for the table
     stats_columns = [{"name": i, "id": i} for i in df.columns]
+    print(df.columns)
+
     df.reset_index(inplace=True)
     stats_data = df.to_dict('rows')
 
@@ -162,11 +170,11 @@ def get_content():
             placeholder='Select Type(s)'),
         dcc.RadioItems(
             options=[
-                {'label': 'All Sessions', 'value': 'all'},
-                {'label': 'Baseline Only', 'value': 'baseline'},
-                {'label': 'Followup Only', 'value': 'followup'}],
-            value='all',
-            id='radio-stats-sesstype',
+                {'label': 'Row per Assessor', 'value': 'assr'},
+                #{'label': 'Session', 'value': 'sess'},
+                {'label': 'Row per Subject', 'value': 'subj'}],
+            value='assr',
+            id='radio-stats-pivot',
             labelStyle={'display': 'inline-block'}),
         dt.DataTable(
             columns=stats_columns,
@@ -196,7 +204,8 @@ def get_content():
             fill_width=False,
             export_format='xlsx',
             export_headers='names',
-            export_columns='visible')]
+            export_columns='visible'),
+        html.Label('0', id='label-rowcount')]
 
     return stats_content
 
@@ -218,17 +227,18 @@ def was_triggered(callback_ctx, button_id):
      Output('dropdown-stats-proj', 'options'),
      Output('datatable-stats', 'data'),
      Output('datatable-stats', 'columns'),
-     Output('tabs-stats', 'children')],
+     Output('tabs-stats', 'children'),
+     Output('label-rowcount', 'children')],
     [Input('dropdown-stats-proc', 'value'),
      Input('dropdown-stats-proj', 'value'),
      Input('dropdown-stats-time', 'value'),
-     Input('radio-stats-sesstype', 'value'),
+     Input('radio-stats-pivot', 'value'),
      Input('button-stats-refresh', 'n_clicks')])
 def update_stats(
     selected_proc,
     selected_proj,
     selected_time,
-    selected_sesstype,
+    selected_pivot,
     n_clicks
 ):
     refresh = False
@@ -252,13 +262,8 @@ def update_stats(
     proc = utils.make_options(df.TYPE.unique())
     proj = utils.make_options(df.PROJECT.unique())
 
-    # if none chose, default to the first proc
-    #if not selected_proc:
-    #    selected_proc = [(df.TYPE.unique())[0]]
-    #    if 'fmri_msit_v2' in df.TYPE.unique():
-    #        selected_proc = ['fmri_msit_v2']
-
     # Filter data based on dropdown values
+    selected_sesstype = 'all'
     df = data.filter_data(
         df,
         selected_proj,
@@ -269,16 +274,53 @@ def update_stats(
     # Get the graph content in tabs (currently only one tab)
     tabs = get_graph_content(df)
 
-    # Determine columns to be included in the table
-    _vars = data.get_vars()
-    selected_cols = list(data.static_columns())
-    selected_cols.extend(
-        [x for x in df.columns if (x in _vars and not pd.isnull(df[x]).all())])
+    # TODO: handle multiple of same type for a subject?
+    if selected_pivot == 'subj':
+        # Pivot to one row per subject
 
-    # Get the table data
-    columns = utils.make_columns(selected_cols)
-    records = df.reset_index().to_dict('records')
+        _index = ['SUBJECT', 'PROJECT', 'AGE', 'SEX', 'DEPRESS', 'SITE']
+
+        _vars = data.get_vars()
+
+        _vars = [x for x in df.columns if (
+            x in _vars and not pd.isnull(df[x]).all())]
+
+        _cols = []
+        if len(df.SESSTYPE.unique()) > 1:
+            # Multiple session types, need prefix to disambiguate
+            _cols += ['SESSTYPE']
+        if len(df.TYPE.unique()) > 1:
+            # Multiple processing types, need prefix to disambiguate
+            _cols += ['TYPE']
+
+        # Make the pivot table based on _index, _cols, _vars
+        dfp = df.pivot(index=_index, columns=_cols, values=_vars)
+
+        # Concatenate column levels to get one level with delimiter
+        dfp.columns = ['_'.join(reversed(t)) for t in dfp.columns]
+
+        # Clear the index so all columns are named
+        dfp = dfp.reset_index()
+
+        columns = utils.make_columns(dfp.columns)
+        records = dfp.to_dict('records')
+    else:
+        # Keep as to one row per assessor
+
+        # Determine columns to be included in the table
+        selected_cols = list(data.static_columns())
+        _vars = data.get_vars()
+        _vars = [x for x in df.columns if (
+            x in _vars and not pd.isnull(df[x]).all())]
+        selected_cols.extend(_vars)
+
+        # Get the table data as one row per assessor
+        columns = utils.make_columns(selected_cols)
+        records = df.reset_index().to_dict('records')
+
+    # Count how many rows are in the table
+    rowcount = '{} rows'.format(len(records))
 
     # Return table, figure, dropdown options
     logging.debug('update_all:returning data')
-    return [proc, proj, records, columns, tabs]
+    return [proc, proj, records, columns, tabs, rowcount]

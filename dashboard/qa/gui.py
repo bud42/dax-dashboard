@@ -362,14 +362,14 @@ def sessionsbytime_figure(df, selected_groupby):
                     orientation='h',
                     marker={
                         'symbol': symb,
-                        'color': _rgba, 
+                        'color': _rgba,
                         'size': 12,
                         'line': dict(width=2, color=_color)
                     },
                     line={'color': 'rgba(0,0,0,0)'},
                     fillcolor='rgba(0,0,0,0)',
                     hoveron='points',
-                   ),
+                ),
                 _row,
                 _col)
 
@@ -390,8 +390,14 @@ def sessionsbytime_figure(df, selected_groupby):
             #print('x_min=', x_min, 'x_max=', x_max)
 
             if x_min == '2021-11-01' or x_min == '2021-11-10':
-                fig.update_xaxes(range=('2021-10-31', '2021-12-01'), tickvals=[
-                    '2021-11-01', '2021-11-08', '2021-11-15', '2021-11-22', '2021-11-29'])
+                fig.update_xaxes(
+                    range=('2021-10-31', '2021-12-01'),
+                    tickvals=[
+                        '2021-11-01',
+                        '2021-11-08',
+                        '2021-11-15',
+                        '2021-11-22',
+                        '2021-11-29'])
 
             fig.update_layout(width=900)
 
@@ -408,6 +414,7 @@ def get_content():
     # the columns will be the merged
     # status column with harmonized values to be red/yellow/green/blue
     df = data.load_data()
+    #print(df)
 
     dfp = qa_pivot(df)
 
@@ -522,7 +529,10 @@ def get_metastatus(status):
 
 def qa_pivot(df):
     dfp = df.pivot_table(
-        index=('SESSION', 'SUBJECT', 'PROJECT', 'DATE', 'SESSTYPE', 'SITE', 'MODALITY'),
+        index=(
+            'SESSION', 'SUBJECT', 'PROJECT',
+            #'AGE', 'SEX', 'DEPRESS',
+            'DATE', 'SESSTYPE', 'SITE', 'MODALITY'),
         columns='TYPE',
         values='STATUS',
         aggfunc=lambda x: ''.join(x))
@@ -617,11 +627,6 @@ def update_all(
         refresh = True
 
     logging.debug('loading data')
-    #df = load_data(
-    #    proj_filter=selected_proj,
-    #    proc_filter=selected_proc,
-    #    scan_filter=selected_scan,
-    #    refresh=refresh)
     df = load_data(refresh=refresh)
 
     # Update lists of possible options for dropdowns (could have changed)
@@ -642,11 +647,15 @@ def update_all(
 
     # Get the qa pivot from the filtered data
     dfp = qa_pivot(df)
+    #print(dfp)
 
     tabs = get_graph_content(dfp, selected_groupby)
 
     # Get the table data
-    selected_cols = ['SESSION', 'SUBJECT', 'PROJECT', 'DATE', 'SESSTYPE', 'SITE']
+    selected_cols = [
+        'SESSION', 'SUBJECT', 'PROJECT',
+        #'AGE', 'SEX', 'DEPRESS', 
+        'DATE', 'SESSTYPE', 'SITE']
 
     if selected_proc:
         selected_cols += selected_proc
