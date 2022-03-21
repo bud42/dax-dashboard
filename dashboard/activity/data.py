@@ -210,6 +210,9 @@ def load_completed_file():
             if 'session' not in row:
                 row['session'] = ''
 
+            if 'field' not in row:
+                row['field'] = ''
+
             data.append(row)
 
     # Make a dataframe from all rows

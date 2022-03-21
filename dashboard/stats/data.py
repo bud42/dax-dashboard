@@ -136,18 +136,25 @@ def get_data():
     df['ISBASELINE'] = False
 
     if DEMOG_KEYS:
+        print('loading demographic data')
         _df = load_demographic_data(REDCAP_URL, DEMOG_KEYS)
         df = pd.merge(df, _df, how='left', left_on='SUBJECT', right_index=True)
+
+        # Fill with blanks so we don't lose to nans
+        df['AGE'] = df['AGE'].fillna('')
+        df['SEX'] = df['SEX'].fillna('')
+        df['DEPRESS'] = df['DEPRESS'].fillna('')
+    else:
+        # Fill with blanks so we don't lose to nans
+        df['AGE'] = ''
+        df['SEX'] = ''
+        df['DEPRESS'] = ''
 
     # TODO: load MADRS
     #if DEMOG_KEYS:
     #    _df = load_other_data()
     #    df = pd.merge(df, _df, how='left', left_on='', right_on='')
 
-    # Fill with blanks so we don't lose to nans
-    df['AGE'] = df['AGE'].fillna('')
-    df['SEX'] = df['SEX'].fillna('')
-    df['DEPRESS'] = df['DEPRESS'].fillna('')
     df['SESSTYPE'] = df['SESSTYPE'].fillna('UNKNOWN')
 
     return df
