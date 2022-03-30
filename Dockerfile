@@ -1,8 +1,10 @@
 FROM python:3.8-slim-buster
 
 # Install prereqs for dashboard
-RUN pip install pandas dax dash pycap dash_auth
+RUN pip install pycap==1.1.3
+RUN pip install pandas dax dash dash_auth
 RUN pip install kaleido
+RUN pip uninstall -y werkzeug && pip install -v https://github.com/pallets/werkzeug/archive/refs/tags/2.0.1.tar.gz
 
 # Copy over dashboard code
 COPY dashboard /opt/dashboard
