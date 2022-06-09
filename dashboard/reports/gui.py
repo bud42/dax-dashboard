@@ -467,7 +467,7 @@ def add_phantom_page(pdf, info):
 
 def add_activity_page(pdf, info):
     # 'index', 'SESSION', 'SUBJECT', 'ASSR', 'JOBDATE', 'QCSTATUS',
-    #   'session_ID', 'PROJECT', 'PROCSTATUS', 'URI', 'xsiType', 'PROCTYPE',
+    #   'session_ID', 'PROJECT', 'PROCSTATUS', 'xsiType', 'PROCTYPE',
     #   'QCDATE', 'DATE', 'QCBY', 'LABEL', 'CATEGORY', 'STATUS', 'SOURCE',
     #   'DESCRIPTION', 'DATETIME', 'ID'],
     pdf.add_page()
