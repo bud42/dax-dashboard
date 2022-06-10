@@ -144,7 +144,7 @@ def draw_counts(pdf, sessions, rangetype=None):
         if len(_txt) > 7:
             _txt = _txt[:8] + '.'
 
-        pdf.cell(w=0.5)
+        #pdf.cell(w=0.5)
         pdf.cell(**_kwargs, txt=_txt)
 
         # Count each type for this site
