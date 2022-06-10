@@ -5,7 +5,7 @@ import yaml
 # so that by default we include everything, unless there's a subset filter.
 # then we don't need to update this list for new stuff.
 
-
+# NOTE: this default value is typically overriden by statsparams.yaml
 VAR_LIST = [
     'accuracy', 'RT', 'trials',  # EDATQA
     'WML',  # LST
@@ -14,7 +14,7 @@ VAR_LIST = [
     'ETIV', 'LHPC', 'LVENT', 'LSUPFLOBE',  # FS6
     'bag_age_pred']  # BAG
 
-
+# NOTE: this default value is typically overriden by statsparams.yaml
 STATS_RENAME = {
     'experiment': 'SESSION',
     'proctype': 'TYPE',

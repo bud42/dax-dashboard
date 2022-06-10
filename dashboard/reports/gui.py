@@ -117,11 +117,11 @@ def draw_counts(pdf, sessions, rangetype=None):
     pdf.cell(w=7.5, h=0.5, txt=_txt, align='C', border=0, ln=1)
 
     # Header Formatting
-    pdf.cell(w=1.0)
+    pdf.cell(w=0.5)
     pdf.set_text_color(245, 245, 245)
     pdf.set_line_width(0.01)
     _kwargs = {'w': 1.2, 'h': 0.7, 'border': 1, 'align': 'C', 'fill': True}
-    pdf.cell(w=1.2, border=0, fill=False)
+    pdf.cell(w=0.7, border=0, fill=False)
 
     # Column header for each session type
     for cur_type in type_list:
@@ -144,7 +144,7 @@ def draw_counts(pdf, sessions, rangetype=None):
         if len(_txt) > 7:
             _txt = _txt[:8] + '.'
 
-        pdf.cell(w=1)
+        pdf.cell(w=0.5)
         pdf.cell(**_kwargs, txt=_txt)
 
         # Count each type for this site
@@ -158,8 +158,8 @@ def draw_counts(pdf, sessions, rangetype=None):
         pdf.ln()
 
     # TOTALS row
-    pdf.cell(w=1.0)
-    pdf.cell(w=1.2, h=0.5)
+    pdf.cell(w=0.5)
+    pdf.cell(w=0.7, h=0.5)
     for cur_type in type_list:
         pdf.set_font('helvetica', size=18)
         cur_count = str(len(df[df.SESSTYPE == cur_type]))
