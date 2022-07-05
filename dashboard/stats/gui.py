@@ -293,7 +293,14 @@ def update_stats(
             # Multiple processing types, need prefix to disambiguate
             _cols += ['TYPE']
 
+        # Drop any duplicates found b/c redcap sync module does not prevent
+        df = df.drop_duplicates()
+
         # Make the pivot table based on _index, _cols, _vars
+        #print(_index)
+        #print(_cols)
+        #print(_vars)
+        #print(df)
         dfp = df.pivot(index=_index, columns=_cols, values=_vars)
 
         # Concatenate column levels to get one level with delimiter
