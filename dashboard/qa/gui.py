@@ -112,7 +112,8 @@ def get_graph_content(dfp, selected_groupby='PROJECT'):
     # and we'll have a column for each STATUS (so columns=STATUS),
     # and we'll count how many sessions (values='SESSION') we find for each
     # cell
-    dfp_copy.reset_index(inplace=True)
+    # get a copy so it's defragmented
+    dfp_copy = dfp_copy.reset_index().copy()
 
     # don't need subject
     dfp_copy = dfp_copy.drop(columns=['SUBJECT'])
