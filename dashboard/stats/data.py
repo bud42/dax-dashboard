@@ -138,7 +138,22 @@ def get_data():
     if DEMOG_KEYS:
         print('loading demographic data')
         _df = load_demographic_data(REDCAP_URL, DEMOG_KEYS)
-        df = pd.merge(df, _df, how='left', left_on='SUBJECT', right_index=True)
+        df = pd.merge(
+            df,
+            _df,
+            how='left',
+            left_on='SUBJECT',
+            right_index=True)
+
+        print('loading madrs')
+        _df = load_madrs_data(REDCAP_URL, DEMOG_KEYS)
+        print(_df)
+        df = pd.merge(
+            df,
+            _df,
+            how='outer',
+            left_on=['SUBJECT', 'SESSTYPE'],
+            right_on=['SUBJECT', 'SESSTYPE'])
 
         # Fill with blanks so we don't lose to nans
         df['AGE'] = df['AGE'].fillna('')
@@ -298,6 +313,66 @@ def filter_data(df, projects, proctypes, timeframe, sesstype):
             pass
 
     return df
+
+def load_madrs_data(redcapurl, redcapkeys):
+    data = pd.DataFrame()
+
+    if 'DepMIND2' in redcapkeys:
+        print('loading DepMIND2 MADRS data')
+        _key = redcapkeys['DepMIND2']
+
+        _cols = ['ma_tot']
+        _fields = ['record_id', 'ma_tot']
+        _map = {
+            'week_0baseline_arm_1': 'Baseline',
+            'week_6_arm_1': 'Week6',
+            'week_12_arm_1': 'Week12',
+            'week_3_arm_1': 'Week3', 
+            'week_9_arm_1': 'Week9',
+        }
+        _events = _map.keys()
+
+        # Connect to the redcap project
+        _proj = redcap.Project(redcapurl, _key)
+
+        # Load secondary ID
+        def_field = _proj.def_field
+        sec_field = _proj.export_project_info()['secondary_unique_field']
+        rec = _proj.export_records(fields=[def_field, sec_field], format='df')
+        rec.dropna(subset=[sec_field], inplace=True)
+        rec[sec_field] = rec[sec_field].astype(int).astype(str)
+        rec = rec.reset_index()
+        rec = rec.drop('redcap_event_name', axis=1)
+
+        # Load madrs data
+        data = _proj.export_records(
+            raw_or_label='raw', format='df', fields=_fields, events=_events)
+
+        # Merge in subject_number (probably could do this with a column map)
+        data = data.reset_index()
+        data = pd.merge(
+            data,
+            rec,
+            how='left',
+            left_on='record_id',
+            right_on='record_id',
+            sort=True)
+
+        # Rename for consistency with other studies
+        data.rename(columns={'subject_number': 'SUBJECT'}, inplace=True)
+
+        # Map redcap event to xnat session type
+        data['SESSTYPE'] = data['redcap_event_name'].map(_map)
+        data = data.drop('redcap_event_name', axis=1)
+
+        data = data.dropna()
+
+        # Force int format
+        data['ma_tot'] = data['ma_tot'].astype(int)
+
+        data = data.sort_values('SUBJECT')
+
+    return data
 
 
 def load_demographic_data(redcapurl, redcapkeys):
