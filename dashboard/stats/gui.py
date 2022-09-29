@@ -168,6 +168,9 @@ def get_content():
         dcc.Dropdown(
             id='dropdown-stats-proc', multi=True,
             placeholder='Select Type(s)'),
+        dcc.Dropdown(
+            id='dropdown-stats-sess', multi=True,
+            placeholder='Select Session Type(s)'),
         dcc.RadioItems(
             options=[
                 {'label': 'Row per Assessor', 'value': 'assr'},
@@ -225,18 +228,21 @@ def was_triggered(callback_ctx, button_id):
 @app.callback(
     [Output('dropdown-stats-proc', 'options'),
      Output('dropdown-stats-proj', 'options'),
+     Output('dropdown-stats-sess', 'options'),
      Output('datatable-stats', 'data'),
      Output('datatable-stats', 'columns'),
      Output('tabs-stats', 'children'),
      Output('label-rowcount', 'children')],
     [Input('dropdown-stats-proc', 'value'),
      Input('dropdown-stats-proj', 'value'),
+     Input('dropdown-stats-sess', 'value'),
      Input('dropdown-stats-time', 'value'),
      Input('radio-stats-pivot', 'value'),
      Input('button-stats-refresh', 'n_clicks')])
 def update_stats(
     selected_proc,
     selected_proj,
+    selected_sess,
     selected_time,
     selected_pivot,
     n_clicks
@@ -262,15 +268,21 @@ def update_stats(
     proj = utils.make_options(proj_options)
     proc = utils.make_options(proc_options)
 
+    # Get session type in unfiltered data
+    if not df.empty:
+        sess = utils.make_options(df.SESSTYPE.unique())
+    else:
+        sess = []
+
     # Filter data based on dropdown values
-    selected_sesstype = 'all'
+    #selected_sesstype = 'all'
     # TODO: don't need to apply proj/proc filters again
     df = data.filter_data(
         df,
         selected_proj,
         selected_proc,
         selected_time,
-        selected_sesstype)
+        selected_sess)
 
     # Get the graph content in tabs (currently only one tab)
     tabs = get_graph_content(df)
@@ -331,4 +343,4 @@ def update_stats(
 
     # Return table, figure, dropdown options
     logging.debug('update_all:returning data')
-    return [proc, proj, records, columns, tabs, rowcount]
+    return [proc, proj, sess, records, columns, tabs, rowcount]

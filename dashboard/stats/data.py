@@ -138,8 +138,6 @@ def get_data(projects, proctypes):
         _cols = ['SESSION', 'SUBJECT', 'SESSTYPE', 'SITE']
         df = df.merge(dfp[_cols], on='SESSION', how='left')
 
-    df['ISBASELINE'] = False
-
     if DEMOG_KEYS:
         print('loading demographic data')
         _df = load_demographic_data(REDCAP_URL, DEMOG_KEYS)
@@ -290,7 +288,7 @@ def load_stats_data(projects, proctypes):
     return df
 
 
-def filter_data(df, projects, proctypes, timeframe, sesstype):
+def filter_data(df, projects, proctypes, timeframe, sesstypes):
     if df.empty:
         # It's already empty, just send it back
         return df
@@ -320,17 +318,12 @@ def filter_data(df, projects, proctypes, timeframe, sesstype):
         logging.debug('not filtering by time')
         pass
 
-    if len(df) > 0:
-        # Filter by sesstype
-        if sesstype == 'baseline':
-            logging.debug('filtering by baseline only')
-            df = df[df['ISBASELINE']]
-        elif sesstype == 'followup':
-            logging.debug('filtering by followup only')
-            df = df[~df['ISBASELINE']]
-        else:
-            logging.debug('not filtering by sesstype')
-            pass
+     # Filter by sesstype
+    if sesstypes:
+        logging.debug(f'filtering by sesstypes:{sesstypes}')
+        df = df[df['SESSTYPE'].isin(sesstypes)]
+    else:
+        logging.debug('no sesstypes')
 
     return df
 
