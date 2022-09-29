@@ -119,21 +119,21 @@ def get_graph_content(df):
 
 def get_content():
     # Load the data
-    df = load_stats()
+    df = load_stats([], [])
 
     # Check for empty data
-    if df.empty:
-        _txt = 'No stats loaded.'
-        logging.debug(_txt)
-        stats_content = html.Div(
-            _txt,
-             style={
-                'padding-top': '100px',
-                'padding-bottom': '200px',
-                'padding-left': '400px',
-                'padding-right': '400px'}
-        )
-        return stats_content
+    #if df.empty:
+    #    _txt = 'No stats loaded.'
+    #    logging.debug(_txt)
+        #stats_content = html.Div(
+        #    _txt,
+        #     style={
+        #        'padding-top': '100px',
+        #        'padding-bottom': '200px',
+        #        'padding-left': '400px',
+        #        'padding-right': '400px'}
+        #)
+        #return stats_content
 
     # Make the graphs
     stats_graph_content = get_graph_content(df)
@@ -210,8 +210,8 @@ def get_content():
     return stats_content
 
 
-def load_stats(refresh=False):
-    return data.load_data(refresh=refresh)
+def load_stats(projects, proctypes, refresh=False):
+    return data.load_data(projects, proctypes, refresh=refresh)
 
 
 def was_triggered(callback_ctx, button_id):
@@ -254,16 +254,17 @@ def update_stats(
         logging.debug('refresh:clicks={}'.format(n_clicks))
         refresh = True
 
-    # Load data with refresh if requested
-    df = load_stats(refresh=refresh)
+    # Load selected data with refresh if requested
+    df = load_stats(selected_proj, selected_proc, refresh=refresh)
 
-    # Update lists of possible options for dropdowns (could have changed)
-    # make these lists before we filter what to display
-    proc = utils.make_options(df.TYPE.unique())
-    proj = utils.make_options(df.PROJECT.unique())
+    # Get options based on redcdap keys file
+    proj_options, proc_options = data.load_options(selected_proj, selected_proc)
+    proj = utils.make_options(proj_options)
+    proc = utils.make_options(proc_options)
 
     # Filter data based on dropdown values
     selected_sesstype = 'all'
+    # TODO: don't need to apply proj/proc filters again
     df = data.filter_data(
         df,
         selected_proj,

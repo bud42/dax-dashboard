@@ -22,6 +22,8 @@ import pandas as pd
 # Note this app does not access ACCRE or SLURM. The ony local file access
 # is to write the cached data in a pickle file. This file is named stats.pkl
 
+# Now only loads the selected redcaps rather than loading them first and then
+# filtering
 
 logging.basicConfig(
     format='%(asctime)s %(levelname)-8s %(message)s',
@@ -66,11 +68,14 @@ def get_filename():
     return '{}.pkl'.format('stats')
 
 
-def load_data(refresh=False):
+def load_data(projects, proctypes, refresh=False):
     filename = get_filename()
 
+    print(projects)
+    print(proctypes)
+
     if refresh or not os.path.exists(filename):
-        run_refresh(filename)
+        run_refresh(filename, projects, proctypes)
 
     logging.info('reading data from file:{}'.format(filename))
     return read_data(filename)
@@ -114,9 +119,9 @@ def save_data(df, filename):
     df.to_pickle(filename)
 
 
-def get_data():
+def get_data(projects, proctypes):
     # Load that data
-    df = load_stats_data()
+    df = load_stats_data(projects, proctypes)
     if df.empty:
         return df
 
@@ -175,8 +180,8 @@ def get_data():
     return df
 
 
-def run_refresh(filename):
-    df = get_data()
+def run_refresh(filename, projects, proctypes):
+    df = get_data(projects, proctypes)
 
     # Apply the var list filter here?
     #df = df[df.
@@ -209,7 +214,7 @@ def load_redcap_stats(api_url, api_key):
     return _df
 
 
-def load_stats_data():
+def load_stats_data(projects, proctypes):
     my_redcaps = []
     df = pd.DataFrame()
 
@@ -230,7 +235,6 @@ def load_stats_data():
     with dax.XnatUtils.get_interface() as xnat:
         my_projects = utils.get_user_favorites(xnat)
 
-    # Filter the list of redcaps based on our project access
     for r in redcap_data['projects']:
         name = r['name']
 
@@ -239,8 +243,20 @@ def load_stats_data():
         except ValueError:
             continue
 
-        if (proj in my_projects):
-            my_redcaps.append(r)
+        if (proj not in my_projects):
+            # Filter the list of redcaps based on our project access
+            continue
+
+        if (not projects or proj not in projects):
+            # Filter based on selected projects, nothing yields nothing
+            continue
+
+        if (not proctypes or proc not in proctypes):
+            # Filter based on selected projects, nothing yields nothing
+            continue
+
+        my_redcaps.append(r)
+
 
     # Load data from each redcap
     icount = len(my_redcaps)
@@ -275,6 +291,10 @@ def load_stats_data():
 
 
 def filter_data(df, projects, proctypes, timeframe, sesstype):
+    if df.empty:
+        # It's already empty, just send it back
+        return df
+
     # Filter by project
     if projects:
         logging.debug('filtering by project:')
@@ -410,3 +430,49 @@ def load_demographic_data(redcapurl, redcapkeys):
         df['DEPRESS'] = '1'
 
     return df
+
+
+def load_options(projects, proctypes):
+    proj_options = []
+    proc_options = []
+
+    # Only filter proctypes if projects are selected
+    # Only filter projects by proctypes selected
+
+    logging.debug('loading stats options')
+    try:
+        # Read inputs yaml as dictionary
+        with open(REDCAP_FILE, 'rt') as file:
+            redcap_data = yaml.load(file, yaml.SafeLoader)
+    except EnvironmentError:
+        logging.info('REDCap settings file not found, not loading stats')
+        return [], []
+
+    with dax.XnatUtils.get_interface() as xnat:
+        my_projects = utils.get_user_favorites(xnat)
+
+    # Filter the list of redcaps based on our project access
+    for r in redcap_data['projects']:
+        name = r['name']
+
+        try:
+            (proj, proc, res) = parse_redcap_name(name)
+        except ValueError:
+            continue
+  
+        # Only projects we can access
+        if (proj not in my_projects):
+            continue
+
+        # Include in projects list if no proctypes are 
+        # selected or if it is one of the selected proc types
+        if not proctypes or len(proctypes) == 0 or proc in proctypes:
+            proj_options.append(proj)
+
+        # Include in proc types list if no projects are selected or if it is
+        # one of the selected projects
+        if not projects or len(projects) == 0 or proj in projects:
+            proc_options.append(proc)
+
+    # Return projects, processing types
+    return sorted(list(set(proj_options))), sorted(list(set(proc_options)))

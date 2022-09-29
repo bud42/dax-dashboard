@@ -37,7 +37,7 @@ def load_activity_info(project):
 
 def load_stats(project, stattypes):
     # Load that data
-    df = stats_data.load_data()
+    df = stats_data.load_data([project], stattypes)
     if df.empty:
         return df
 
