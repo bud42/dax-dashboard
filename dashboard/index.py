@@ -7,12 +7,15 @@ from qa import gui as qa
 from activity import gui as activity
 from stats import gui as stats
 from reports import gui as reports
+from issues import gui as issues
+
 
 def get_layout():
     qa_content = qa.get_content()
     activity_content = activity.get_content()
     stats_content = stats.get_content()
     reports_content = reports.get_content()
+    issues_content = issues.get_content()
 
     report_content = [
         html.Div(
@@ -22,9 +25,11 @@ def get_layout():
                 dcc.Tab(
                     label='Activity', value='2', children=activity_content),
                 dcc.Tab(
-                    label='Stats', value='3', children=stats_content),
+                    label='Issues', value='3', children=issues_content),
+                dcc.Tab(
+                    label='Stats', value='4', children=stats_content),
                  dcc.Tab(
-                    label='Reports', value='4', children=reports_content),
+                    label='Reports', value='5', children=reports_content),
             ]),
             #style={
             #    'width': '100%', 'display': 'flex',
