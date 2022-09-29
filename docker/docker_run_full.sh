@@ -11,4 +11,4 @@ docker run \
 -v $HOME/issues.csv:/root/issues.csv \
 -v $HOME/completed.log:/root/completed.log \
 -v $HOME/dashboardsecrets.py:/opt/dashboard/dashboardsecrets.py \
-bud42/daxdashboard
+bud42/daxdashboard:v1

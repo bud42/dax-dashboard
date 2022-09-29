@@ -1,2 +1,1 @@
-docker build ../. -t bud42/daxdashboard --platform linux/amd64
-
+docker build ../. -t bud42/daxdashboard:v1 --platform linux/amd64

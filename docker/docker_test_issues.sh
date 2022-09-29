@@ -12,5 +12,4 @@ docker run \
 -v $HOME/git/ccmparams/params:/root/PARAMS \
 -v $HOME/REPORTS:/root/REPORTS \
 -v $HOME/demogparams.yaml:/root/demogparams.yaml \
-bud42/daxdashboard
-
+bud42/daxdashboard:v1

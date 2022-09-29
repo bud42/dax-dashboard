@@ -1,2 +1,1 @@
-docker pull bud42/daxdashboard
-
+docker pull bud42/daxdashboard:v1

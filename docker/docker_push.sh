@@ -1,2 +1,1 @@
-docker push bud42/daxdashboard
-
+docker push bud42/daxdashboard:v1
