@@ -97,7 +97,6 @@ def load_issues():
     df['STATUS'] = 'FAIL'
     df['SOURCE'] = 'ccmutils'
     df['LABEL'] = df['ID']
-    df['DESCRIPTION']  = df['DESCRIPTION'].str.slice(0,50)
 
     return df
 
