@@ -201,7 +201,7 @@ def load_redcap_stats(api_url, api_key):
     _rc = redcap.Project(api_url, api_key)
 
     # Load the data, specify index since we loaded lazy
-    _df = _rc.export_records(format='df', df_kwargs={'index_col': 'record_id'})
+    _df = _rc.export_records(format_type='df', df_kwargs={'index_col': 'record_id'})
 
     if 'wml_volume' in _df:
         # rename wml for NIC
@@ -351,7 +351,7 @@ def load_madrs_data(redcapurl, redcapkeys):
         # Load secondary ID
         def_field = _proj.def_field
         sec_field = _proj.export_project_info()['secondary_unique_field']
-        rec = _proj.export_records(fields=[def_field, sec_field], format='df')
+        rec = _proj.export_records(fields=[def_field, sec_field], format_type='df')
         rec.dropna(subset=[sec_field], inplace=True)
         rec[sec_field] = rec[sec_field].astype(int).astype(str)
         rec = rec.reset_index()
@@ -359,7 +359,7 @@ def load_madrs_data(redcapurl, redcapkeys):
 
         # Load madrs data
         data = _proj.export_records(
-            raw_or_label='raw', format='df', fields=_fields, events=_events)
+            raw_or_label='raw', format_type='df', fields=_fields, events=_events)
 
         # Merge in subject_number (probably could do this with a column map)
         data = data.reset_index()
@@ -409,7 +409,7 @@ def load_demographic_data(redcapurl, redcapkeys):
         _proj = redcap.Project(redcapurl, _key)
         df = _proj.export_records(
             raw_or_label='label',
-            format='df',
+            format_type='df',
             fields=_fields,
             events=_events)
 
