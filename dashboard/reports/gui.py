@@ -7,6 +7,7 @@ import os
 import os.path
 from datetime import datetime, date, timedelta
 import time
+import tempfile
 
 import humanize
 import pandas as pd
@@ -19,6 +20,7 @@ import dash
 import plotly.express as px
 from fpdf import FPDF
 from PIL import Image
+import redcap
 
 from app import app
 import utils
@@ -40,6 +42,8 @@ logger.debug('its log')
 REPORTDIR = os.path.join(os.path.expanduser("~"), 'REPORTS')
 PARAMSDIR = os.path.join(os.path.expanduser("~"), 'PARAMS/audits')
 
+# TODO: finish transition to storing reports on redcap instead of local,
+# move loading reports/saving to data.py
 
 try:
     os.mkdir('assets')
@@ -859,6 +863,143 @@ def update_reports(refresh=False):
     return results
 
 
+def update_redcap_reports():
+    results = []
+    API_URL = 'https://redcap.vanderbilt.edu/api/'
+    KEYFILE = os.path.join(os.path.expanduser('~'), '.redcap.txt')
+
+    # Get list of projects from main redcap
+    try:
+        logging.info('connecting to redcap')
+        i = get_projectid("main", KEYFILE)
+        k = get_projectkey(i, KEYFILE)
+        mainrc = redcap.Project(API_URL, k)
+    except Exception as err:
+        logging.error(f'failed to connect to main redcap:{err}')
+        return
+
+    # Get list of projects
+    maindata = mainrc.export_records(forms=['main'])
+    proj_list = sorted(list(set([x['main_name'] for x in maindata])))
+
+    with tempfile.TemporaryDirectory() as outdir:
+        # Update each project
+        for proj_name in proj_list:
+            if proj_name == 'root':
+                logger.info('skipping root')
+                return
+
+            now = datetime.now().strftime("%Y-%m-%d_%H_%M_%S")
+            filename = f'{outdir}/{proj_name}_report_{now}.pdf'
+            #results += make_project_report(
+            #    filename,
+            #    project_name,
+            #scantypes=params.get('scantypes', []),
+                #assrtypes=params.get('assrtypes', []),
+                #stattypes=params.get('stattypes', []),
+                #xsesstypes=params.get('xsesstypes', []),
+                #phantom_project=phantom_project)
+            results += make_project_report(
+                filename,
+                proj_name,
+                scantypes=[],
+                assrtypes=[],
+                stattypes=[],
+                xsesstypes=[],
+                phantom_project='')
+
+            logger.info(f'uploading report:{proj_name}:{filename}')
+            upload_report(filename, mainrc, proj_name)
+
+    return results
+
+
+def upload_report(filename, mainrc, project_name):
+    # Add new record
+    try:
+        progress_datetime = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        record = {
+            'progress_datetime': progress_datetime,
+            'main_name': project_name,
+            'redcap_repeat_instrument': 'progress',
+            'redcap_repeat_instance': 'new',
+        }
+        response = mainrc.import_records([record])
+        assert 'count' in response
+        logger.info('successfully created new record')
+
+        # Determine the new record id
+        logger.info('locating new record')
+        _ids = match_repeat(mainrc, project_name, 'progress', 'progress_datetime', progress_datetime)
+        repeat_id = _ids[-1]
+
+        # Upload output files
+        logger.info(f'uploading files to:{repeat_id}')
+        upload_file(filename, mainrc, project_name, repeat_id, 'progress_pdf')
+    except AssertionError as err:
+        logger.error(f'upload failed:{err}')
+    except (ValueError, redcap.RedcapError) as err:
+        logger.error(f'error uploading:{err}')
+
+
+def upload_file(filename, mainrc, proj_name, repeat_id, field_id):
+    with open(filename, 'rb') as f:
+        mainrc.import_file(
+            record=proj_name,
+            field=field_id,
+            file_name=os.path.basename(filename),
+            repeat_instance=repeat_id,
+            file_object=f)
+
+
+def match_repeat(mainrc, record_id, repeat_name, match_field, match_value):
+
+    # Load potential matches
+    records = mainrc.export_records(records=[record_id])
+
+    # Find records with matching vaue
+    matches = [x for x in records if x[match_field] == match_value]
+
+    # Return ids of matches
+    return [x['redcap_repeat_instance'] for x in matches]
+
+
+def get_projectkey(projectid, keyfile):
+    # Load the dictionary
+    d = {}
+    with open(keyfile) as f:
+        for line in f:
+            if line == '':
+                continue
+
+            try:
+                (i, k, n) = line.strip().split(',')
+                d[i] = k
+            except:
+                pass
+
+    return d.get(projectid, None)
+
+
+def get_projectid(projectname, keyfile):
+    # Load the dictionary mapping name to id
+    d = {}
+    with open(keyfile) as f:
+        for line in f:
+            if line == '':
+                continue
+
+            try:
+                (i, k, n) = line.strip().split(',')
+                # Map name to id
+                d[n] = i
+            except:
+                pass
+
+    # Return the project id for given project name
+    return d.get(projectname, None)
+
+
 def print_results(results):
     # Print summary to screen
     import pprint
@@ -962,6 +1103,9 @@ def update_all(
 
     logging.debug('updating reports')
     result = update_reports(refresh=refresh)
+
+    logging.debug('uploading reports to redcap')
+    result = update_redcap_reports()
 
     # Return result
     tabs = get_graph_content()
