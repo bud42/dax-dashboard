@@ -1,7 +1,7 @@
 FROM python:3.8-slim-buster
 
 # Install prereqs for dashboard
-RUN pip install pycap==1.1.2
+RUN pip install pycap==2.1.0
 RUN pip install flask==2.1.3
 RUN pip install pandas dax dash dash_auth
 RUN pip install kaleido
