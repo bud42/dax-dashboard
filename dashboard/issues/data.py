@@ -70,7 +70,8 @@ def load_issues():
         k = get_projectkey('156730', KEYFILE)
         project = redcap.Project(API_URL, k)
         logging.info('exporting records')
-        df = project.export_records(forms=['issues'], format_type='df')
+        df = project.export_records(forms=['main', 'issues'], format_type='df')
+        df = df[df['redcap_repeat_instrument'] == 'issues']
     except Exception as err:
         logging.error(f'failed to load issues:{err}')
         return pd.DataFrame(columns=[
