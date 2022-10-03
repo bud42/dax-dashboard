@@ -198,7 +198,7 @@ def parse_redcap_name(name):
 
 def load_redcap_stats(api_url, api_key):
     # Load the redcap project, lazy for speed
-    _rc = redcap.Project(api_url, api_key, lazy=True)
+    _rc = redcap.Project(api_url, api_key)
 
     # Load the data, specify index since we loaded lazy
     _df = _rc.export_records(format='df', df_kwargs={'index_col': 'record_id'})
