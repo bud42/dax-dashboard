@@ -81,8 +81,7 @@ def load_issues():
         ])
 
     logging.debug('transforming records')
-    df = df[df['redcap_repeat_instrument'] == 'issues']
-    df = df[df['issues_complete'].astype(str) != '2']
+    df = df[df['issues_complete'].astype(int).astype(str) != '2']
 
     df['PROJECT'] = df.index
     df.rename(inplace=True, columns={
