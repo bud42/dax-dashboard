@@ -35,3 +35,38 @@ def get_user_projects(xnat, username):
     data = sorted([x.rsplit('_', 1)[0] for x in data])
 
     return data
+
+def get_projectkey(projectid, keyfile):
+    # Load the dictionary
+    d = {}
+    with open(keyfile) as f:
+        for line in f:
+            if line == '':
+                continue
+
+            try:
+                (i, k, n) = line.strip().split(',')
+                d[i] = k
+            except:
+                pass
+
+    return d.get(projectid, None)
+
+
+def get_projectid(projectname, keyfile):
+    # Load the dictionary mapping name to id
+    d = {}
+    with open(keyfile) as f:
+        for line in f:
+            if line == '':
+                continue
+
+            try:
+                (i, k, n) = line.strip().split(',')
+                # Map name to id
+                d[n] = i
+            except:
+                pass
+
+    # Return the project id for given project name
+    return d.get(projectname, None)

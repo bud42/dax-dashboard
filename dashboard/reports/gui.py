@@ -871,8 +871,8 @@ def update_redcap_reports():
     # Get list of projects from main redcap
     try:
         logging.info('connecting to redcap')
-        i = get_projectid("main", KEYFILE)
-        k = get_projectkey(i, KEYFILE)
+        i = utils.get_projectid("main", KEYFILE)
+        k = utils.get_projectkey(i, KEYFILE)
         mainrc = redcap.Project(API_URL, k)
     except Exception as err:
         logging.error(f'failed to connect to main redcap:{err}')
@@ -963,41 +963,6 @@ def match_repeat(mainrc, record_id, repeat_name, match_field, match_value):
     # Return ids of matches
     return [x['redcap_repeat_instance'] for x in matches]
 
-
-def get_projectkey(projectid, keyfile):
-    # Load the dictionary
-    d = {}
-    with open(keyfile) as f:
-        for line in f:
-            if line == '':
-                continue
-
-            try:
-                (i, k, n) = line.strip().split(',')
-                d[i] = k
-            except:
-                pass
-
-    return d.get(projectid, None)
-
-
-def get_projectid(projectname, keyfile):
-    # Load the dictionary mapping name to id
-    d = {}
-    with open(keyfile) as f:
-        for line in f:
-            if line == '':
-                continue
-
-            try:
-                (i, k, n) = line.strip().split(',')
-                # Map name to id
-                d[n] = i
-            except:
-                pass
-
-    # Return the project id for given project name
-    return d.get(projectname, None)
 
 
 def print_results(results):
@@ -1104,8 +1069,8 @@ def update_all(
     logging.debug('updating reports')
     result = update_reports(refresh=refresh)
 
-    logging.debug('uploading reports to redcap')
-    result = update_redcap_reports()
+    #logging.debug('uploading reports to redcap')
+    #result = update_redcap_reports()
 
     # Return result
     tabs = get_graph_content()

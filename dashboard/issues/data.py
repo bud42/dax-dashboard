@@ -20,23 +20,6 @@ logging.basicConfig(
     datefmt='%Y-%m-%d %H:%M:%S')
 
 
-def get_projectkey(projectid, keyfile):
-    # Load the dictionary
-    d = {}
-    with open(keyfile) as f:
-        for line in f:
-            if line == '':
-                continue
-
-            try:
-                (i, k, n) = line.strip().split(',')
-                d[i] = k
-            except:
-                pass
-
-    return d.get(projectid, None)
-
-
 # This is where we save our cache of the data
 def get_filename():
     return '{}.pkl'.format('issuesdata')
@@ -67,9 +50,10 @@ def load_issues():
     try:
         logging.info('connecting to redcap')
         # TODO: get main id from keyfile
-        k = get_projectkey('156730', KEYFILE)
+        i = utils.get_projectid("main", KEYFILE)
+        k = utils.get_projectkey(i, KEYFILE)
         project = redcap.Project(API_URL, k)
-        logging.info('exporting records')
+        logging.info('exporting issues records')
         df = project.export_records(forms=['main', 'issues'], format_type='df')
         df = df[df['redcap_repeat_instrument'] == 'issues']
     except Exception as err:
