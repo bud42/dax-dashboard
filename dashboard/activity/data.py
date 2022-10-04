@@ -2,14 +2,15 @@ import logging
 import os
 from datetime import datetime
 
+import pandas as pd
+import redcap
 import dax
 
 import utils
 
-import warnings
-warnings.simplefilter(action='ignore', category=FutureWarning)
-import pandas as pd
 
+API_URL = 'https://redcap.vanderbilt.edu/api/'
+KEYFILE = os.path.join(os.path.expanduser('~'), '.redcap.txt')
 
 ASSR_URI = '/REST/experiments?xsiType=xnat:imagesessiondata\
 &columns=\
@@ -55,6 +56,49 @@ def get_filename():
     return '{}.pkl'.format('activitydata')
 
 
+def load_activity_redcap():
+    # datetime, result, type, subject, session, scan, event, field, project
+    #LABELFIELDS = ['project', 'subject', 'session', 'event', 'field']
+    #df['LABEL'] = df[LABELFIELDS].stack().groupby(level=0).agg(','.join)
+
+    try:
+        logging.info('connecting to redcap')
+        i = utils.get_projectid("main", KEYFILE)
+        k = utils.get_projectkey(i, KEYFILE)
+        mainrc = redcap.Project(API_URL, k)
+
+        logging.info('exporting activity records')
+        df = mainrc.export_records(forms=['main', 'activity'], format_type='df')
+        df = df[df['redcap_repeat_instrument'] == 'activity']
+    except Exception as err:
+        logging.error(f'failed to load activity:{err}')
+        return pd.DataFrame(columns=[
+            'ID', 'LABEL', 'PROJECT', 'SUBJECT', 'SESSION',
+            'EVENT', 'FIELD', 'CATEGORY', 'STATUS', 'SOURCE',
+            'DESCRIPTION', 'DATETIME'
+        ])
+
+    logging.debug('transforming records')
+
+    df['PROJECT'] = df.index
+    df.rename(inplace=True, columns={
+        'redcap_repeat_instance': 'ID',
+        'activity_subject': 'SUBJECT',
+        'activity_result': 'RESULT',
+        'activity_session': 'SESSION',
+        'activity_event': 'EVENT',
+        'activity_field': 'FIELD',
+        'activity_type': 'CATEGORY',
+        'activity_description': 'DESCRIPTION',
+        'activity_datetime': 'DATETIME',
+    })
+    df['STATUS'] = df['RESULT']
+    df['SOURCE'] = 'ccmutils'
+    df['LABEL'] = df['ID']
+
+    return df
+
+
 def get_data(xnat, proj_filter):
     df = pd.DataFrame()
     dfc = pd.DataFrame()
@@ -86,6 +130,8 @@ def get_data(xnat, proj_filter):
         # Load completed data
         logging.info('loading completed log from file')
         dfc = load_completed_file()
+
+    dfc = load_activity_redcap()
 
     # Load qa data
     logging.info('loading recent data from xnat')
