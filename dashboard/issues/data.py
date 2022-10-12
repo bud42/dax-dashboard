@@ -92,9 +92,10 @@ def run_refresh(filename):
         proj_filter = utils.get_user_favorites(xnat)
         df = get_data(xnat, proj_filter)
 
-    save_data(df, filename)
+        # If redcap doesnt work, don't save
+        if not df.empty:
+            save_data(df, filename)
 
-    return df
 
 def load_field_options(fieldname):
     filename = get_filename()

@@ -76,7 +76,7 @@ def _get_graph_content(df):
 
 
 def get_content():
-    ISSUES_SHOW_COLS = ['ID', 'CATEGORY', 'DATETIME', 'PROJECT', 'SUBJECT', 'EVENT', 'FIELD', 'DESCRIPTION']
+    ISSUES_SHOW_COLS = ['ID', 'CATEGORY', 'DATETIME', 'PROJECT', 'SUBJECT', 'SESSION', 'EVENT', 'FIELD', 'DESCRIPTION']
 
     df = load_issues()
     issues_graph_content = _get_graph_content(df)
@@ -223,7 +223,7 @@ def update_issues(
     tabs = _get_graph_content(df)
 
     # Get the table data
-    selected_cols = ['ID', 'CATEGORY', 'DATETIME', 'PROJECT', 'SUBJECT', 'EVENT', 'FIELD', 'DESCRIPTION']
+    selected_cols = ['ID', 'CATEGORY', 'DATETIME', 'PROJECT', 'SUBJECT', 'SESSION', 'EVENT', 'FIELD', 'DESCRIPTION']
     columns = utils.make_columns(selected_cols)
     records = df.reset_index().to_dict('records')
 

@@ -492,7 +492,9 @@ def get_content():
             fill_width=False,
             export_format='xlsx',
             export_headers='names',
-            export_columns='visible')]
+            export_columns='visible'),
+        html.Label('0', id='label-qa-rowcount'),
+        ]
 
     return qa_content
 
@@ -597,7 +599,9 @@ def was_triggered(callback_ctx, button_id):
      Output('dropdown-qa-proj', 'options'),
      Output('datatable-qa', 'data'),
      Output('datatable-qa', 'columns'),
-     Output('tabs-qa', 'children')],
+     Output('tabs-qa', 'children'),
+     Output('label-qa-rowcount', 'children'),
+     ],
     [Input('dropdown-qa-proc', 'value'),
      Input('dropdown-qa-scan', 'value'),
      Input('dropdown-qa-sess', 'value'),
@@ -670,6 +674,9 @@ def update_all(
     # TODO: should we only include data for selected columns here,
     # to reduce amount of data sent?
 
+    # Count how many rows are in the table
+    rowcount = '{} rows'.format(len(records))
+
     # Return table, figure, dropdown options
     logging.debug('update_all:returning data')
-    return [proc, scan, sess, proj, records, columns, tabs]
+    return [proc, scan, sess, proj, records, columns, tabs, rowcount]

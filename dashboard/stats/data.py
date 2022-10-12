@@ -30,6 +30,10 @@ logging.basicConfig(
     level=logging.INFO, datefmt='%Y-%m-%d %H:%M:%S')
 
 
+API_URL = 'https://redcap.vanderbilt.edu/api/'
+KEYFILE = os.path.join(os.path.expanduser('~'), '.redcap.txt')
+
+
 SESS_URI = '/REST/experiments?xsiType=xnat:imagesessiondata\
 &columns=\
 xsiType,\
@@ -149,7 +153,7 @@ def get_data(projects, proctypes):
             right_index=True)
 
         print('loading madrs')
-        _df = load_madrs_data(REDCAP_URL, DEMOG_KEYS)
+        _df = load_madrs_data()
         print(_df)
         df = pd.merge(
             df,
@@ -327,13 +331,14 @@ def filter_data(df, projects, proctypes, timeframe, sesstypes):
 
     return df
 
-def load_madrs_data(redcapurl, redcapkeys):
+def load_madrs_data():
+
     data = pd.DataFrame()
 
-    if 'DepMIND2' in redcapkeys:
+    i = utils.get_projectid("DepMIND2 primary", KEYFILE)
+    k = utils.get_projectkey(i, KEYFILE)
+    if k:
         print('loading DepMIND2 MADRS data')
-        _key = redcapkeys['DepMIND2']
-
         _cols = ['ma_tot']
         _fields = ['record_id', 'ma_tot']
         _map = {
@@ -346,7 +351,7 @@ def load_madrs_data(redcapurl, redcapkeys):
         _events = _map.keys()
 
         # Connect to the redcap project
-        _proj = redcap.Project(redcapurl, _key)
+        _proj = redcap.Project(API_URL, k)
 
         # Load secondary ID
         def_field = _proj.def_field

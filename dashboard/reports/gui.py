@@ -169,6 +169,8 @@ def draw_counts(pdf, sessions, rangetype=None):
         cur_count = str(len(df[df.SESSTYPE == cur_type]))
         pdf.cell(**_kwargs, txt=cur_count)
 
+    pdf.cell(**_kwargs, txt=str(len(df)))
+
     pdf.ln()
 
     return pdf
@@ -899,6 +901,12 @@ def update_redcap_reports():
                 #stattypes=params.get('stattypes', []),
                 #xsesstypes=params.get('xsesstypes', []),
                 #phantom_project=phantom_project)
+            # TODO:Get the scantypes from scanning forms
+            # Get assrtypes from ?
+            # Get stattypes from ?
+            # Get xsesstypes from ?
+            # Get phantom project from main form
+
             results += make_project_report(
                 filename,
                 proj_name,
