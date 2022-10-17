@@ -73,10 +73,13 @@ def get_projectid(projectname, keyfile):
     return d.get(projectname, None)
 
 
-def download_file(project, record_id, event_id, field_id, filename):
+def download_file(project, record_id, event_id, field_id, filename, repeat_id=None):
     try:
         (cont, hdr) = project.export_file(
-            record=record_id, event=event_id, field=field_id)
+            record=record_id,
+            event=event_id,
+            field=field_id,
+            repeat_instance=repeat_id)
 
         if cont == '':
             raise redcap.RedcapError
@@ -103,4 +106,14 @@ def upload_file(project, record_id, event_id, field_id, filename, repeat_id=None
             event=event_id,
             repeat_instance=repeat_id,
             file_object=f)
+
+
+def read_data(filename):
+    df = pd.read_pickle(filename)
+    return df
+
+
+def save_data(df, filename):
+    # save to cache
+    df.to_pickle(filename)
 

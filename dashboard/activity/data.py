@@ -7,10 +7,8 @@ import redcap
 import dax
 
 import utils
+import shared
 
-
-API_URL = 'https://redcap.vanderbilt.edu/api/'
-KEYFILE = os.path.join(os.path.expanduser('~'), '.redcap.txt')
 
 ASSR_URI = '/REST/experiments?xsiType=xnat:imagesessiondata\
 &columns=\
@@ -41,19 +39,9 @@ ASSR_RENAME = {
     'proc:genprocdata/validation/validated_by': 'QCBY'}
 
 
-# Data sources are  XNAT, issues.csv and completed.log files
-# as maintained by ccmutils audits
-ISSUESFILE = os.path.join(os.path.expanduser("~"), 'issues.csv')
-COMPLETEDFILE = os.path.join(os.path.expanduser("~"), 'completed.log')
-
-logging.basicConfig(
-    format='%(asctime)s %(levelname)-8s %(message)s',
-    level=logging.INFO, datefmt='%Y-%m-%d %H:%M:%S')
-
-
 # This is where we save our cache of the data
 def get_filename():
-    return '{}.pkl'.format('activitydata')
+    return 'DATA/activitydata.pkl'
 
 
 def load_activity_redcap():
@@ -62,10 +50,11 @@ def load_activity_redcap():
     #df['LABEL'] = df[LABELFIELDS].stack().groupby(level=0).agg(','.join)
 
     try:
+        keyfile = shared.KEYFILE
         logging.info('connecting to redcap')
-        i = utils.get_projectid("main", KEYFILE)
-        k = utils.get_projectkey(i, KEYFILE)
-        mainrc = redcap.Project(API_URL, k)
+        i = utils.get_projectid("main", keyfile)
+        k = utils.get_projectkey(i, keyfile)
+        mainrc = redcap.Project(shared.API_URL, k)
 
         logging.info('exporting activity records')
         df = mainrc.export_records(forms=['main', 'activity'], format_type='df')
@@ -119,17 +108,6 @@ def get_data(xnat, proj_filter):
     startdate = datetime.today() - relativedelta(months=1)
     startdate = startdate.strftime('%Y-%m-%d')
     print(startdate)
-
-    # TODO: change this to try/catch
-    if os.path.exists(ISSUESFILE):
-        # Load issues data
-        logging.info('loading issues from file')
-        dfi = load_issues_file()
-
-    if os.path.exists(COMPLETEDFILE):
-        # Load completed data
-        logging.info('loading completed log from file')
-        dfc = load_completed_file()
 
     dfc = load_activity_redcap()
 
@@ -220,29 +198,6 @@ def load_recent_jobs(df, startdate):
     return df
 
 
-def load_issues_file():
-    # type,project,subject,session,date,event,field,description
-
-    df = pd.read_csv(ISSUESFILE)
-
-    LABELFIELDS = ['project', 'subject', 'session', 'event', 'field']
-    df['LABEL'] = df[LABELFIELDS].stack().groupby(level=0).agg(','.join)
-
-    df['PROJECT'] = df['project']
-
-    df['STATUS'] = 'FAIL'
-
-    df['SOURCE'] = 'ccmutils'
-
-    df['CATEGORY'] = df['type']
-
-    df['DESCRIPTION'] = 'ISSUE' + ':' + df['CATEGORY'] + ':' + df['LABEL'] + ':' + df['description']
-
-    df['DATETIME'] = df['datetime']
-
-    return df
-
-
 def load_completed_file():
     # datetime, result, type, subject, session, scan, event, field, project
 
@@ -289,7 +244,7 @@ def run_refresh(filename):
         proj_filter = utils.get_user_favorites(xnat)
         df = get_data(xnat, proj_filter)
 
-    save_data(df, filename)
+    shared.save_data(df, filename)
 
     return df
 
@@ -330,17 +285,7 @@ def load_data(refresh=False):
         run_refresh(filename)
 
     logging.info('reading data from file:{}'.format(filename))
-    return read_data(filename)
-
-
-def read_data(filename):
-    df = pd.read_pickle(filename)
-    return df
-
-
-def save_data(df, filename):
-    # save to cache
-    df.to_pickle(filename)
+    return shared.read_data(filename)
 
 
 def filter_data(df, projects, categories, sources):

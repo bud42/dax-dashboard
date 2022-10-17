@@ -23,11 +23,6 @@ STATUS2RGB = {
     'TBD': RGB_YELLOW}
 
 
-logging.basicConfig(
-    format='%(asctime)s %(levelname)-8s %(message)s',
-    level=logging.DEBUG, datefmt='%Y-%m-%d %H:%M:%S')
-
-
 def get_graph_content(df):
     PIVOTS = ['PROJECT', 'CATEGORY', 'SOURCE']
     status2rgb = STATUS2RGB

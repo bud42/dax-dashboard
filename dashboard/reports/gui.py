@@ -19,9 +19,7 @@ import dash
 import plotly.express as px
 
 from app import app
-
-
-logger = logging.getLogger()
+import reports.data as data
 
 
 try:
@@ -33,17 +31,19 @@ except Exception:
 
 
 def get_content():
-    reports_graph_content = get_graph_content()
+    df = data.load_data()
+
+    graph_content = get_graph_content(df)
 
     reports_content = [
         dcc.Loading(id="loading-reports", children=[
             dcc.Tabs(
                 id='tabs-reports',
                 value='0',
-                children=reports_graph_content,
+                children=graph_content,
                 vertical=True
                 )]),
-        html.Button('Refresh Selected', id='button-reports-refresh'),
+        html.Button('Refresh', id='button-reports-refresh'),
         ]
 
     return reports_content
@@ -56,7 +56,10 @@ def was_triggered(callback_ctx, button_id):
     return result
 
 
-def get_graph_content():
+def get_graph_content(df):
+    # We are not currently using the data in the dataframe df
+    print(df)
+
     progress_content = []
     double_content = []
     pdf_style = {
@@ -81,7 +84,7 @@ def get_graph_content():
     for r in report_list:
         # Add a link to project PDF
         progress_content.append(html.Div(html.A(
-            r , download=r, href='assets/progress' + r), style=pdf_style))
+            r , download=r, href=f'assets/progress/{r}'), style=pdf_style))
 
     # Add some space
     progress_content.append(html.Br())
@@ -91,7 +94,8 @@ def get_graph_content():
         label='Monthly',
         value='0',
         children=[html.Div(progress_content)],
-        style={'width': '900px'})
+        #style={'width': '900px'})
+        )
 
     # Build the double content
     _time = time.ctime(os.path.getmtime('assets/double'))
@@ -104,7 +108,7 @@ def get_graph_content():
     report_list = [x for x in report_list if x.endswith('.pdf')]
     for r in report_list:
         # Add a link to project PDF
-        double_content.append(html.Div(html.A(r, download=r, href=f'assets/double{r}'), style=pdf_style))
+        double_content.append(html.Div(html.A(r, download=r, href=f'assets/double/{r}'), style=pdf_style))
 
     # Add some space
     double_content.append(html.Br())
@@ -114,7 +118,8 @@ def get_graph_content():
         label='Double',
         value='1',
         children=[html.Div(double_content)],
-        style={'width': '900px'})
+        )
+        #style={'width': '900px'})
 
     # Concat the tabs
     tabs = [tab0, tab1]
@@ -144,13 +149,11 @@ def update_all(n_clicks_refresh):
         logging.info('refresh:clicks={}'.format(n_clicks_refresh))
         refresh = True
 
-    if refresh:
-        logger.info('refresh')
-        # load reports from redcap
-        # data.reload()
+    # load reports from redcap
+    df = data.load_data(refresh)
 
     # Return result
-    tabs = get_graph_content()
+    tabs = get_graph_content(df)
     logging.debug('update_all:returning data')
 
     return [tabs]

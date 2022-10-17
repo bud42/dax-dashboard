@@ -46,3 +46,8 @@ ASTATUS2COLOR = {
     'NONE': RGB_GREY,
     'COMPLETE': RGB_BLUE,
     'UNKNOWN': RGB_PURPLE}
+
+API_URL = 'https://redcap.vanderbilt.edu/api/'
+
+from pathlib import Path
+KEYFILE = Path.home().joinpath('.redcap.txt')

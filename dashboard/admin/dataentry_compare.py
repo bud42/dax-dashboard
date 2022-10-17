@@ -18,13 +18,6 @@ import utils
 # file. The excel file contains the specific missing and conflicting items.
 # Output files are named with the specified prefix.
 
-logging.basicConfig(
-    stream = sys.stdout,
-    format = "%(levelname)s %(asctime)s - %(message)s",
-    level = logging.INFO,
-)
-
-logger = logging.getLogger(__name__)
 
 # Names and descriptions of the sheets in the excel output file
 SHEETS = [{
@@ -98,7 +91,7 @@ class MYPDF(FPDF):
 
 
 def make_pdf(results, filename):
-    logger.debug('making PDF')
+    logging.debug('making PDF')
 
     # Initialize a new PDF letter size and shaped
     pdf = MYPDF(orientation="P", unit='in', format='letter')
@@ -170,11 +163,11 @@ def make_pdf(results, filename):
         add_sheet_description(pdf, s['name'], s['description'])
 
     # Save to file
-    logger.info(f'saving PDF to file:{filename}')
+    logging.info(f'saving PDF to file:{filename}')
     try:
         pdf.output(filename)
     except Exception as err:
-        logger.error(f'error while saving PDF:{filename}:{err}')
+        logging.error(f'error while saving PDF:{filename}:{err}')
 
 
 def add_sheet_description(pdf, name, description):
@@ -291,7 +284,7 @@ def compare_projects(p1, p2):
             try:
                 sid = id2subj1[rid1]
             except KeyError as err:
-                logger.debug(f'blank subject ID for record:{rid1}:{err}')
+                logging.debug(f'blank subject ID for record:{rid1}:{err}')
                 continue
         else:
             # No secondary id, use main id
@@ -300,12 +293,12 @@ def compare_projects(p1, p2):
         # Check that we already found as missing
         if sid in missing_subjects:
             # Skip this subject, already missing
-            logger.debug(f'subject already missing:{sid}')
+            logging.debug(f'subject already missing:{sid}')
             continue
 
         if (sid, eid) in missing_events:
             # Skip this event, already missing
-            logger.debug(f'event already missing:{sid},{eid}')
+            logging.debug(f'event already missing:{sid},{eid}')
             continue
 
         # Get id in the secondary redcap project
@@ -316,7 +309,7 @@ def compare_projects(p1, p2):
             try:
                 rid = subj2id2[sid]
             except KeyError as err:
-                logger.debug(f'missing subject:{rid1}:{err}')
+                logging.debug(f'missing subject:{rid1}:{err}')
                 missing_subjects.append(sid)
                 continue
         else:
@@ -325,7 +318,7 @@ def compare_projects(p1, p2):
 
         _rrname = r1.get('redcap_repeat_instrument', '')
         _rrnum = r1.get('redcap_repeat_instance', '')
-        logger.debug(f'comparing:{sid},{eid},{_rrname},{_rrnum}')
+        logging.debug(f'comparing:{sid},{eid},{_rrname},{_rrnum}')
 
         r1['sid'] = sid
         try:
@@ -334,7 +327,7 @@ def compare_projects(p1, p2):
             e2_count = len(e2)
 
             if e2_count == 0:
-                logger.debug(f'No record in double:{rid}:{sid}:{eid}')
+                logging.debug(f'No record in double:{rid}:{sid}:{eid}')
                 missing_events.append((sid, eid))
                 continue
             elif e2_count > 1:
@@ -365,7 +358,7 @@ def compare_projects(p1, p2):
                 missing_values += misv
 
         except Exception as err:
-            logger.debug(f'missing event:{err}')
+            logging.debug(f'missing event:{err}')
             missing_events.append((sid, eid))
 
     # Count results
@@ -429,14 +422,14 @@ def compare_records(r1, r2, fields, show_one_null=False, show_two_null=True):
         try:
             v1 = r1[k]
         except KeyError:
-            logger.error(f'r1:KeyError:{k}')
+            logging.error(f'r1:KeyError:{k}')
             continue
 
         # Get the value from the second
         try:
             v2 = r2[k]
         except KeyError:
-            logger.error(f'r2:KeyError:{k}')
+            logging.error(f'r2:KeyError:{k}')
             continue
 
         mis = {
@@ -543,11 +536,11 @@ def run_project_compare(mainrc, proj_maindata, keyfile):
     proj_secondary = proj_maindata['project_secondary']
 
     if not proj_primary:
-        logger.warning(f'cannot compare, primary id not set:{proj_name}')
+        logging.warning(f'cannot compare, primary id not set:{proj_name}')
         return
 
     if not proj_secondary:
-        logger.warning(f'cannot compare, secondary id not set:{proj_name}')
+        logging.warning(f'cannot compare, secondary id not set:{proj_name}')
         return
 
     # Get the projects to compare
@@ -558,17 +551,17 @@ def run_project_compare(mainrc, proj_maindata, keyfile):
 
     # Create temp locations for result files
     with tempfile.TemporaryDirectory() as outdir:
-        logger.info(f'created temporary directory:{outdir}')
+        logging.info(f'created temporary directory:{outdir}')
 
         # Name the output files
         _today = datetime.now().strftime("%Y-%m-%d")
         outpref = f'{proj_name}_{_today}'
 
         # Run it
-        logger.info(f'comparing {proj_name}:{proj_primary} to {proj_secondary}')
+        logging.info(f'comparing {proj_name}:{proj_primary} to {proj_secondary}')
         run_compare(p1, p2, outdir, outpref)
 
-        logger.info(f'handling results')
+        logging.info(f'handling results')
 
         # Build filenames
         excel_file = os.path.join(outdir, f'{outpref}.xlsx')
@@ -586,18 +579,18 @@ def run_project_compare(mainrc, proj_maindata, keyfile):
             }
             response = mainrc.import_records([record])
             assert 'count' in response
-            logger.info('successfully created new record')
+            logging.info('successfully created new record')
 
             # Get the new record id from the response
-            logger.info('locating new record')
+            logging.info('locating new record')
             _ids = match_repeat(mainrc, proj_name, 'double', 'double_datetime', double_datetime)
             repeat_id = _ids[0]
 
             # Upload output files
-            logger.info(f'uploading files to:{repeat_id}')
-            utils_redcap.upload_file(
+            logging.info(f'uploading files to:{repeat_id}')
+            utils.upload_file(
                 mainrc, proj_name, None, 'double_resultsfile', excel_file, repeat_id=repeat_id)
-            utils_redcap.upload_file(
+            utils.upload_file(
                 mainrc, proj_name, None, 'double_resultspdf', pdf_file, repeat_id=repeat_id)
 
             # Save PDF to reports
@@ -605,13 +598,13 @@ def run_project_compare(mainrc, proj_maindata, keyfile):
 
 
         except AssertionError as err:
-            logger.error(f'upload failed:{err}')
+            logging.error(f'upload failed:{err}')
         except (ValueError, redcap.RedcapError) as err:
-            logger.error(f'error uploading:{err}')
+            logging.error(f'error uploading:{err}')
 
 
 def update_reports(mainrc, keyfile, project_filter):
-    logger.info('running compare')
+    logging.info('running compare')
     maindata = mainrc.export_records()
 
     # Get list of projects
@@ -620,10 +613,10 @@ def update_reports(mainrc, keyfile, project_filter):
     # Now iterate each project
     for p in proj_list:
         if project_filter and p != project_filter:
-            logger.debug(f'skipping project {p}')
+            logging.debug(f'skipping project {p}')
             continue
 
-        logger.info(f'comparing double entry for project:{p}')
+        logging.info(f'comparing double entry for project:{p}')
 
         # Get main data for project
         proj_maindata = {}

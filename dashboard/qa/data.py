@@ -2,30 +2,19 @@ import logging
 import os
 from datetime import datetime, date, timedelta
 
+import pandas as pd
 import redcap
 import dax
 
 import utils
-from qa.params import SCAN_EXCLUDE_LIST, ASSR_EXCLUDE_LIST, DEMOG_KEYS, REDCAP_URL
-
-import warnings
-warnings.simplefilter(action='ignore', category=FutureWarning)
-import pandas as pd
-
 
 # Data sources are:
 # XNAT (VUIIS XNAT at Vanderbilt)
-
-# TODO: use REDCap (project settings REDCap instance to filter types)
 
 # This app does not access ACCRE or SLURM. The ony local file access is to
 # write/read the cached data in a pickle file. We save to pickle the results
 #  of each query, we reuse the pickle data when a filter changes. Then anytime
 # user clicks refresh, we query xnat again.
-
-logging.basicConfig(
-    format='%(asctime)s %(levelname)-8s %(message)s',
-    level=logging.INFO, datefmt='%Y-%m-%d %H:%M:%S')
 
 
 ASSR_URI = '/REST/experiments?xsiType=xnat:imagesessiondata\
@@ -108,7 +97,7 @@ QA_COLS = [
 
 
 def get_filename():
-    return '{}.pkl'.format('qadata')
+    return 'DATA/qadata.pkl'
 
 
 def run_refresh(filename):
@@ -302,7 +291,7 @@ def load_assr_data(xnat, project_filter):
     dfa.drop_duplicates(inplace=True)
 
     # Filter out excluded types
-    dfa = dfa[~dfa['PROCTYPE'].isin(ASSR_EXCLUDE_LIST)]
+    #dfa = dfa[~dfa['PROCTYPE'].isin(ASSR_EXCLUDE_LIST)]
 
     # Drop any rows with empty proctype
     dfa.dropna(subset=['PROCTYPE'], inplace=True)
@@ -339,7 +328,7 @@ def load_scan_data(xnat, project_filter):
     dfs.drop_duplicates(inplace=True)
 
     # Filter out excluded types
-    dfs = dfs[~dfs['SCANTYPE'].isin(SCAN_EXCLUDE_LIST)]
+    #dfs = dfs[~dfs['SCANTYPE'].isin(SCAN_EXCLUDE_LIST)]
 
     # Drop any rows with empty type
     dfs.dropna(subset=['SCANTYPE'], inplace=True)

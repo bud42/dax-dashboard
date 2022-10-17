@@ -66,11 +66,6 @@ from shared import QASTATUS2COLOR, RGB_DKBLUE
 import qa.data as data
 
 
-logging.basicConfig(
-    format='%(asctime)s %(levelname)-8s %(message)s',
-    level=logging.DEBUG, datefmt='%Y-%m-%d %H:%M:%S')
-
-
 def get_graph_content(dfp, selected_groupby='PROJECT'):
     tabs_content = []
     tab_value = 0
@@ -424,7 +419,7 @@ def get_content():
     # Get the rows and colums for the table
     qa_columns = [{"name": i, "id": i} for i in dfp.index.names]
     dfp.reset_index(inplace=True)
-    qa_data = dfp.to_dict('rows')
+    qa_data = dfp.to_dict('records')
 
     qa_content = [
         dcc.Loading(id="loading-qa", children=[

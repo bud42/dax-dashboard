@@ -2,22 +2,12 @@ import logging
 import os
 from datetime import datetime
 
+import pandas as pd
 import dax
 import redcap
 
 import utils
-
-import warnings
-warnings.simplefilter(action='ignore', category=FutureWarning)
-import pandas as pd
-
-API_URL = 'https://redcap.vanderbilt.edu/api/'
-KEYFILE = os.path.join(os.path.expanduser('~'), '.redcap.txt')
-
-logging.basicConfig(
-    format='%(asctime)s %(levelname)-8s %(message)s',
-    level=logging.INFO,
-    datefmt='%Y-%m-%d %H:%M:%S')
+import shared
 
 
 # This is where we save our cache of the data
@@ -50,9 +40,9 @@ def load_issues():
     try:
         logging.info('connecting to redcap')
         # TODO: get main id from keyfile
-        i = utils.get_projectid("main", KEYFILE)
-        k = utils.get_projectkey(i, KEYFILE)
-        project = redcap.Project(API_URL, k)
+        i = utils.get_projectid("main", shared.KEYFILE)
+        k = utils.get_projectkey(i, shared.KEYFILE)
+        project = redcap.Project(shared.API_URL, k)
         logging.info('exporting issues records')
         df = project.export_records(forms=['main', 'issues'], format_type='df')
         df = df[df['redcap_repeat_instrument'] == 'issues']

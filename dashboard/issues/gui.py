@@ -23,11 +23,6 @@ STATUS2RGB = {
     'TBD': RGB_YELLOW}
 
 
-logging.basicConfig(
-    format='%(asctime)s %(levelname)-8s %(message)s',
-    level=logging.DEBUG, datefmt='%Y-%m-%d %H:%M:%S')
-
-
 def _get_graph_content(df):
     PIVOTS = ['PROJECT', 'CATEGORY', 'SOURCE']
     status2rgb = STATUS2RGB
@@ -201,7 +196,7 @@ def update_issues(
     ctx = dash.callback_context
     if was_triggered(ctx, 'button-issues-refresh'):
         # Refresh data if refresh button clicked
-        logging.debug('issues refresh:clicks={}'.format(n_clicks))
+        logging.debug(f'issues refresh:clicks={n_clicks}')
         refresh = True
 
     logging.debug('loading issues data')

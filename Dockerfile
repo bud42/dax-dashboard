@@ -16,6 +16,7 @@ EXPOSE 8050
 
 # Set our working directory
 WORKDIR /opt/dashboard
+RUN mkdir /opt/dashboard/DATA
 
 # Set out our entry point to run the app
 CMD ["python", "index.py"]

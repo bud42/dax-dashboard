@@ -27,13 +27,6 @@ from stats.data import get_variables
 from qa.gui import get_metastatus
 
 
-# Set up logs
-logging.basicConfig(
-    format='%(asctime)s %(levelname)-8s %(message)s',
-    level=logging.DEBUG, datefmt='%Y-%m-%d %H:%M:%S')
-logger = logging.getLogger()
-logger.debug('its log')
-
 try:
     os.mkdir('assets')
 except Exception:
@@ -185,7 +178,7 @@ def plot_timeline(df, startdate=None, enddate=None):
 
         # Nothing to plot so go to next session type
         if dfs.empty:
-            logger.debug('nothing to plot:{}:{}'.format(mod, sesstype))
+            logging.debug('nothing to plot:{}:{}'.format(mod, sesstype))
             continue
 
         # markers symbols, see https://plotly.com/python/marker-style/
@@ -235,7 +228,7 @@ def plot_timeline(df, startdate=None, enddate=None):
                 _row,
                 _col)
         except Exception as err:
-            logger.error(err)
+            logging.error(err)
             return None
 
     # show lines so we can better distinguish categories
@@ -319,7 +312,7 @@ def add_other_page(pdf, sessions):
     other_sessions = sessions[sessions.MODALITY != 'MR'].copy()
 
     if len(other_sessions) == 0:
-        logger.debug('no other modalities sessions, skipping page')
+        logging.debug('no other modalities sessions, skipping page')
         return
 
     # Start a new page
@@ -377,7 +370,7 @@ def add_qa_page(pdf, scandata, assrdata, sesstype):
 
     if not scan_image and not assr_image:
         # skip this page b/c there's nothing to plot
-        logger.debug('skipping page, nothing to plot:{}'.format(sesstype))
+        logging.debug('skipping page, nothing to plot:{}'.format(sesstype))
         return pdf
 
     pdf.add_page()
@@ -581,7 +574,7 @@ def plot_stats(df, proctype):
     box_width = 250
     min_box_count = 4
 
-    logger.info('plot_stats:{}'.format(proctype))
+    logging.info('plot_stats:{}'.format(proctype))
 
     # Check for empty data
     if len(df) == 0:
@@ -617,7 +610,7 @@ def plot_stats(df, proctype):
 
     # Add box plot for each variable
     for i, var in enumerate(var_list):
-        logger.debug('plotting var:{}'.format(var))
+        logging.debug('plotting var:{}'.format(var))
 
         _row = 1
         _col = i + 1
@@ -632,11 +625,11 @@ def plot_stats(df, proctype):
             _col)
 
         if var.startswith('con_') or var.startswith('inc_'):
-            logger.debug('setting beta range:{}'.format(var))
+            logging.debug('setting beta range:{}'.format(var))
             _yaxis = 'yaxis{}'.format(i + 1)
             fig['layout'][_yaxis].update(range=[-1, 1], autorange=False)
         else:
-            logger.debug('setting autorange')
+            logging.debug('setting autorange')
 
     # Move the subtitles to bottom instead of top of each subplot
     for i in range(len(fig.layout.annotations)):
@@ -655,7 +648,7 @@ def plot_stats(df, proctype):
 
 
 def make_pdf(info, filename):
-    logger.debug('making PDF')
+    logging.debug('making PDF')
 
     # Initialize a new PDF letter size and shaped
     pdf = blank_letter()
@@ -663,21 +656,21 @@ def make_pdf(info, filename):
     pdf.set_project(info['project'])
 
     # Add first page showing MRIs
-    logger.debug('adding first page')
+    logging.debug('adding first page')
     add_page1(pdf, info['sessions'])
 
     # Add other Modalities, counts for each session type
-    logger.debug('adding other page')
+    logging.debug('adding other page')
     add_other_page(pdf, info['sessions'])
 
     # Timeline
-    logger.debug('adding timeline page')
+    logging.debug('adding timeline page')
     add_timeline_page(pdf, info)
 
     # Session type pages - counts per scans, counts per assessor
-    logger.debug('adding qa pages')
+    logging.debug('adding qa pages')
     for curtype in info['sessions'].SESSTYPE.unique():
-        logger.info('add_qa_page:{}'.format(curtype))
+        logging.info('add_qa_page:{}'.format(curtype))
 
         # Get the scan and assr data
         scandf = info['scanqa'].copy()
@@ -696,26 +689,26 @@ def make_pdf(info, filename):
 
     # Add stats pages
     if info['stats'].empty:
-        logger.debug('no stats')
+        logging.debug('no stats')
     else:
         for stat in info['stattypes']:
-            logger.info('add stats page:{}'.format(stat))
+            logging.info('add stats page:{}'.format(stat))
             add_stats_page(pdf, info['stats'], stat)
 
     # Phantom pages
     if 'phantoms' in info:
-        logger.debug('adding phantom page')
+        logging.debug('adding phantom page')
         add_phantom_page(pdf, info)
 
         # QA/Jobs/Issues counts
     add_activity_page(pdf, info)
 
     # Save to file
-    logger.debug('saving PDF to file:{}'.format(pdf.filename))
+    logging.debug('saving PDF to file:{}'.format(pdf.filename))
     try:
         pdf.output(pdf.filename)
     except Exception as err:
-        logger.error('error while saving PDF:{}:{}'.format(pdf.filename, err))
+        logging.error('error while saving PDF:{}:{}'.format(pdf.filename, err))
 
     return True
 

@@ -12,20 +12,11 @@ from qa.gui import qa_pivot
 import stats.data as stats_data
 import activity.data as activity_data
 import utils
+import shared
 from .progress_report import make_project_report
 
 
-logging.basicConfig(
-    format='%(asctime)s %(levelname)-8s %(message)s',
-    level=logging.DEBUG,
-    datefmt='%Y-%m-%d %H:%M:%S')
-
-logger = logging.getLogger()
-
-
 SESSCOLUMNS = ['SESSION', 'PROJECT', 'DATE', 'SESSTYPE', 'SITE', 'MODALITY']
-KEYFILE = os.path.join(os.path.expanduser('~'), '.redcap.txt')
-API_URL = 'https://redcap.vanderbilt.edu/api/'
 
 
 def load_session_info(project):
@@ -107,14 +98,14 @@ def update_double_reports(project_filter):
     # Get list of projects from main redcap
     try:
         logging.info('connecting to redcap')
-        i = utils.get_projectid("main", KEYFILE)
-        k = utils.get_projectkey(i, KEYFILE)
-        mainrc = redcap.Project(API_URL, k)
+        i = utils.get_projectid("main", shared.KEYFILE)
+        k = utils.get_projectkey(i, shared.KEYFILE)
+        mainrc = redcap.Project(shared.API_URL, k)
     except Exception as err:
         logging.error(f'failed to connect to main redcap:{err}')
         return
 
-    update_reports(mainrc, KEYFILE, project_filter)
+    update_reports(mainrc, shared.KEYFILE, project_filter)
 
 
 def update_redcap_reports(project_filter):
@@ -123,9 +114,9 @@ def update_redcap_reports(project_filter):
     # Get list of projects from main redcap
     try:
         logging.info('connecting to redcap')
-        i = utils.get_projectid("main", KEYFILE)
-        k = utils.get_projectkey(i, KEYFILE)
-        mainrc = redcap.Project(API_URL, k)
+        i = utils.get_projectid("main", shared.KEYFILE)
+        k = utils.get_projectkey(i, shared.KEYFILE)
+        mainrc = redcap.Project(shared.API_URL, k)
     except Exception as err:
         logging.error(f'failed to connect to main redcap:{err}')
         return
@@ -138,11 +129,11 @@ def update_redcap_reports(project_filter):
         # Update each project
         for proj_name in proj_list:
             if proj_name == 'root':
-                logger.debug('skipping root')
+                logging.debug('skipping root')
                 return
 
             if project_filter and proj_name != project_filter:
-                logger.debug(f'skipping project {proj_name}')
+                logging.debug(f'skipping project {proj_name}')
                 continue
 
             scantypes = []
@@ -150,9 +141,10 @@ def update_redcap_reports(project_filter):
             now = datetime.now().strftime("%Y-%m-%d_%H_%M_%S")
             filename = f'{outdir}/{proj_name}_report_{now}.pdf'
 
-            logger.info(f'updating project {proj_name}:{filename}')
+            logging.info(f'updating project {proj_name}:{filename}')
 
-            proj_data = mainrc.export_records(forms=['main'], records=[proj_name]).pop()
+            proj_data = mainrc.export_records(
+                forms=['main'], records=[proj_name]).pop()
 
             # Get phantom project name
             phan_project = proj_data.get('main_phanproject', '')
@@ -178,9 +170,9 @@ def update_redcap_reports(project_filter):
             assrtypes = list(set((assrtypes)))
             stattypes = assrtypes
 
-            logger.debug('phantom_project', phan_project)
-            logger.debug('scantypes=', scantypes)
-            logger.debug('assrtypes=', assrtypes)
+            logging.debug('phantom_project', phan_project)
+            logging.debug('scantypes=', scantypes)
+            logging.debug('assrtypes=', assrtypes)
 
             results += make_project_report(
                 filename,
@@ -191,7 +183,7 @@ def update_redcap_reports(project_filter):
                 xsesstypes=[],
                 phantom_project=phan_project)
 
-            logger.debug(f'uploading report:{proj_name}:{filename}')
+            logging.debug(f'uploading report:{proj_name}:{filename}')
             upload_report(filename, mainrc, proj_name)
 
             # Save PDF to reports
@@ -213,20 +205,25 @@ def upload_report(filename, mainrc, project_name):
         }
         response = mainrc.import_records([record])
         assert 'count' in response
-        logger.info('successfully created new record')
+        logging.info('successfully created new record')
 
         # Determine the new record id
-        logger.info('locating new record')
-        _ids = match_repeat(mainrc, project_name, 'progress', 'progress_datetime', progress_datetime)
+        logging.info('locating new record')
+        _ids = match_repeat(
+            mainrc,
+            project_name,
+            'progress',
+            'progress_datetime',
+            progress_datetime)
         repeat_id = _ids[-1]
 
         # Upload output files
-        logger.info(f'uploading files to:{repeat_id}')
+        logging.info(f'uploading files to:{repeat_id}')
         upload_file(filename, mainrc, project_name, repeat_id, 'progress_pdf')
     except AssertionError as err:
-        logger.error(f'upload failed:{err}')
+        logging.error(f'upload failed:{err}')
     except (ValueError, redcap.RedcapError) as err:
-        logger.error(f'error uploading:{err}')
+        logging.error(f'error uploading:{err}')
 
 
 def upload_file(filename, mainrc, proj_name, repeat_id, field_id):

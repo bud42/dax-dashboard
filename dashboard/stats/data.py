@@ -2,17 +2,14 @@ import logging
 import os
 from datetime import datetime
 
+import pandas as pd
 import yaml
 import redcap
 import dax
 
 import utils
 from stats.params import REDCAP_FILE, STATS_RENAME, STATIC_COLUMNS, VAR_LIST
-
-import warnings
-warnings.simplefilter(action='ignore', category=FutureWarning)
-import pandas as pd
-
+import shared
 
 # Data sources are:
 #
@@ -24,14 +21,6 @@ import pandas as pd
 
 # Now only loads the selected redcaps rather than loading them first and then
 # filtering
-
-logging.basicConfig(
-    format='%(asctime)s %(levelname)-8s %(message)s',
-    level=logging.INFO, datefmt='%Y-%m-%d %H:%M:%S')
-
-
-API_URL = 'https://redcap.vanderbilt.edu/api/'
-KEYFILE = os.path.join(os.path.expanduser('~'), '.redcap.txt')
 
 
 SESS_URI = '/REST/experiments?xsiType=xnat:imagesessiondata\
@@ -335,8 +324,8 @@ def load_madrs_data():
 
     data = pd.DataFrame()
 
-    i = utils.get_projectid("DepMIND2 primary", KEYFILE)
-    k = utils.get_projectkey(i, KEYFILE)
+    i = utils.get_projectid("DepMIND2 primary", shared.KEYFILE)
+    k = utils.get_projectkey(i, shared.KEYFILE)
     if k:
         print('loading DepMIND2 MADRS data')
         _cols = ['ma_tot']
@@ -351,7 +340,7 @@ def load_madrs_data():
         _events = _map.keys()
 
         # Connect to the redcap project
-        _proj = redcap.Project(API_URL, k)
+        _proj = redcap.Project(shared.API_URL, k)
 
         # Load secondary ID
         def_field = _proj.def_field

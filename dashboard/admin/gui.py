@@ -37,7 +37,6 @@ import utils
 # on start up get the most recent reports from redcap and save locally, then
 # run will create a new report and replace the local copy
 
-logger = logging.getLogger()
 
 def print_results(results):
     # Print summary to screen

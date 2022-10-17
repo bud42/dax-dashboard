@@ -13,11 +13,6 @@ import utils
 import stats.data as data
 
 
-logging.basicConfig(
-    format='%(asctime)s %(levelname)-8s %(message)s',
-    level=logging.DEBUG, datefmt='%Y-%m-%d %H:%M:%S')
-
-
 def get_graph_content(df):
     tabs_content = []
     tab_value = 0
