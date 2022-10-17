@@ -1,4 +1,5 @@
-# utility functions
+import redcap
+import os
 
 
 def make_options(values):
@@ -70,3 +71,36 @@ def get_projectid(projectname, keyfile):
 
     # Return the project id for given project name
     return d.get(projectname, None)
+
+
+def download_file(project, record_id, event_id, field_id, filename):
+    try:
+        (cont, hdr) = project.export_file(
+            record=record_id, event=event_id, field=field_id)
+
+        if cont == '':
+            raise redcap.RedcapError
+    except redcap.RedcapError as err:
+        print('ERROR:downloading file', err)
+        return None
+
+    try:
+        with open(filename, 'wb') as f:
+            f.write(cont)
+
+        return filename
+    except FileNotFoundError as err:
+        print('file not found', filename, str(err))
+        return None
+
+
+def upload_file(project, record_id, event_id, field_id, filename, repeat_id=None):
+    with open(filename, 'rb') as f:
+        project.import_file(
+            record=record_id,
+            field=field_id,
+            file_name=os.path.basename(filename),
+            event=event_id,
+            repeat_instance=repeat_id,
+            file_object=f)
+
