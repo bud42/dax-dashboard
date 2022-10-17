@@ -1,5 +1,6 @@
 import redcap
 import os
+import pandas as pd
 
 
 def make_options(values):

@@ -12,5 +12,5 @@ logging.basicConfig(
     level=logging.DEBUG,
     datefmt='%Y-%m-%d %H:%M:%S')
 
-import warnings
-warnings.simplefilter(action='ignore', category=FutureWarning)
+#import warnings
+#warnings.simplefilter(action='ignore', category=FutureWarning)

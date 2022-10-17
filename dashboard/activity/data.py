@@ -244,7 +244,7 @@ def run_refresh(filename):
         proj_filter = utils.get_user_favorites(xnat)
         df = get_data(xnat, proj_filter)
 
-    shared.save_data(df, filename)
+    utils.save_data(df, filename)
 
     return df
 
@@ -285,7 +285,7 @@ def load_data(refresh=False):
         run_refresh(filename)
 
     logging.info('reading data from file:{}'.format(filename))
-    return shared.read_data(filename)
+    return utils.read_data(filename)
 
 
 def filter_data(df, projects, categories, sources):
