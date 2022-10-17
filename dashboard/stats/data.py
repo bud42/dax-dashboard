@@ -7,7 +7,7 @@ import redcap
 import dax
 
 import utils
-from stats.params import REDCAP_FILE, STATS_RENAME, STATIC_COLUMNS, VAR_LIST, DEMOG_KEYS, REDCAP_URL
+from stats.params import REDCAP_FILE, STATS_RENAME, STATIC_COLUMNS, VAR_LIST
 
 import warnings
 warnings.simplefilter(action='ignore', category=FutureWarning)
@@ -142,35 +142,35 @@ def get_data(projects, proctypes):
         _cols = ['SESSION', 'SUBJECT', 'SESSTYPE', 'SITE']
         df = df.merge(dfp[_cols], on='SESSION', how='left')
 
-    if DEMOG_KEYS:
-        print('loading demographic data')
-        _df = load_demographic_data(REDCAP_URL, DEMOG_KEYS)
-        df = pd.merge(
-            df,
-            _df,
-            how='left',
-            left_on='SUBJECT',
-            right_index=True)
+    # if DEMOG_KEYS:
+    #     print('loading demographic data')
+    #     _df = load_demographic_data(REDCAP_URL, DEMOG_KEYS)
+    #     df = pd.merge(
+    #         df,
+    #         _df,
+    #         how='left',
+    #         left_on='SUBJECT',
+    #         right_index=True)
 
-        print('loading madrs')
-        _df = load_madrs_data()
-        print(_df)
-        df = pd.merge(
-            df,
-            _df,
-            how='outer',
-            left_on=['SUBJECT', 'SESSTYPE'],
-            right_on=['SUBJECT', 'SESSTYPE'])
+    #     print('loading madrs')
+    #     _df = load_madrs_data()
+    #     print(_df)
+    #     df = pd.merge(
+    #         df,
+    #         _df,
+    #         how='outer',
+    #         left_on=['SUBJECT', 'SESSTYPE'],
+    #         right_on=['SUBJECT', 'SESSTYPE'])
 
-        # Fill with blanks so we don't lose to nans
-        df['AGE'] = df['AGE'].fillna('')
-        df['SEX'] = df['SEX'].fillna('')
-        df['DEPRESS'] = df['DEPRESS'].fillna('')
-    else:
-        # Fill with blanks so we don't lose to nans
-        df['AGE'] = ''
-        df['SEX'] = ''
-        df['DEPRESS'] = ''
+    #     # Fill with blanks so we don't lose to nans
+    #     df['AGE'] = df['AGE'].fillna('')
+    #     df['SEX'] = df['SEX'].fillna('')
+    #     df['DEPRESS'] = df['DEPRESS'].fillna('')
+    # else:
+    #     # Fill with blanks so we don't lose to nans
+    #     df['AGE'] = ''
+    #     df['SEX'] = ''
+    #     df['DEPRESS'] = ''
 
     # TODO: load MADRS
     #if DEMOG_KEYS:
