@@ -299,7 +299,7 @@ def load_field_options(fieldname):
 
     if not os.path.exists(filename):
         logging.debug('refreshing data for file:{}'.format(filename))
-        run_refresh()
+        run_refresh(filename)
 
     logging.debug('reading data from file:{}'.format(filename))
     df = pd.read_pickle(filename)
