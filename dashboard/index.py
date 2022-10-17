@@ -8,6 +8,7 @@ from activity import gui as activity
 from stats import gui as stats
 from reports import gui as reports
 from issues import gui as issues
+from admin import gui as admin
 
 
 def get_layout():
@@ -16,6 +17,7 @@ def get_layout():
     stats_content = stats.get_content()
     reports_content = reports.get_content()
     issues_content = issues.get_content()
+    admin_content = admin.get_content()
 
     report_content = [
         html.Div(
@@ -30,6 +32,8 @@ def get_layout():
                     label='Stats', value='4', children=stats_content),
                  dcc.Tab(
                     label='Reports', value='5', children=reports_content),
+                 dcc.Tab(
+                    label='Admin', value='6', children=admin_content),
             ]),
             #style={
             #    'width': '100%', 'display': 'flex',
