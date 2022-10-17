@@ -102,7 +102,7 @@ def load_field_options(fieldname):
 
     if not os.path.exists(filename):
         logging.debug('refreshing data for file:{}'.format(filename))
-        run_refresh()
+        run_refresh(filename)
 
     logging.debug('reading data from file:{}'.format(filename))
     df = pd.read_pickle(filename)
@@ -137,7 +137,16 @@ def load_data(refresh=False):
 
 
 def read_data(filename):
-    df = pd.read_pickle(filename)
+
+    if os.path.exists(filename):
+        df = pd.read_pickle(filename)
+    else:
+         df = pd.DataFrame(columns=[
+            'ID', 'LABEL', 'PROJECT', 'SUBJECT', 'SESSION',
+            'EVENT', 'FIELD', 'CATEGORY', 'STATUS', 'SOURCE',
+            'DESCRIPTION', 'DATETIME'
+        ])
+
     return df
 
 
