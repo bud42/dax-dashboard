@@ -122,7 +122,33 @@ def get_data(projects, proctypes):
         _cols = ['SESSION', 'SUBJECT', 'SESSTYPE', 'SITE']
         df = df.merge(dfp[_cols], on='SESSION', how='left')
 
+    logging.info('loading demographic data')
+    _df = load_demographic_data()
+    print(_df)
+    df = pd.merge(
+        df,
+        _df,
+        how='left',
+        left_on='SUBJECT',
+        right_index=True)
+
+    logging.info('loading madrs data')
+    _df = load_madrs_data()
+    print(_df)
+    df = pd.merge(
+        df,
+        _df,
+        how='outer',
+        left_on=['SUBJECT', 'SESSTYPE'],
+        right_on=['SUBJECT', 'SESSTYPE'])
+
+    # Fill with blanks so we don't lose to nans
+    df['AGE'] = df['AGE'].fillna('')
+    df['SEX'] = df['SEX'].fillna('')
+    df['DEPRESS'] = df['DEPRESS'].fillna('')
     df['SESSTYPE'] = df['SESSTYPE'].fillna('UNKNOWN')
+
+    print(df)
 
     return df
 
@@ -160,7 +186,8 @@ def load_redcap_stats(api_url, api_key):
 
 
 def load_stats_data(projects, proctypes):
-    df = pd.DataFrame(columns=static_columns())
+    #df = pd.DataFrame(columns=static_columns())
+    df = pd.DataFrame()
 
     logging.debug('loading stats data')
 
@@ -315,38 +342,39 @@ def load_madrs_data():
     return data
 
 
-def load_demographic_data(redcapurl, redcapkeys):
+def load_demographic_data():
     df = pd.DataFrame()
 
-    if 'DepMIND2' in redcapkeys:
-        _key = redcapkeys['DepMIND2']
-        _fields = [
-            'record_id',
-            'subject_number',
-            'age',
-            'sex_xcount']
-        _events = ['screening_arm_1']
-        _rename = {
-            'subject_number': 'SUBJECT',
-            'age': 'AGE',
-            'sex_xcount': 'SEX'}
+    i = utils.get_projectid("DepMIND2 primary", shared.KEYFILE)
+    k = utils.get_projectkey(i, shared.KEYFILE)
 
-        # Load the records from redcap
-        _proj = redcap.Project(redcapurl, _key)
-        df = _proj.export_records(
-            raw_or_label='label',
-            format_type='df',
-            fields=_fields,
-            events=_events)
+    _fields = [
+        'record_id',
+        'subject_number',
+        'age',
+        'sex_xcount']
+    _events = ['screening_arm_1']
+    _rename = {
+        'subject_number': 'SUBJECT',
+        'age': 'AGE',
+        'sex_xcount': 'SEX'}
 
-        # Transform for dashboard data
-        df = df.rename(columns=_rename)
-        df = df.dropna(subset=['SUBJECT'])
-        df['SUBJECT'] = df['SUBJECT'].astype(int).astype(str)
-        df = df.set_index('SUBJECT', verify_integrity=True)
+    # Load the records from redcap
+    _proj = redcap.Project(redcapurl, _key)
+    df = _proj.export_records(
+        raw_or_label='label',
+        format_type='df',
+        fields=_fields,
+        events=_events)
 
-        # All DM2 are depressed
-        df['DEPRESS'] = '1'
+    # Transform for dashboard data
+    df = df.rename(columns=_rename)
+    df = df.dropna(subset=['SUBJECT'])
+    df['SUBJECT'] = df['SUBJECT'].astype(int).astype(str)
+    df = df.set_index('SUBJECT', verify_integrity=True)
+
+    # All DM2 are depressed
+    df['DEPRESS'] = '1'
 
     return df
 
