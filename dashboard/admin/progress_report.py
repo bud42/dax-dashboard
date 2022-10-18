@@ -725,7 +725,7 @@ def make_main_report():
 
     # previous year
 
-    # Print Note that all of these can be opened interactively in dashboard
+    # Note that all of these can be opened interactively in dashboard
 
     return
 

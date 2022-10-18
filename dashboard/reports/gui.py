@@ -58,7 +58,6 @@ def was_triggered(callback_ctx, button_id):
 
 def get_graph_content(df):
     # We are not currently using the data in the dataframe df
-    print(df)
 
     progress_content = []
     double_content = []

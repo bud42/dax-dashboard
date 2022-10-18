@@ -257,7 +257,6 @@ def sessionsbytime_figure(df, selected_groupby):
     #palette = cycle(px.colors.qualitative.Bold)
 
     for mod, sesstype in itertools.product(df.MODALITY.unique(), df.SESSTYPE.unique()):
-        #print(sesstype, mod)
 
         # Get subset for this session type
         dfs = df[(df.SESSTYPE == sesstype) & (df.MODALITY == mod)]
@@ -309,7 +308,6 @@ def sessionsbytime_figure(df, selected_groupby):
 
             # width function of number of days being plotted
             #@width = 
-            #print(fig.layout.xaxis.width)
 
             fig.update_layout(
                 barmode='stack',
@@ -374,7 +372,6 @@ def sessionsbytime_figure(df, selected_groupby):
 
             #fig.update_xaxes(range=[])
             #full_fig = fig.full_figure_for_development()
-            #print(full_fig.layout.xaxis.range)
             x_mins = []
             x_maxs = []
             for trace_data in fig.data:
@@ -383,7 +380,6 @@ def sessionsbytime_figure(df, selected_groupby):
 
             x_min = min(x_mins)
             x_max = max(x_maxs)
-            #print('x_min=', x_min, 'x_max=', x_max)
 
             if x_min == '2021-11-01' or x_min == '2021-11-10':
                 fig.update_xaxes(
@@ -410,7 +406,6 @@ def get_content():
     # the columns will be the merged
     # status column with harmonized values to be red/yellow/green/blue
     df = data.load_data()
-    #print(df)
 
     dfp = qa_pivot(df)
 
@@ -647,7 +642,6 @@ def update_all(
 
     # Get the qa pivot from the filtered data
     dfp = qa_pivot(df)
-    #print(dfp)
 
     tabs = get_graph_content(dfp, selected_groupby)
 

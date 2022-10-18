@@ -64,9 +64,6 @@ def get_filename():
 def load_data(projects, proctypes, refresh=False):
     filename = get_filename()
 
-    print(projects)
-    print(proctypes)
-
     if refresh or not os.path.exists(filename):
         run_refresh(filename, projects, proctypes)
 
@@ -83,8 +80,6 @@ def get_xnat_data(xnat, project_filter):
     # Build the uri to query with filters
     xnat_uri = SESS_URI
     xnat_uri += '&project={}'.format(','.join(project_filter))
-
-    #print(xnat_uri)
 
     # Query xnat
     both_json = utils.get_json(xnat, xnat_uri)
@@ -125,14 +120,12 @@ def get_data(projects, proctypes):
         logging.debug('merging in xnat data for projects')
         with dax.XnatUtils.get_interface() as xnat:
             dfp = get_xnat_data(xnat, projects)
-            print(dfp.columns)
 
         # Merge by session to get SITE and SESSTYPE
         _cols = ['SESSION', 'SUBJECT', 'SESSTYPE', 'SITE']
         df = df.merge(dfp[_cols], on='SESSION', how='left')
 
     # if DEMOG_KEYS:
-    #     print('loading demographic data')
     #     _df = load_demographic_data(REDCAP_URL, DEMOG_KEYS)
     #     df = pd.merge(
     #         df,
@@ -141,9 +134,7 @@ def get_data(projects, proctypes):
     #         left_on='SUBJECT',
     #         right_index=True)
 
-    #     print('loading madrs')
     #     _df = load_madrs_data()
-    #     print(_df)
     #     df = pd.merge(
     #         df,
     #         _df,
@@ -199,8 +190,6 @@ def load_redcap_stats(api_url, api_key):
     if 'wml_volume' in _df:
         # rename wml for NIC
         _df['lst_stats_wml_volume'] = _df['wml_volume']
-
-    #print(_df.columns)
 
     return _df
 
@@ -273,7 +262,6 @@ def load_stats_data(projects, proctypes):
     _var = get_vars()
     _keep = df.columns
     _keep = [x for x in _keep if (x in _var or x in _static)]
-    #print('_keep', _keep)
     df = df[_keep]
 
     # return the stats data
@@ -327,7 +315,6 @@ def load_madrs_data():
     i = utils.get_projectid("DepMIND2 primary", shared.KEYFILE)
     k = utils.get_projectkey(i, shared.KEYFILE)
     if k:
-        print('loading DepMIND2 MADRS data')
         _cols = ['ma_tot']
         _fields = ['record_id', 'ma_tot']
         _map = {
@@ -386,7 +373,6 @@ def load_demographic_data(redcapurl, redcapkeys):
     df = pd.DataFrame()
 
     if 'DepMIND2' in redcapkeys:
-        print('loading DepMIND2 demographic data')
         _key = redcapkeys['DepMIND2']
         _fields = [
             'record_id',

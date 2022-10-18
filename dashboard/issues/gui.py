@@ -30,7 +30,6 @@ def _get_graph_content(df):
 
     # index we are pivoting on to count statuses
     for i, pindex in enumerate(PIVOTS):
-        #print('making pivot', i, pindex)
         # Make a 1x1 figure
         fig = plotly.subplots.make_subplots(rows=1, cols=1)
         fig.update_layout(margin=dict(l=40, r=40, t=40, b=40))
@@ -41,7 +40,6 @@ def _get_graph_content(df):
             aggfunc='count', fill_value=0)
 
         for status, color in status2rgb.items():
-            #print('making bar', status, color)
             ydata = sorted(dfp.index)
             if status not in dfp:
                 xdata = [0] * len(dfp.index)

@@ -276,7 +276,6 @@ def load_assr_data(xnat, project_filter):
     # Build the uri to query with filters and run it
     _uri = ASSR_URI
     _uri += '&project={}'.format(','.join(project_filter))
-    print(_uri)
     _json = utils.get_json(xnat, _uri)
     dfa = pd.DataFrame(_json['ResultSet']['Result'])
 
@@ -316,7 +315,6 @@ def load_scan_data(xnat, project_filter):
     # Build the uri query with filters and run it
     _uri = SCAN_URI
     _uri += '&project={}'.format(','.join(project_filter))
-    print(_uri)
     _json = utils.get_json(xnat, _uri)
     dfs = pd.DataFrame(_json['ResultSet']['Result'])
 
@@ -344,7 +342,6 @@ def load_demographic_data(redcapurl, redcapkeys):
     df = pd.DataFrame()
 
     if 'DepMIND2' in redcapkeys:
-        print('loading DepMIND2 demographic data')
         _key = redcapkeys['DepMIND2']
         _fields = [
             'record_id',
@@ -416,7 +413,6 @@ def filter_data(df, projects, proctypes, scantypes, timeframe, sesstypes):
         # Set range to first and last day of previous month
         _end = date.today().replace(day=1) - timedelta(days=1)
         _start = date.today().replace(day=1) - timedelta(days=_end.day)
-        print(_start, _end)
         df = df[pd.to_datetime(df.DATE).isin(pd.date_range(_start, _end))]
     else:
         # ALL

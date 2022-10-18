@@ -19,6 +19,26 @@ from .progress_report import make_project_report
 SESSCOLUMNS = ['SESSION', 'PROJECT', 'DATE', 'SESSTYPE', 'SITE', 'MODALITY']
 
 
+def get_projects():
+    loggin.info('get_projects')
+    projects = []
+
+    # Get list of projects from main redcap
+    try:
+        logging.info('connecting to redcap')
+        i = utils.get_projectid("main", shared.KEYFILE)
+        k = utils.get_projectkey(i, shared.KEYFILE)
+        mainrc = redcap.Project(shared.API_URL, k)
+
+        # Get list of projects
+        maindata = mainrc.export_records(forms=['main'])
+        projects = sorted(list(set([x['main_name'] for x in maindata])))
+    except Exception as err:
+        logging.error(f'failed to connect to main redcap:{err}')
+
+    return projects
+
+
 def load_session_info(project):
     df = qa_data.load_data()
     df = df[df.PROJECT == project]

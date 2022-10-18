@@ -107,7 +107,6 @@ def get_data(xnat, proj_filter):
     from dateutil.relativedelta import relativedelta
     startdate = datetime.today() - relativedelta(months=1)
     startdate = startdate.strftime('%Y-%m-%d')
-    print(startdate)
 
     dfc = load_activity_redcap()
 

@@ -1,6 +1,7 @@
 import redcap
 import os
 import pandas as pd
+import logging
 
 
 def make_options(values):
@@ -85,7 +86,7 @@ def download_file(project, record_id, event_id, field_id, filename, repeat_id=No
         if cont == '':
             raise redcap.RedcapError
     except redcap.RedcapError as err:
-        print('ERROR:downloading file', err)
+        logging.error(f':downloading file:{err}')
         return None
 
     try:
@@ -94,7 +95,7 @@ def download_file(project, record_id, event_id, field_id, filename, repeat_id=No
 
         return filename
     except FileNotFoundError as err:
-        print('file not found', filename, str(err))
+        logging.error(f'file not found:{filename}:{err}')
         return None
 
 

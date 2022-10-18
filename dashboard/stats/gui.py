@@ -41,13 +41,9 @@ def get_graph_content(df):
 
     graph_width = box_width * box_count
 
-    #print('box_count', box_count)
-    #print('graph_width', graph_width)
-
     # Horizontal spacing cannot be greater than (1 / (cols - 1))
     #hspacing = 1 / (box_count * 2)
     hspacing = 1 / (box_count * 4)
-    #print('hspacing=', hspacing)
 
     # Make the figure with 1 row and a column for each var we are plotting
     fig = plotly.subplots.make_subplots(
@@ -77,7 +73,6 @@ def get_graph_content(df):
             _col)
 
         if var.startswith('con_') or var.startswith('inc_'):
-            print(var, 'setting beta range')
             fig.update_yaxes(range=[-1,1], autorange=False) 
         else:
             fig.update_yaxes(autorange=True)
@@ -135,7 +130,6 @@ def get_content():
 
     # Get the rows and colums for the table
     stats_columns = [{"name": i, "id": i} for i in df.columns]
-    print(df.columns)
 
     df.reset_index(inplace=True)
     stats_data = df.to_dict('rows')
@@ -305,10 +299,6 @@ def update_stats(
         df = df.drop_duplicates()
 
         # Make the pivot table based on _index, _cols, _vars
-        #print(_index)
-        #print(_cols)
-        #print(_vars)
-        #print(df)
         dfp = df.pivot(index=_index, columns=_cols, values=_vars)
 
         # Concatenate column levels to get one level with delimiter
