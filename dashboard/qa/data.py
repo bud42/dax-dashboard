@@ -7,6 +7,7 @@ import redcap
 import dax
 
 import utils
+import shared
 
 # Data sources are:
 # XNAT (VUIIS XNAT at Vanderbilt)
@@ -100,7 +101,7 @@ def get_filename():
     return 'DATA/qadata.pkl'
 
 
-def run_refresh(filename):
+def run_refresh(filename, hidetypes=True):
     proj_filter = []
     proc_filter = []
     scan_filter = []
@@ -109,7 +110,7 @@ def run_refresh(filename):
     logging.info('connecting to xnat')
     with dax.XnatUtils.get_interface() as xnat:
         proj_filter = utils.get_user_favorites(xnat)
-        df = get_data(xnat, proj_filter, proc_filter, scan_filter)
+        df = get_data(xnat, proj_filter, proc_filter, scan_filter, hidetypes=hidetypes)
 
     save_data(df, filename)
 
@@ -197,12 +198,12 @@ def load_proj_options():
     return sorted(df.PROJECT.unique())
 
 
-def load_data(refresh=False):
+def load_data(refresh=False, hidetypes=True):
     filename = get_filename()
 
     if refresh or not os.path.exists(filename):
         # TODO: check for old file and refresh too
-        run_refresh(filename)
+        run_refresh(filename, hidetypes)
 
     logging.info('reading data from file:{}'.format(filename))
     return read_data(filename)
@@ -234,10 +235,14 @@ def set_modality(row):
     return mod
 
 
-def get_data(xnat, proj_filter, stype_filter, ptype_filter):
+def get_data(xnat, proj_filter, stype_filter, ptype_filter, hidetypes=True):
     # Load that data
     scan_df = load_scan_data(xnat, proj_filter)
     assr_df = load_assr_data(xnat, proj_filter)
+
+    if hidetypes:
+        logging.info('applying filter types')
+        scan_df, assr_df = filter_types(scan_df, assr_df)
 
     # Make a common column for type
     assr_df['TYPE'] = assr_df['PROCTYPE']
@@ -270,6 +275,47 @@ def get_data(xnat, proj_filter, stype_filter, ptype_filter):
     return df
 
 
+def filter_types(scan_df, assr_df):
+    scantypes = []
+    assrtypes = []
+
+    # Load types from main redcap
+    logging.info('loading scan/assr types from main redcap')
+
+    try:
+        k = utils.get_projectkeybyname("main", shared.KEYFILE)
+        logging.info('connecting to redcap')
+        mainrc = redcap.Project(shared.API_URL, k)
+        logging.info('geting scan types from redcap scanning')
+        scan_data = mainrc.export_records(
+            forms=['scanning'],
+            export_checkbox_labels=True,
+            raw_or_label='label')
+
+        for cur_data in scan_data:
+            for k, v in cur_data.items():
+                # Append the scan/assr types for this scanning record
+                if v and k.startswith('scanning_scantypes'):
+                    scantypes.append(v)
+
+                if v and k.startswith('scanning_proctypes'):
+                    assrtypes.append(v)
+
+        # Make the lists unique
+        scantypes = list(set(scantypes))
+        assrtypes = list(set(assrtypes))
+
+        # Apply filters
+        logging.info(f'filtering by types:{len(scan_df)}:{len(assr_df)}')
+        scan_df = scan_df[scan_df['SCANTYPE'].isin(scantypes)]
+        assr_df = assr_df[assr_df['PROCTYPE'].isin(assrtypes)]
+        logging.info(f'done filtering by types:{len(scan_df)}:{len(assr_df)}')
+    except Exception as err:
+        logging.warning(f'failed to connect to main redcap:{err}')
+
+    return scan_df, assr_df
+
+
 def load_assr_data(xnat, project_filter):
     logging.info('loading XNAT data, projects={}'.format(project_filter))
 
@@ -288,9 +334,6 @@ def load_assr_data(xnat, project_filter):
         'QCSTATUS', 'PROCSTATUS', 'PROCTYPE', 'XSITYPE', 'SESSTYPE']].copy()
 
     dfa.drop_duplicates(inplace=True)
-
-    # Filter out excluded types
-    #dfa = dfa[~dfa['PROCTYPE'].isin(ASSR_EXCLUDE_LIST)]
 
     # Drop any rows with empty proctype
     dfa.dropna(subset=['PROCTYPE'], inplace=True)
@@ -324,9 +367,6 @@ def load_scan_data(xnat, project_filter):
         'PROJECT', 'SESSION', 'SUBJECT', 'DATE', 'SITE', 'SCANID',
         'SCANTYPE', 'QUALITY', 'XSITYPE', 'SESSTYPE']].copy()
     dfs.drop_duplicates(inplace=True)
-
-    # Filter out excluded types
-    #dfs = dfs[~dfs['SCANTYPE'].isin(SCAN_EXCLUDE_LIST)]
 
     # Drop any rows with empty type
     dfs.dropna(subset=['SCANTYPE'], inplace=True)
@@ -381,14 +421,6 @@ def filter_data(df, projects, proctypes, scantypes, timeframe, sesstypes):
         logging.debug('filtering by project:')
         logging.debug(projects)
         df = df[df['PROJECT'].isin(projects)]
-
-    # Filter by artefact type
-    #if arttype == 'assessor':
-    #    # only assessors
-    #    df = df[df['ARTTYPE'] == 'assessor']
-    #elif arttype == 'scan':
-    #    # only scans
-    #    df = df[df['ARTTYPE'] == 'scan']
 
     # Filter by proc type
     if proctypes:

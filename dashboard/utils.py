@@ -75,6 +75,11 @@ def get_projectid(projectname, keyfile):
     return d.get(projectname, None)
 
 
+def get_projectkeybyname(projectname, keyfile):
+    i = get_projectid(projectname, keyfile)
+    return get_projectkey(i, keyfile)
+
+
 def download_file(project, record_id, event_id, field_id, filename, repeat_id=None):
     try:
         (cont, hdr) = project.export_file(

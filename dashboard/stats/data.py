@@ -281,11 +281,12 @@ def filter_data(df, projects, proctypes, timeframe, sesstypes):
 
     return df
 
+
 def load_madrs_data():
 
     data = pd.DataFrame()
 
-    i = utils.get_projectid("DepMIND2 primary", shared.KEYFILE)
+    i = utils.get_projectid('DepMIND2 primary', shared.KEYFILE)
     k = utils.get_projectkey(i, shared.KEYFILE)
     if k:
         _cols = ['ma_tot']
@@ -357,8 +358,7 @@ def load_demographic_data():
         'sex_xcount': 'SEX'}
 
     # Load the records from redcap
-    i = utils.get_projectid("DepMIND2 primary", shared.KEYFILE)
-    k = utils.get_projectkey(i, shared.KEYFILE)
+    k = utils.get_projectkeybyname("DepMIND2 primary", shared.KEYFILE)
     _proj = redcap.Project(shared.API_URL, k)
     df = _proj.export_records(
         raw_or_label='label',

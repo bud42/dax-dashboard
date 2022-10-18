@@ -405,7 +405,7 @@ def get_content():
     # the number of characters is the number of scans or assessors
     # the columns will be the merged
     # status column with harmonized values to be red/yellow/green/blue
-    df = data.load_data()
+    df = data.load_data(hidetypes=True)
 
     dfp = qa_pivot(df)
 
@@ -451,6 +451,13 @@ def get_content():
         dcc.Dropdown(
             id='dropdown-qa-sess', multi=True,
             placeholder='Select Session Type(s)'),
+        dcc.RadioItems(
+            options=[
+                {'label': 'Hide Unused Types', 'value': 'HIDE'},
+                {'label': 'Show All Types', 'value': 'SHOW'}],
+            value='HIDE',
+            id='radio-qa-hidetypes',
+            labelStyle={'display': 'inline-block'}),
         dcc.Dropdown(
             id='dropdown-qa-proc', multi=True,
             placeholder='Select Processing Type(s)'),
@@ -535,8 +542,8 @@ def qa_pivot(df):
 
 
 # This is where the data gets initialized
-def load_data(refresh=False):
-    return data.load_data(refresh=refresh)
+def load_data(refresh=False, hidetypes=True):
+    return data.load_data(refresh=refresh, hidetypes=hidetypes)
 
 
 def load_proj_options():
@@ -598,6 +605,7 @@ def was_triggered(callback_ctx, button_id):
      Input('dropdown-qa-proj', 'value'),
      Input('dropdown-qa-time', 'value'),
      Input('radio-qa-groupby', 'value'),
+     Input('radio-qa-hidetypes', 'value'),
      Input('button-qa-refresh', 'n_clicks')])
 def update_all(
     selected_proc,
@@ -606,6 +614,7 @@ def update_all(
     selected_proj,
     selected_time,
     selected_groupby,
+    selected_hidetypes,
     n_clicks
 ):
     refresh = False
@@ -622,7 +631,8 @@ def update_all(
         refresh = True
 
     logging.debug('loading data')
-    df = load_data(refresh=refresh)
+    hidetypes = (selected_hidetypes == 'HIDE')
+    df = load_data(refresh=refresh, hidetypes=hidetypes)
 
     # Update lists of possible options for dropdowns (could have changed)
     # make these lists before we filter what to display
@@ -639,6 +649,9 @@ def update_all(
         selected_scan,
         selected_time,
         selected_sess)
+
+    #if selected_hidetypes == 'HIDE':
+    #    df = data.filter_types(df)
 
     # Get the qa pivot from the filtered data
     dfp = qa_pivot(df)

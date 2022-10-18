@@ -42,7 +42,7 @@ def get_content():
     admin_graph_content = get_graph_content()
 
     admin_content = [
-        dcc.Loading(id="loading-admin", children=[
+        dcc.Loading(id="loading-admin", style={'width': '1000px'}, children=[
             dcc.Tabs(
                 id='tabs-admin',
                 value='0',
@@ -69,7 +69,7 @@ def was_triggered(callback_ctx, button_id):
 
 
 def load_log():
-    txt = ''
+    txt = 'LOG:'
 
     try:
         with open(Path.home().joinpath('log.txt'), 'r') as f:
