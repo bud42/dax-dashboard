@@ -38,12 +38,6 @@ import utils
 # run will create a new report and replace the local copy
 
 
-def print_results(results):
-    # Print summary to screen
-    import pprint
-    pprint.pprint(results)
-
-
 def get_content():
     admin_graph_content = get_graph_content()
 
@@ -152,7 +146,7 @@ def update_all(
     logging.debug('update_all:returning data')
 
     # Update lists of possible options for dropdowns
-    projects = utils.make_options(['DepMIND2'])
+    projects = utils.make_options(data.get_projects())
     types = utils.make_options([
         'Old Reports',
         'Double Entry Report',
