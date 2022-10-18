@@ -18,5 +18,7 @@ EXPOSE 8050
 WORKDIR /opt/dashboard
 RUN mkdir /opt/dashboard/DATA
 
+COPY statsparams.yaml /root/statsparams.yaml
+
 # Set out our entry point to run the app
 CMD ["python", "index.py"]

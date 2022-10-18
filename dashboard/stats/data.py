@@ -10,11 +10,12 @@ import utils
 from stats.params import STATS_RENAME, STATIC_COLUMNS, VAR_LIST
 import shared
 
+
 # Data sources are:
-# REDCap (using keys in keyfile)
+# REDCap (using keys in shared.keyfile)
 #
 # Note this app does not access ACCRE or SLURM. The ony local file access
-# is to write the cached data in a pickle file. This file is named stats.pkl
+# is to write the cached data in a pickle file named statsdata.pkl
 
 # Now only loads the selected redcaps rather than loading them first and then
 # filtering
