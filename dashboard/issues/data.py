@@ -12,7 +12,7 @@ import shared
 
 # This is where we save our cache of the data
 def get_filename():
-    return '{}.pkl'.format('issuesdata')
+    return 'DATA/issuesdata.pkl'
 
 
 def get_data(xnat, proj_filter):

@@ -3,18 +3,15 @@ import os
 from datetime import datetime
 
 import pandas as pd
-import yaml
 import redcap
 import dax
 
 import utils
-from stats.params import REDCAP_FILE, STATS_RENAME, STATIC_COLUMNS, VAR_LIST
+from stats.params import STATS_RENAME, STATIC_COLUMNS, VAR_LIST
 import shared
 
 # Data sources are:
-#
-# REDCap (using keys in file as specified in REDCAP_FILE) this is the
-# source of the stats data.
+# REDCap (using keys in keyfile)
 #
 # Note this app does not access ACCRE or SLURM. The ony local file access
 # is to write the cached data in a pickle file. This file is named stats.pkl
@@ -58,7 +55,7 @@ def get_variables():
 
 
 def get_filename():
-    return '{}.pkl'.format('stats')
+    return 'DATA/statsdata.pkl'
 
 
 def load_data(projects, proctypes, refresh=False):
@@ -125,38 +122,6 @@ def get_data(projects, proctypes):
         _cols = ['SESSION', 'SUBJECT', 'SESSTYPE', 'SITE']
         df = df.merge(dfp[_cols], on='SESSION', how='left')
 
-    # if DEMOG_KEYS:
-    #     _df = load_demographic_data(REDCAP_URL, DEMOG_KEYS)
-    #     df = pd.merge(
-    #         df,
-    #         _df,
-    #         how='left',
-    #         left_on='SUBJECT',
-    #         right_index=True)
-
-    #     _df = load_madrs_data()
-    #     df = pd.merge(
-    #         df,
-    #         _df,
-    #         how='outer',
-    #         left_on=['SUBJECT', 'SESSTYPE'],
-    #         right_on=['SUBJECT', 'SESSTYPE'])
-
-    #     # Fill with blanks so we don't lose to nans
-    #     df['AGE'] = df['AGE'].fillna('')
-    #     df['SEX'] = df['SEX'].fillna('')
-    #     df['DEPRESS'] = df['DEPRESS'].fillna('')
-    # else:
-    #     # Fill with blanks so we don't lose to nans
-    #     df['AGE'] = ''
-    #     df['SEX'] = ''
-    #     df['DEPRESS'] = ''
-
-    # TODO: load MADRS
-    #if DEMOG_KEYS:
-    #    _df = load_other_data()
-    #    df = pd.merge(df, _df, how='left', left_on='', right_on='')
-
     df['SESSTYPE'] = df['SESSTYPE'].fillna('UNKNOWN')
 
     return df
@@ -195,64 +160,45 @@ def load_redcap_stats(api_url, api_key):
 
 
 def load_stats_data(projects, proctypes):
-    my_redcaps = []
-    df = pd.DataFrame()
+    df = pd.DataFrame(columns=static_columns())
 
-    # Load assr data
     logging.debug('loading stats data')
 
-    try:
-        # Read inputs yaml as dictionary
-        with open(REDCAP_FILE, 'rt') as file:
-            redcap_data = yaml.load(file, yaml.SafeLoader)
-    except EnvironmentError:
-        logging.info('REDCap settings file not found, not loading stats')
-        df = pd.DataFrame(columns=static_columns())
-        return df
+    with open(shared.KEYFILE) as f:
+        for line in f:
+            # Parse the line to get redcap name
+            try:
+                (i, k, n) = line.strip().split(',')
+            except:
+                continue
 
-    api_url = redcap_data['api_url']
+            # Skip if not a stats redcap
+            if i != 'stats':
+                continue
 
-    with dax.XnatUtils.get_interface() as xnat:
-        my_projects = utils.get_user_favorites(xnat)
+            # Parse the name to get project and proc type
+            try:
+                (proj, proc, res) = parse_redcap_name(n)
+            except ValueError:
+                continue
 
-    for r in redcap_data['projects']:
-        name = r['name']
+            if (not projects or proj not in projects):
+                # Filter based on selected projects, nothing yields nothing
+                continue
 
-        try:
-            (proj, proc, res) = parse_redcap_name(name)
-        except ValueError:
-            continue
+            if (not proctypes or proc not in proctypes):
+                # Filter based on selected projects, nothing yields nothing
+                continue
 
-        if (proj not in my_projects):
-            # Filter the list of redcaps based on our project access
-            continue
-
-        if (not projects or proj not in projects):
-            # Filter based on selected projects, nothing yields nothing
-            continue
-
-        if (not proctypes or proc not in proctypes):
-            # Filter based on selected projects, nothing yields nothing
-            continue
-
-        my_redcaps.append(r)
-
-
-    # Load data from each redcap
-    icount = len(my_redcaps)
-    for i, r in enumerate(my_redcaps):
-        name = r['name']
-        api_key = r['key']
-        (proj, proc, res) = parse_redcap_name(name)
-        logging.info('{}/{} loading redcap:{}'.format(i+1, icount, name))
-        try:
-            cur_df = load_redcap_stats(api_url, api_key)
-            df = pd.concat([df, cur_df], ignore_index=True, sort=False)
-        except Exception as err:
-            logging.error('error exporting redcap:{}:{}'.format(name, err))
-            import traceback
-            traceback.print_exc()
-            continue
+            logging.info(f'loading redcap:{n}')
+            try:
+                cur_df = load_redcap_stats(shared.API_URL, k)
+                df = pd.concat([df, cur_df], ignore_index=True, sort=False)
+            except Exception as err:
+                logging.error(f'error exporting redcap:{n}:{err}')
+                import traceback
+                traceback.print_exc()
+                continue
 
     # Rename columns
     df.rename(columns=STATS_RENAME, inplace=True)
@@ -406,46 +352,40 @@ def load_demographic_data(redcapurl, redcapkeys):
 
 
 def load_options(projects, proctypes):
+    # Only filter proctypes if projects are selected
+    # Only filter projects by proctypes selected
     proj_options = []
     proc_options = []
 
-    # Only filter proctypes if projects are selected
-    # Only filter projects by proctypes selected
+    logging.info('loading stats options')
 
-    logging.debug('loading stats options')
-    try:
-        # Read inputs yaml as dictionary
-        with open(REDCAP_FILE, 'rt') as file:
-            redcap_data = yaml.load(file, yaml.SafeLoader)
-    except EnvironmentError:
-        logging.info('REDCap settings file not found, not loading stats')
-        return [], []
+    with open(shared.KEYFILE) as f:
+        for line in f:
+            # Parse the line to get redcap name
+            try:
+                (i, k, n) = line.strip().split(',')
+            except:
+                continue
 
-    with dax.XnatUtils.get_interface() as xnat:
-        my_projects = utils.get_user_favorites(xnat)
+            # Skip if not a stats redcap
+            if i != 'stats':
+                continue
 
-    # Filter the list of redcaps based on our project access
-    for r in redcap_data['projects']:
-        name = r['name']
+            # Parse the name to get project and proc type
+            try:
+                (proj, proc, res) = parse_redcap_name(n)
+            except ValueError:
+                continue
 
-        try:
-            (proj, proc, res) = parse_redcap_name(name)
-        except ValueError:
-            continue
-  
-        # Only projects we can access
-        if (proj not in my_projects):
-            continue
+            # Include in projects list if no proctypes are 
+            # selected or if it is one of the selected proc types
+            if not proctypes or len(proctypes) == 0 or proc in proctypes:
+                proj_options.append(proj)
 
-        # Include in projects list if no proctypes are 
-        # selected or if it is one of the selected proc types
-        if not proctypes or len(proctypes) == 0 or proc in proctypes:
-            proj_options.append(proj)
-
-        # Include in proc types list if no projects are selected or if it is
-        # one of the selected projects
-        if not projects or len(projects) == 0 or proj in projects:
-            proc_options.append(proc)
+            # Include in proc types list if no projects are selected or if it is
+            # one of the selected projects
+            if not projects or len(projects) == 0 or proj in projects:
+                proc_options.append(proc)
 
     # Return projects, processing types
     return sorted(list(set(proj_options))), sorted(list(set(proc_options)))

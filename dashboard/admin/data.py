@@ -239,21 +239,17 @@ def upload_report(filename, mainrc, project_name):
 
         # Upload output files
         logging.info(f'uploading files to:{repeat_id}')
-        upload_file(filename, mainrc, project_name, repeat_id, 'progress_pdf')
+        utils.upload_file(
+            mainrc,
+            project_name,
+            None,
+            'progress_pdf',
+            filename,
+            repeat_id=repeat_id)
     except AssertionError as err:
         logging.error(f'upload failed:{err}')
     except (ValueError, redcap.RedcapError) as err:
         logging.error(f'error uploading:{err}')
-
-
-def upload_file(filename, mainrc, proj_name, repeat_id, field_id):
-    with open(filename, 'rb') as f:
-        mainrc.import_file(
-            record=proj_name,
-            field=field_id,
-            file_name=os.path.basename(filename),
-            repeat_instance=repeat_id,
-            file_object=f)
 
 
 def match_repeat(mainrc, record_id, repeat_name, match_field, match_value):

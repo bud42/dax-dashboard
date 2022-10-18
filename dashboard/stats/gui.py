@@ -132,7 +132,8 @@ def get_content():
     stats_columns = [{"name": i, "id": i} for i in df.columns]
 
     df.reset_index(inplace=True)
-    stats_data = df.to_dict('rows')
+    #stats_data = df.to_dict('rows')
+    stats_data = df.to_dict('records')
 
     stats_content = [
         dcc.Loading(id="loading-stats", children=[
