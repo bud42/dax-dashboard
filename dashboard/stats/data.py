@@ -345,9 +345,6 @@ def load_madrs_data():
 def load_demographic_data():
     df = pd.DataFrame()
 
-    i = utils.get_projectid("DepMIND2 primary", shared.KEYFILE)
-    k = utils.get_projectkey(i, shared.KEYFILE)
-
     _fields = [
         'record_id',
         'subject_number',
@@ -360,7 +357,9 @@ def load_demographic_data():
         'sex_xcount': 'SEX'}
 
     # Load the records from redcap
-    _proj = redcap.Project(redcapurl, _key)
+    i = utils.get_projectid("DepMIND2 primary", shared.KEYFILE)
+    k = utils.get_projectkey(i, shared.KEYFILE)
+    _proj = redcap.Project(shared.API_URL, k)
     df = _proj.export_records(
         raw_or_label='label',
         format_type='df',
