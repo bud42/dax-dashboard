@@ -1,10 +1,7 @@
-import os
-import yaml
+# TODO: refactor this so we link vars to the type
+# Override the default settings by mounting this file as /root/statsparams.yaml
 
-
-# TODO: refactor this so we link vars to the type and allow filtering somewhere
-
-VAR_LIST = [
+VAR_LIST: [
     'ma_tot',
     'lesions', 'sbtiv', # SAMSEG/FS7
     'accuracy', 'RT', 'trials', # EDATQA
@@ -29,7 +26,7 @@ VAR_LIST = [
     'amgwhole_rh', 'amglatnuc_rh', 'amgbasnuc_rh', 'amgaccnuc_rh',
 ]
 
-STATS_RENAME = {
+STATS_RENAME: {
     'experiment': 'SESSION',
     'proctype': 'TYPE',
     'project': 'PROJECT',
@@ -88,7 +85,7 @@ STATS_RENAME = {
     'stats_congruent_rt_mean': 'congruent_rt_mean',
     'stats_congruent_rt_median': 'congruent_rt_median',
     'stats_incongruent_rt_mean': 'incongruent_rt_mean',
-    'stats_incongruent_rt_median': 'incongruent_rt_median',
+    'stats_incongruent_rt_median': incongruent_rt_median,
     'stats_fs7_etiv': 'etiv',
     'stats_fs7_stnv': 'stnv',
     'stats_fs7_hpc_lh': 'hpc_lh',
@@ -114,36 +111,3 @@ STATS_RENAME = {
     'stats_amgbasnuc_rh': 'amgbasnuc_rh',
     'stats_amgaccnuc_rh': 'amgaccnuc_rh',
 }
-
-
-STATIC_COLUMNS = [
-    'assessor_label',
-    'PROJECT',
-    'SESSION',
-    'SUBJECT',
-    'AGE',
-    'SEX',
-    'DEPRESS',
-    'TYPE',
-    'SITE',
-    'SESSTYPE']
-
-
-# check for a statsparams.yaml file to override var lists
-try:
-    # Read inputs yaml as dictionary
-    PARAMSFILE = os.path.join(os.path.expanduser("~"), 'statsparams.yaml')
-    with open(PARAMSFILE, 'rt') as file:
-        print('loading stats params from file')
-        params_data = yaml.load(file, yaml.SafeLoader)
-
-        if 'VAR_LIST' in params_data:
-            print('setting VAR_LIST')
-            VAR_LIST = params_data['VAR_LIST']
-
-        if 'STATS_RENAME' in params_data:
-            print('setting STATS_RENAME')
-            STATS_RENAME = params_data['STATS_RENAME']
-
-except EnvironmentError:
-    print('params file not found, not loading')

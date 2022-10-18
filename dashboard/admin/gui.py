@@ -42,12 +42,10 @@ def get_content():
     admin_graph_content = get_graph_content()
 
     admin_content = [
-        dcc.Loading(id="loading-admin", style={'width': '1000px'}, children=[
-            dcc.Tabs(
-                id='tabs-admin',
-                value='0',
+        dcc.Loading(id="loading-admin", children=[
+            html.Div(
                 children=admin_graph_content,
-                vertical=True
+                style={'height': '200px', 'width': '1000px'},
                 )]),
         html.Button('Run Selected', id='button-admin-run'),
         dcc.Dropdown(

@@ -41,7 +41,7 @@ def get_content():
                 id='tabs-reports',
                 value='0',
                 children=graph_content,
-                vertical=True
+                vertical=True,
                 )]),
         html.Button('Refresh', id='button-reports-refresh'),
         ]

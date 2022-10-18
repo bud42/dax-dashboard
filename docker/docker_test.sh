@@ -7,6 +7,5 @@ docker run \
 -e TZ=America/Chicago \
 -v $HOME/.netrc:/root/.netrc \
 -v $HOME/.redcap.txt:/root/.redcap.txt \
--v $HOME/git/ccmparams/statsparams.yaml:/root/statsparams.yaml \
 -v $HOME/REPORTS:/opt/dashboard/DATA \
 bud42/daxdashboard:v1
