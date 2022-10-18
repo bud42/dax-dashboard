@@ -20,7 +20,7 @@ SESSCOLUMNS = ['SESSION', 'PROJECT', 'DATE', 'SESSTYPE', 'SITE', 'MODALITY']
 
 
 def get_projects():
-    loggin.info('get_projects')
+    logging.info('get_projects')
     projects = []
 
     # Get list of projects from main redcap
