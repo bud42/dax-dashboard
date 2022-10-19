@@ -70,15 +70,20 @@ app.css.append_css({
 app.title = 'DAX Dashboard'
 
 # Check for user passwords file
-if Path.home().joinpath('dashboardsecrets.py').is_file():
-    # Use very basic authentication
+if Path.home().joinpath('dashboardsecrets.yaml').is_file():
+    import yaml
     import dash_auth
-    import sys
 
-    sys.path.append(Path.home().joinpath('dashboardsecrets.py'))
+    try:
+        with open(Path.home().joinpath('dashboardsecrets.yaml'), 'rt') as file:
+            ydata = yaml.load(file, yaml.SafeLoader)
 
-    from dashboardsecrets import VALID_USERNAME_PASSWORD_PAIRS
-    auth = dash_auth.BasicAuth(app, VALID_USERNAME_PASSWORD_PAIRS)
+        VALID_USERNAME_PASSWORD_PAIRS = ydata['VALID_USERNAME_PASSWORD_PAIRS']
+
+        # Use very basic authentication
+        auth = dash_auth.BasicAuth(app, VALID_USERNAME_PASSWORD_PAIRS)
+    except:
+        print('failed to load secrets')
 
 # Set the content
 app.layout = get_layout()
