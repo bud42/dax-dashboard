@@ -82,7 +82,9 @@ def load_activity_redcap():
         df['SOURCE'] = 'ccmutils'
 
         LABELFIELDS = ['PROJECT', 'SUBJECT', 'SESSION', 'EVENT', 'FIELD']
-        df['LABEL'] = df[LABELFIELDS].astype(str).T.agg(','.join)
+        #df['LABEL'] = df[LABELFIELDS].astype(str).T.agg(','.join)
+        df['LABEL'] = df[LABELFIELDS].apply(
+            lambda x: ','.join(x[x.notnull()]), axis=1)
 
         df['STATUS'] = 'COMPLETE'
 
