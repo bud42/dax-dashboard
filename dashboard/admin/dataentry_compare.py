@@ -1,5 +1,4 @@
 import os
-import sys
 import shutil
 import logging
 from datetime import datetime
@@ -558,7 +557,7 @@ def run_project_compare(mainrc, proj_maindata, keyfile):
         outpref = f'{proj_name}_{_today}'
 
         # Run it
-        logging.info(f'comparing {proj_name}:{proj_primary} to {proj_secondary}')
+        logging.info(f'compare {proj_name}:{proj_primary} to {proj_secondary}')
         run_compare(p1, p2, outdir, outpref)
 
         logging.info(f'handling results')
@@ -583,7 +582,12 @@ def run_project_compare(mainrc, proj_maindata, keyfile):
 
             # Get the new record id from the response
             logging.info('locating new record')
-            _ids = match_repeat(mainrc, proj_name, 'double', 'double_datetime', double_datetime)
+            _ids = match_repeat(
+                mainrc,
+                proj_name,
+                'double',
+                'double_datetime',
+                double_datetime)
             repeat_id = _ids[0]
 
             # Upload output files

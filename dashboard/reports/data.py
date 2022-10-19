@@ -36,7 +36,7 @@ def load_data(refresh=False):
 def run_refresh(filename):
     df = pd.DataFrame(columns=[])
 
-	# download latest PDF for each project for each tyoe of report?
+    # download latest PDF for each project for each tyoe of report?
     try:
         logging.info('connecting to redcap')
         i = utils.get_projectid("main", shared.KEYFILE)

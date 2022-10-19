@@ -123,4 +123,3 @@ def read_data(filename):
 def save_data(df, filename):
     # save to cache
     df.to_pickle(filename)
-

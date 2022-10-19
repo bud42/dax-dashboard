@@ -1,3 +1,4 @@
+from pathlib import Path
 
 # These are used to set colors of graphs
 RGB_DKBLUE = 'rgb(59,89,152)'
@@ -49,5 +50,4 @@ ASTATUS2COLOR = {
 
 API_URL = 'https://redcap.vanderbilt.edu/api/'
 
-from pathlib import Path
 KEYFILE = Path.home().joinpath('.redcap.txt')

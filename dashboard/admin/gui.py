@@ -1,21 +1,9 @@
-import sys
 import logging
-import io
-import re
-import itertools
-from datetime import datetime
-import time
 from pathlib import Path
 
-import humanize
-import pandas as pd
-import plotly
-import plotly.graph_objs as go
-import plotly.subplots
-from dash import dcc, html, dash_table as dt
+from dash import dcc, html
 from dash.dependencies import Input, Output
 import dash
-import plotly.express as px
 
 from app import app
 import admin.data as data
@@ -46,7 +34,7 @@ def get_content():
             html.Div(
                 children=admin_graph_content,
                 style={'height': '200px', 'width': '1000px'},
-                )]),
+            )]),
         dcc.Dropdown(
             id='dropdown-admin-projects', multi=False,
             placeholder='Select Projects'),
@@ -54,8 +42,7 @@ def get_content():
             id='dropdown-admin-types', multi=True,
             placeholder='Select Types'),
         html.Button('Run Selected', id='button-admin-run'),
-        ]
-
+    ]
 
     return admin_content
 
@@ -107,13 +94,13 @@ def get_graph_content():
 # returns:
 @app.callback(
     [
-    Output('dropdown-admin-projects', 'options'),
-    Output('dropdown-admin-types', 'options'),
+        Output('dropdown-admin-projects', 'options'),
+        Output('dropdown-admin-types', 'options'),
     ],
     [
-    Input('button-admin-run', 'n_clicks'),
-    Input('dropdown-admin-projects', 'value'),
-    Input('dropdown-admin-types', 'value'),
+        Input('button-admin-run', 'n_clicks'),
+        Input('dropdown-admin-projects', 'value'),
+        Input('dropdown-admin-types', 'value'),
     ])
 def update_all(
     n_clicks_run,
@@ -148,6 +135,6 @@ def update_all(
         'Double Entry Report',
         'Monthly Progress Report',
         'Check Issues',
-        ])
+    ])
 
     return [projects, types]

@@ -57,7 +57,9 @@ def load_activity_redcap():
         mainrc = redcap.Project(shared.API_URL, k)
 
         logging.info('exporting activity records')
-        df = mainrc.export_records(forms=['main', 'activity'], format_type='df')
+        df = mainrc.export_records(
+            forms=['main', 'activity'],
+            format_type='df')
         df = df[df['redcap_repeat_instrument'] == 'activity']
     except Exception as err:
         logging.error(f'failed to load activity:{err}')
@@ -193,45 +195,6 @@ def load_recent_jobs(df, startdate):
     df['DESCRIPTION'] = 'JOB' + ':' + df['LABEL']
 
     df['DATETIME'] = df['JOBDATE']
-
-    return df
-
-
-def load_completed_file():
-    # datetime, result, type, subject, session, scan, event, field, project
-
-    # read each line and convert to a dictionary and append to list
-    # then convert list to a dataframe
-    data = []
-    with open(COMPLETEDFILE, 'r') as f:
-        for line in f:
-            pairs = line.strip().split(',')
-            row = dict(keyval.split("=") for keyval in pairs)
-            if 'session' not in row:
-                row['session'] = ''
-
-            if 'field' not in row:
-                row['field'] = ''
-
-            data.append(row)
-
-    # Make a dataframe from all rows
-    df = pd.DataFrame(data)
-
-    LABELFIELDS = ['project', 'subject', 'session', 'event', 'field']
-    df['LABEL'] = df[LABELFIELDS].stack().groupby(level=0).agg(','.join)
-
-    df['PROJECT'] = df['project']
-
-    df['STATUS'] = 'COMPLETE'
-
-    df['SOURCE'] = 'ccmutils'
-
-    df['CATEGORY'] = df['type']
-
-    df['DESCRIPTION'] = df['CATEGORY'] + ':' + df['LABEL']
-
-    df['DATETIME'] = df['datetime']
 
     return df
 

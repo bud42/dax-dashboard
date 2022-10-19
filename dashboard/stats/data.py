@@ -173,7 +173,9 @@ def load_redcap_stats(api_url, api_key):
     _rc = redcap.Project(api_url, api_key)
 
     # Load the data, specify index since we loaded lazy
-    _df = _rc.export_records(format_type='df', df_kwargs={'index_col': 'record_id'})
+    _df = _rc.export_records(
+        format_type='df',
+        df_kwargs={'index_col': 'record_id'})
 
     if 'wml_volume' in _df:
         # rename wml for NIC
@@ -269,7 +271,7 @@ def filter_data(df, projects, proctypes, timeframe, sesstypes):
         logging.debug('not filtering by time')
         pass
 
-     # Filter by sesstype
+    # Filter by sesstype
     if sesstypes:
         logging.debug(f'filtering by sesstypes:{sesstypes}')
         df = df[df['SESSTYPE'].isin(sesstypes)]
@@ -287,13 +289,13 @@ def load_madrs_data():
     i = utils.get_projectid('DepMIND2 primary', shared.KEYFILE)
     k = utils.get_projectkey(i, shared.KEYFILE)
     if k:
-        _cols = ['ma_tot']
+        #_cols = ['ma_tot']
         _fields = ['record_id', 'ma_tot']
         _map = {
             'week_0baseline_arm_1': 'Baseline',
             'week_6_arm_1': 'Week6',
             'week_12_arm_1': 'Week12',
-            'week_3_arm_1': 'Week3', 
+            'week_3_arm_1': 'Week3',
             'week_9_arm_1': 'Week9',
         }
         _events = _map.keys()
@@ -305,7 +307,9 @@ def load_madrs_data():
         # Load secondary ID
         def_field = _proj.def_field
         sec_field = _proj.export_project_info()['secondary_unique_field']
-        rec = _proj.export_records(fields=[def_field, sec_field], format_type='df')
+        rec = _proj.export_records(
+            fields=[def_field, sec_field],
+            format_type='df')
         rec.dropna(subset=[sec_field], inplace=True)
         rec[sec_field] = rec[sec_field].astype(int).astype(str)
         rec = rec.reset_index()
@@ -313,7 +317,10 @@ def load_madrs_data():
 
         # Load madrs data
         data = _proj.export_records(
-            raw_or_label='raw', format_type='df', fields=_fields, events=_events)
+            raw_or_label='raw',
+            format_type='df',
+            fields=_fields,
+            events=_events)
 
         # Merge in subject_number (probably could do this with a column map)
         data = data.reset_index()
@@ -403,13 +410,13 @@ def load_options(projects, proctypes):
             except ValueError:
                 continue
 
-            # Include in projects list if no proctypes are 
+            # Include in projects list if no proctypes are
             # selected or if it is one of the selected proc types
             if not proctypes or len(proctypes) == 0 or proc in proctypes:
                 proj_options.append(proj)
 
-            # Include in proc types list if no projects are selected or if it is
-            # one of the selected projects
+            # Include in proc types list if no projects are selected or
+            # if this is one of the selected projects
             if not projects or len(projects) == 0 or proj in projects:
                 proc_options.append(proc)
 

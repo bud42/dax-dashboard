@@ -1,4 +1,4 @@
-import os
+from pathlib import Path
 
 from dash import dcc, html
 
@@ -30,9 +30,9 @@ def get_layout():
                     label='Issues', value='3', children=issues_content),
                 dcc.Tab(
                     label='Stats', value='4', children=stats_content),
-                 dcc.Tab(
+                dcc.Tab(
                     label='Reports', value='5', children=reports_content),
-                 dcc.Tab(
+                dcc.Tab(
                     label='Admin', value='6', children=admin_content),
             ]),
             #style={
@@ -40,7 +40,7 @@ def get_layout():
             #    'align-items': 'center', 'justify-content': 'left'}
             style={
                 'width': '90%', 'display': 'flex',
-                'align-items': 'center', 'justify-content': 'center'}
+                'align-items': 'center', 'justify-content': 'center'},
             )]
 
     footer_content = [
@@ -59,7 +59,7 @@ def get_layout():
 
 
 # For gunicorn to work correctly
-server = app.server  
+server = app.server
 
 # This loads a css template maintained by the Dash developer
 app.css.config.serve_locally = False
@@ -70,7 +70,7 @@ app.css.append_css({
 app.title = 'DAX Dashboard'
 
 # Check for user passwords file
-if os.path.exists('/opt/dashboard/dashboardsecrets.py'):
+if Path.home().joinpath('dashboardsecrets.py').is_file():
     # Use very basic authentication
     import dash_auth
     from dashboardsecrets import VALID_USERNAME_PASSWORD_PAIRS

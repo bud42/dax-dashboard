@@ -48,7 +48,7 @@ def get_graph_content(df):
     # Make the figure with 1 row and a column for each var we are plotting
     fig = plotly.subplots.make_subplots(
         rows=1,
-        cols=box_count, 
+        cols=box_count,
         horizontal_spacing=hspacing,
         subplot_titles=var_list)
 
@@ -73,14 +73,15 @@ def get_graph_content(df):
             _col)
 
         if var.startswith('con_') or var.startswith('inc_'):
-            fig.update_yaxes(range=[-1,1], autorange=False) 
+            fig.update_yaxes(range=[-1, 1], autorange=False)
         else:
             fig.update_yaxes(autorange=True)
             pass
 
     # Move the subtitles to bottom instead of top of each subplot
     for i in range(len(fig.layout.annotations)):
-        fig.layout.annotations[i].update(y=-.15) #, font={'size': 18})
+        fig.layout.annotations[i].update(y=-.15)
+        # , font={'size': 18})
 
     # Customize figure to hide legend and fit the graph
     fig.update_layout(
@@ -94,7 +95,7 @@ def get_graph_content(df):
     # makes the graph stay in a scrollable section
     label = 'ALL'
     graph = html.Div(
-        dcc.Graph(figure=fig, style={'overflow': 'scroll'}), 
+        dcc.Graph(figure=fig, style={'overflow': 'scroll'}),
         style={'width': '1000px'})
 
     tab = dcc.Tab(label=label, value=str(tab_value), children=[graph])
@@ -178,7 +179,7 @@ def get_content():
             id='datatable-stats',
             style_table={
                 'overflowY': 'scroll',
-                'overflowX': 'scroll', 
+                'overflowX': 'scroll',
                 'width': '1000px'},
             style_cell={
                 'textAlign': 'left',
@@ -209,8 +210,8 @@ def load_stats(projects, proctypes, refresh=False):
 
 def was_triggered(callback_ctx, button_id):
     result = (
-        callback_ctx.triggered and
-        callback_ctx.triggered[0]['prop_id'].split('.')[0] == button_id)
+        callback_ctx.triggered
+        and callback_ctx.triggered[0]['prop_id'].split('.')[0] == button_id)
 
     return result
 
@@ -265,7 +266,7 @@ def update_stats(
         sess = []
 
     # Filter data based on dropdown values
-    #selected_sesstype = 'all'
+    # selected_sesstype = 'all'
     # TODO: don't need to apply proj/proc filters again
     df = data.filter_data(
         df,

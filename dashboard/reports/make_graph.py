@@ -4,12 +4,16 @@ import pydot
 graph = pydot.Dot(graph_type='digraph')
 
 graph.set_node_defaults(
-	color='lightblue', style='filled', shape='box', fontname='Courier', fontsize='12')
+    color='lightblue',
+    style='filled',
+    shape='box',
+    fontname='Courier',
+    fontsize='12')
 
 scantypes = ['T1', 'FLAIR', 'fMRI_REST', 'fMRI_MSIT', 'FieldMaps', 'DTI']
 
 for scan in scantypes:
-	graph.add_node(pydot.Node(scan, color='orange'))
+    graph.add_node(pydot.Node(scan, color='orange'))
 
 graph.add_node(pydot.Node('EDAT', color='violet'))
 

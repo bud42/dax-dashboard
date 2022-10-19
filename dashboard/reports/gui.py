@@ -1,22 +1,13 @@
-import sys
 import logging
-import io
-import re
-import itertools
 import os
 import os.path
 from datetime import datetime
 import time
 
 import humanize
-import pandas as pd
-import plotly
-import plotly.graph_objs as go
-import plotly.subplots
-from dash import dcc, html, dash_table as dt
+from dash import dcc, html
 from dash.dependencies import Input, Output
 import dash
-import plotly.express as px
 
 from app import app
 import reports.data as data
@@ -42,9 +33,9 @@ def get_content():
                 value='0',
                 children=graph_content,
                 vertical=True,
-                )]),
+            )]),
         html.Button('Refresh', id='button-reports-refresh'),
-        ]
+    ]
 
     return reports_content
 
@@ -66,7 +57,7 @@ def get_graph_content(df):
         'padding-bottom': '10px',
         'padding-left': '50px'}
 
-    p_style = { 
+    p_style = {
         'padding-top': '30px',
         'padding-bottom': '20px',
         'padding-left': '200px',
@@ -83,7 +74,7 @@ def get_graph_content(df):
     for r in report_list:
         # Add a link to project PDF
         progress_content.append(html.Div(html.A(
-            r , download=r, href=f'assets/progress/{r}'), style=pdf_style))
+            r, download=r, href=f'assets/progress/{r}'), style=pdf_style))
 
     # Add some space
     progress_content.append(html.Br())
@@ -94,7 +85,7 @@ def get_graph_content(df):
         value='0',
         children=[html.Div(progress_content)],
         #style={'width': '900px'})
-        )
+    )
 
     # Build the double content
     _time = time.ctime(os.path.getmtime('assets/double'))
@@ -107,7 +98,8 @@ def get_graph_content(df):
     report_list = [x for x in report_list if x.endswith('.pdf')]
     for r in report_list:
         # Add a link to project PDF
-        double_content.append(html.Div(html.A(r, download=r, href=f'assets/double/{r}'), style=pdf_style))
+        double_content.append(html.Div(html.A(
+            r, download=r, href=f'assets/double/{r}'), style=pdf_style))
 
     # Add some space
     double_content.append(html.Br())
@@ -117,8 +109,8 @@ def get_graph_content(df):
         label='Double',
         value='1',
         children=[html.Div(double_content)],
-        )
-        #style={'width': '900px'})
+    )
+    #style={'width': '900px'})
 
     # Concat the tabs
     tabs = [tab0, tab1]

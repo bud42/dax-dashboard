@@ -2,25 +2,16 @@ import logging
 import io
 import re
 import itertools
-import os
-import os.path
 from datetime import datetime, date, timedelta
-import time
-import tempfile
 
-import humanize
 import pandas as pd
 import plotly
 import plotly.graph_objs as go
 import plotly.subplots
-from dash import dcc, html, dash_table as dt
-from dash.dependencies import Input, Output
-import dash
 import plotly.express as px
 from fpdf import FPDF
 from PIL import Image
 
-from app import app
 from shared import ASTATUS2COLOR, QASTATUS2COLOR
 import admin.data as data
 from stats.data import get_variables
@@ -733,7 +724,6 @@ def make_project_report(
     xsesstypes=[],
     phantom_project=None
 ):
-
     results = []
 
     # stattypes: list of proc types to show stats
@@ -768,4 +758,3 @@ def make_project_report(
             'project': project})
 
     return results
-
