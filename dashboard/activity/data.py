@@ -45,6 +45,8 @@ def get_filename():
 
 
 def load_activity_redcap():
+    LABELFIELDS = ['PROJECT', 'SUBJECT', 'SESSION', 'SCAN', 'EVENT', 'FIELD']
+
     df = pd.DataFrame(columns=[
         'ID', 'LABEL', 'PROJECT', 'SUBJECT', 'SESSION', 'EVENT', 'FIELD',
         'CATEGORY', 'STATUS', 'SOURCE', 'DESCRIPTION', 'DATETIME'
@@ -69,29 +71,21 @@ def load_activity_redcap():
 
         df.rename(inplace=True, columns={
             'redcap_repeat_instance': 'ID',
-            'activity_subject': 'SUBJECT',
-            'activity_result': 'RESULT',
-            'activity_session': 'SESSION',
-            'activity_event': 'EVENT',
-            'activity_field': 'FIELD',
-            'activity_type': 'CATEGORY',
             'activity_description': 'DESCRIPTION',
             'activity_datetime': 'DATETIME',
+            'activity_event': 'EVENT',
+            'activity_field': 'FIELD',
+            'activity_result': 'RESULT',
+            'activity_scan': 'SCAN',
+            'activity_subject': 'SUBJECT',
+            'activity_session': 'SESSION',
+            'activity_type': 'CATEGORY',
         })
-        df['STATUS'] = df['RESULT']
         df['SOURCE'] = 'ccmutils'
-
-        LABELFIELDS = ['PROJECT', 'SUBJECT', 'SESSION', 'EVENT', 'FIELD']
-        #df['LABEL'] = df[LABELFIELDS].astype(str).T.agg(','.join)
+        df['STATUS'] = 'COMPLETE'
         df['LABEL'] = df[LABELFIELDS].apply(
             lambda x: ','.join(x[x.notnull()]), axis=1)
-
-        df['STATUS'] = 'COMPLETE'
-
-        df['SOURCE'] = 'ccmutils'
-
         df['DESCRIPTION'] = df['CATEGORY'] + ':' + df['LABEL']
-
     except Exception as err:
         logging.error(f'failed to load activity:{err}')
 
