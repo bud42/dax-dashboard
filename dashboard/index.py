@@ -73,6 +73,10 @@ app.title = 'DAX Dashboard'
 if Path.home().joinpath('dashboardsecrets.py').is_file():
     # Use very basic authentication
     import dash_auth
+    import sys
+
+    sys.path.append(Path.home().joinpath('dashboardsecrets.py'))
+
     from dashboardsecrets import VALID_USERNAME_PASSWORD_PAIRS
     auth = dash_auth.BasicAuth(app, VALID_USERNAME_PASSWORD_PAIRS)
 
