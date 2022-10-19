@@ -596,7 +596,6 @@ def run_project_compare(mainrc, proj_maindata, keyfile):
             # Save PDF to reports
             shutil.copy(pdf_file, 'assets/double/')
 
-
         except AssertionError as err:
             logging.error(f'upload failed:{err}')
         except (ValueError, redcap.RedcapError) as err:

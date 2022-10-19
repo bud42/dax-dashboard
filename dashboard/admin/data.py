@@ -207,7 +207,7 @@ def update_redcap_reports(project_filter):
             upload_report(filename, mainrc, proj_name)
 
             # Save PDF to reports
-            shutil.copy(filename, 'assets/double/')
+            shutil.copy(filename, 'assets/progress/')
 
     return results
 

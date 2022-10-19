@@ -27,12 +27,6 @@ from stats.data import get_variables
 from qa.gui import get_metastatus
 
 
-try:
-    os.mkdir('assets')
-except Exception:
-    pass
-
-
 class MYPDF(FPDF):
     def set_filename(self, filename):
         self.filename = filename

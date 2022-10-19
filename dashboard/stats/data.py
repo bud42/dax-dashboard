@@ -125,7 +125,6 @@ def get_data(projects, proctypes):
 
     logging.info('loading demographic data')
     _df = load_demographic_data()
-    print(_df)
     df = pd.merge(
         df,
         _df,
@@ -135,7 +134,6 @@ def get_data(projects, proctypes):
 
     logging.info('loading madrs data')
     _df = load_madrs_data()
-    print(_df)
     df = pd.merge(
         df,
         _df,
@@ -148,8 +146,6 @@ def get_data(projects, proctypes):
     df['SEX'] = df['SEX'].fillna('')
     df['DEPRESS'] = df['DEPRESS'].fillna('')
     df['SESSTYPE'] = df['SESSTYPE'].fillna('UNKNOWN')
-
-    print(df)
 
     return df
 
@@ -284,6 +280,7 @@ def filter_data(df, projects, proctypes, timeframe, sesstypes):
 
 
 def load_madrs_data():
+    logging.info('loading madrs data')
 
     data = pd.DataFrame()
 
@@ -302,6 +299,7 @@ def load_madrs_data():
         _events = _map.keys()
 
         # Connect to the redcap project
+        logging.info('connecting to redcap')
         _proj = redcap.Project(shared.API_URL, k)
 
         # Load secondary ID

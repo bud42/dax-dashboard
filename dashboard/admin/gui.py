@@ -47,14 +47,15 @@ def get_content():
                 children=admin_graph_content,
                 style={'height': '200px', 'width': '1000px'},
                 )]),
-        html.Button('Run Selected', id='button-admin-run'),
         dcc.Dropdown(
             id='dropdown-admin-projects', multi=False,
             placeholder='Select Projects'),
         dcc.Dropdown(
             id='dropdown-admin-types', multi=True,
             placeholder='Select Types'),
+        html.Button('Run Selected', id='button-admin-run'),
         ]
+
 
     return admin_content
 
@@ -67,7 +68,7 @@ def was_triggered(callback_ctx, button_id):
 
 
 def load_log():
-    txt = 'LOG:'
+    txt = ''
 
     try:
         with open(Path.home().joinpath('log.txt'), 'r') as f:
@@ -81,7 +82,7 @@ def load_log():
 def get_graph_content():
     graph_content = []
 
-    txt = load_log()
+    txt = 'LOG\n' + load_log()
 
     graph_content.append(html.P(
         txt,
@@ -93,6 +94,8 @@ def get_graph_content():
 
     # Add some space
     graph_content.append(html.Br())
+
+    return graph_content
 
 
 # =============================================================================
@@ -125,19 +128,15 @@ def update_all(
         # Run reports if button clicked
         logging.info('run:clicks={}'.format(n_clicks_run))
 
-        if 'Old Reports' in selected_types:
-            logging.info(f'updating old reports:{selected_projects}')
-            update_old_reports(refresh=True)
-
-        if 'Double Entry Report'  in selected_types:
+        if 'Double Entry Report' in selected_types:
             logging.info(f'updating double reports:{selected_projects}')
             data.update_double_reports(selected_projects)
 
-        if 'Monthly Progress Report'  in selected_types:
+        if 'Monthly Progress Report' in selected_types:
             logging.debug(f'updating progress reports:{selected_projects}')
             data.update_redcap_reports(selected_projects)
 
-        if  'Check Issues' in selected_types:
+        if 'Check Issues' in selected_types:
             logging.debug('running audits to check issues')
 
     # Return result
@@ -146,10 +145,9 @@ def update_all(
     # Update lists of possible options for dropdowns
     projects = utils.make_options(data.get_projects())
     types = utils.make_options([
-        'Old Reports',
         'Double Entry Report',
         'Monthly Progress Report',
-        'Check Issues'
+        'Check Issues',
         ])
 
     return [projects, types]
