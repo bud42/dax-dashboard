@@ -45,9 +45,10 @@ def get_filename():
 
 
 def load_activity_redcap():
-    # datetime, result, type, subject, session, scan, event, field, project
-    #LABELFIELDS = ['project', 'subject', 'session', 'event', 'field']
-    #df['LABEL'] = df[LABELFIELDS].stack().groupby(level=0).agg(','.join)
+    df = pd.DataFrame(columns=[
+        'ID', 'LABEL', 'PROJECT', 'SUBJECT', 'SESSION', 'EVENT', 'FIELD',
+        'CATEGORY', 'STATUS', 'SOURCE', 'DESCRIPTION', 'DATETIME'
+    ])
 
     try:
         keyfile = shared.KEYFILE
@@ -61,31 +62,36 @@ def load_activity_redcap():
             forms=['main', 'activity'],
             format_type='df')
         df = df[df['redcap_repeat_instrument'] == 'activity']
+
+        logging.debug('transforming records')
+
+        df['PROJECT'] = df.index
+
+        df.rename(inplace=True, columns={
+            'redcap_repeat_instance': 'ID',
+            'activity_subject': 'SUBJECT',
+            'activity_result': 'RESULT',
+            'activity_session': 'SESSION',
+            'activity_event': 'EVENT',
+            'activity_field': 'FIELD',
+            'activity_type': 'CATEGORY',
+            'activity_description': 'DESCRIPTION',
+            'activity_datetime': 'DATETIME',
+        })
+        df['STATUS'] = df['RESULT']
+        df['SOURCE'] = 'ccmutils'
+
+        LABELFIELDS = ['PROJECT', 'SUBJECT', 'SESSION', 'EVENT', 'FIELD']
+        df['LABEL'] = df[LABELFIELDS].stack().groupby(level=0).agg(','.join)
+
+        df['STATUS'] = 'COMPLETE'
+
+        df['SOURCE'] = 'ccmutils'
+
+        df['DESCRIPTION'] = df['CATEGORY'] + ':' + df['LABEL']
+
     except Exception as err:
         logging.error(f'failed to load activity:{err}')
-        return pd.DataFrame(columns=[
-            'ID', 'LABEL', 'PROJECT', 'SUBJECT', 'SESSION',
-            'EVENT', 'FIELD', 'CATEGORY', 'STATUS', 'SOURCE',
-            'DESCRIPTION', 'DATETIME'
-        ])
-
-    logging.debug('transforming records')
-
-    df['PROJECT'] = df.index
-    df.rename(inplace=True, columns={
-        'redcap_repeat_instance': 'ID',
-        'activity_subject': 'SUBJECT',
-        'activity_result': 'RESULT',
-        'activity_session': 'SESSION',
-        'activity_event': 'EVENT',
-        'activity_field': 'FIELD',
-        'activity_type': 'CATEGORY',
-        'activity_description': 'DESCRIPTION',
-        'activity_datetime': 'DATETIME',
-    })
-    df['STATUS'] = df['RESULT']
-    df['SOURCE'] = 'ccmutils'
-    df['LABEL'] = df['ID']
 
     return df
 
