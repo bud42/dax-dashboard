@@ -1,6 +1,8 @@
 from pathlib import Path
 
 from dash import dcc, html
+import yaml
+import dash_auth
 
 from app import app
 from qa import gui as qa
@@ -35,13 +37,11 @@ def get_layout():
                 dcc.Tab(
                     label='Admin', value='6', children=admin_content),
             ]),
-            #style={
-            #    'width': '100%', 'display': 'flex',
-            #    'align-items': 'center', 'justify-content': 'left'}
             style={
                 'width': '90%', 'display': 'flex',
                 'align-items': 'center', 'justify-content': 'center'},
-            )]
+        )
+    ]
 
     footer_content = [
         html.Hr(),
@@ -69,21 +69,10 @@ app.css.append_css({
 # Set the title to appear on web pages
 app.title = 'DAX Dashboard'
 
-# Check for user passwords file
-if Path.home().joinpath('dashboardsecrets.yaml').is_file():
-    import yaml
-    import dash_auth
-
-    try:
-        with open(Path.home().joinpath('dashboardsecrets.yaml'), 'rt') as file:
-            ydata = yaml.load(file, yaml.SafeLoader)
-
-        VALID_USERNAME_PASSWORD_PAIRS = ydata['VALID_USERNAME_PASSWORD_PAIRS']
-
-        # Use very basic authentication
-        auth = dash_auth.BasicAuth(app, VALID_USERNAME_PASSWORD_PAIRS)
-    except:
-        print('failed to load secrets')
+# Load user passwords to use dash's basic authentication
+with open(Path.home().joinpath('dashboardsecrets.yaml'), 'rt') as file:
+    _data = yaml.load(file, yaml.SafeLoader)
+    auth = dash_auth.BasicAuth(app, _data['VALID_USERNAME_PASSWORD_PAIRS'])
 
 # Set the content
 app.layout = get_layout()
