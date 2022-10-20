@@ -33,7 +33,7 @@ def get_content():
         dcc.Loading(id="loading-admin", children=[
             html.Div(
                 children=admin_graph_content,
-                style={'height': '200px', 'width': '1000px'},
+                style={'height': '200px', 'width': '900px'},
             )]),
         dcc.Dropdown(
             id='dropdown-admin-projects', multi=False,
@@ -76,8 +76,8 @@ def get_graph_content():
         style={
             'padding-top': '30px',
             'padding-bottom': '20px',
-            'padding-left': '200px',
-            'padding-right': ' 200px'}))
+            'padding-left': '20px',
+            'padding-right': ' 20px'}))
 
     # Add some space
     graph_content.append(html.Br())
