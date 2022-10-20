@@ -1,7 +1,6 @@
 from datetime import datetime
 import logging
 
-import redcap
 
 import utils
 

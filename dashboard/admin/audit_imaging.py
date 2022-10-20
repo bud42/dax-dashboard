@@ -2,7 +2,7 @@ from logs import logger
 
 from dax import XnatUtils
 
-import utils_xnat
+import utils
 
 
 # we want to audit all the mri data form in redcap
@@ -50,8 +50,8 @@ def audit(
             return results
 
         logger.info('loading session information from XNAT')
-        dst_sess_list = utils_xnat.session_label_list(xnat, dst_project_name)
-        src_sess_list = utils_xnat.session_label_list(xnat, src_project_name)
+        dst_sess_list = utils.session_label_list(xnat, dst_project_name)
+        src_sess_list = utils.session_label_list(xnat, src_project_name)
 
         if use_secondary:
             # Handle secondary ID

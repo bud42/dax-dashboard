@@ -1,4 +1,4 @@
-from logs import logger
+import logging
 
 
 def audit(
@@ -19,7 +19,7 @@ def audit(
         # Handle secondary ID
         sec_field = project.export_project_info()['secondary_unique_field']
         if not sec_field:
-            logger.error('secondary enabled, but no secondary field found')
+            logging.error('secondary enabled, but no secondary field found')
             return
 
         rec = project.export_records(fields=[def_field, sec_field])
@@ -36,7 +36,7 @@ def audit(
             try:
                 subj = id2subj[record_id]
             except KeyError as err:
-                logger.debug(f'record without subject number:{err}')
+                logging.debug(f'record without subject number:{err}')
                 continue
         else:
             subj = record_id
@@ -46,13 +46,13 @@ def audit(
 
         # Skip if not ready
         if not r[ready_field]:
-            logger.debug(visit + ':not ready yet')
+            logging.debug(visit + ':not ready yet')
             continue
 
         # Check for edat file
         if not r[raw_field]:
             # Missing edat
-            logger.info(visit + ':missing edat')
+            logging.info(visit + ':missing edat')
             results.append({
                 'type': 'MISSING_EDAT',
                 'subject': subj,
@@ -63,13 +63,13 @@ def audit(
 
         # Check for missing data flag
         if 'MISSING_DATA' in r[raw_field]:
-            logger.debug('{}:{}:{}'.format(subj, event, 'missing data flag'))
+            logging.debug('{}:{}:{}'.format(subj, event, 'missing data flag'))
             continue
 
         # Check for converted edat file
         if not r[tab_field]:
             # Missing converted edat
-            logger.info(visit + ':missing converted edat')
+            logging.info(visit + ':missing converted edat')
             results.append({
                 'type': 'MISSING_CONVERTED_EDAT',
                 'subject': subj,
