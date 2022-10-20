@@ -123,3 +123,15 @@ def read_data(filename):
 def save_data(df, filename):
     # save to cache
     df.to_pickle(filename)
+
+
+def match_repeat(mainrc, record_id, repeat_name, match_field, match_value):
+
+    # Load potential matches
+    records = mainrc.export_records(records=[record_id])
+
+    # Find records with matching vaue
+    matches = [x for x in records if x[match_field] == match_value]
+
+    # Return ids of matches
+    return [x['redcap_repeat_instance'] for x in matches]

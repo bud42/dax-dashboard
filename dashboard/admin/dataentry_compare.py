@@ -469,18 +469,6 @@ def write_results(results, pdf_file, excel_file):
     write_excel(results, excel_file)
 
 
-def match_repeat(mainrc, record_id, repeat_name, match_field, match_value):
-
-    # Load potential matches
-    records = mainrc.export_records(records=[record_id])
-
-    # Find records with matching vaue
-    matches = [x for x in records if x[match_field] == match_value]
-
-    # Return ids of matches
-    return [x['redcap_repeat_instance'] for x in matches]
-
-
 def test_finish(outdir, outpref):
     info = {}
     excel_file = os.path.join(outdir, f'{outpref}.xlsx')
@@ -582,7 +570,7 @@ def run_project_compare(mainrc, proj_maindata, keyfile):
 
             # Get the new record id from the response
             logging.info('locating new record')
-            _ids = match_repeat(
+            _ids = utils.match_repeat(
                 mainrc,
                 proj_name,
                 'double',

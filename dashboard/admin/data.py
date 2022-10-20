@@ -227,7 +227,7 @@ def upload_report(filename, mainrc, project_name):
 
         # Determine the new record id
         logging.info('locating new record')
-        _ids = match_repeat(
+        _ids = utils.match_repeat(
             mainrc,
             project_name,
             'progress',
@@ -250,14 +250,23 @@ def upload_report(filename, mainrc, project_name):
         logging.error(f'error uploading:{err}')
 
 
-def match_repeat(mainrc, record_id, repeat_name, match_field, match_value):
+def check_issues(project_filter):
+    from .audits import run_audits, update_issues
 
-    # Load potential matches
-    records = mainrc.export_records(records=[record_id])
+    try:
+        logging.info('connecting to redcap')
+        i = utils.get_projectid("main", shared.KEYFILE)
+        k = utils.get_projectkey(i, shared.KEYFILE)
+        mainrc = redcap.Project(shared.API_URL, k)
 
-    # Find records with matching vaue
-    matches = [x for x in records if x[match_field] == match_value]
+        # Identify current issues by running audit
+        logging.info('running audits to find issues')
+        issues = run_audits(mainrc, project_filter)
 
-    # Return ids of matches
-    return [x['redcap_repeat_instance'] for x in matches]
+        # Save issues to redcap
+        logging.info('updating check_issues')
+        update_issues(issues, mainrc, project_filter)
 
+    except Exception as err:
+        logging.error(f'failed to connect to main redcap:{err}')
+        return

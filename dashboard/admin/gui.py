@@ -125,6 +125,7 @@ def update_all(
 
         if 'Check Issues' in selected_types:
             logging.debug('running audits to check issues')
+            data.check_issues(selected_projects)
 
     # Return result
     logging.debug('update_all:returning data')
