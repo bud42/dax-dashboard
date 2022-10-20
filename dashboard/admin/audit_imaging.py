@@ -1,4 +1,4 @@
-from logs import logger
+import logging
 
 from dax import XnatUtils
 
@@ -34,7 +34,7 @@ def audit(
         # check that projects exist on XNAT
         if not xnat.select.project(src_project_name).exists():
             msg = 'source project does not exist in XNAT:' + src_project_name
-            logger.error(msg)
+            logging.error(msg)
             results.append({
                 'type': 'ERROR',
                 'description': msg})
@@ -43,13 +43,13 @@ def audit(
         # check that projects exist on XNAT
         if not xnat.select.project(dst_project_name).exists():
             msg = 'destination project does not exist:' + dst_project_name
-            logger.error(msg)
+            logging.error(msg)
             results.append({
                 'type': 'ERROR',
                 'description': msg})
             return results
 
-        logger.info('loading session information from XNAT')
+        logging.info('loading session information from XNAT')
         dst_sess_list = utils.session_label_list(xnat, dst_project_name)
         src_sess_list = utils.session_label_list(xnat, src_project_name)
 
@@ -57,7 +57,7 @@ def audit(
             # Handle secondary ID
             sec_field = project.export_project_info()['secondary_unique_field']
             if not sec_field:
-                logger.error('secondary enabled but no secondary field found')
+                logging.error('secondary enabled but no secondary field found')
                 return
 
             rec = project.export_records(fields=[def_field, sec_field])
@@ -88,7 +88,7 @@ def audit(
                 try:
                     dst_subj = id2subj[record_id]
                 except KeyError as err:
-                    logger.debug(f'record without subject number:{err}')
+                    logging.debug(f'record without subject number:{err}')
                     continue
             else:
                 dst_subj = record_id
@@ -101,14 +101,14 @@ def audit(
                     suffix = event2sess[event_id]
                     dst_sess = dst_subj + suffix
                 except KeyError as err:
-                    logger.error('{}:{}:{}:{}'.format(
+                    logging.error('{}:{}:{}:{}'.format(
                         record_id, event_id,
                         'failed to map event to session suffix:', str(err)))
                     continue
             elif dst_sess_field:
                 dst_sess = r[dst_sess_field]
             else:
-                logger.info('{}:{}:{}'.format(
+                logging.info('{}:{}:{}'.format(
                     record_id, event_id, 'failed to get session ID'))
                 continue
 
@@ -116,7 +116,7 @@ def audit(
             # this helps with scans from other sites where some fields
             # are not used
             if dst_sess in dst_sess_list:
-                logger.debug('{}:{}'.format(dst_sess, 'already on XNAT'))
+                logging.debug('{}:{}'.format(dst_sess, 'already on XNAT'))
                 continue
 
             if not src_sess:
@@ -128,7 +128,7 @@ def audit(
                 # automatically going to XNAT for whatever reason.
                 msg = '{}:{}:{}'.format(
                     record_id, event_id, 'source session not set')
-                logger.debug(msg)
+                logging.debug(msg)
                 # results.append({
                 #    'type': 'MISSING_VALUE',
                 #    'subject': dst_subj,
@@ -141,7 +141,7 @@ def audit(
             if not dst_sess:
                 msg = '{}:{}:{}'.format(
                     record_id, event_id, 'XNAT session ID not set')
-                logger.info(msg)
+                logging.info(msg)
                 results.append({
                     'type': 'MISSING_VALUE',
                     'subject': dst_subj,
@@ -158,7 +158,7 @@ def audit(
                 # be extra vigilant when we know scans are not
                 # automatically going to XNAT for whatever reason.
                 msg = '{}:{}:{}'.format(record_id, event_id, 'date not set')
-                logger.info(msg)
+                logging.info(msg)
                 # results.append({
                 #    'type': 'MISSING_VALUE',
                 #    'subject': dst_subj,
@@ -170,7 +170,7 @@ def audit(
             # Check that session does actually exist in source project
             if src_sess not in src_sess_list:
                 msg = '{}:{}'.format(src_sess, 'not on XNAT request repush?')
-                logger.info(msg)
+                logging.info(msg)
                 results.append({
                     'type': 'MISSING_SESSION',
                     'subject': dst_subj,
@@ -184,7 +184,7 @@ def audit(
             if dst_sess not in dst_sess_list:
                 msg = '{}_{}:{}'.format(
                     src_project_name, src_sess, 'auto archive working?')
-                logger.info(msg)
+                logging.info(msg)
                 results.append({
                     'type': 'NEEDS_AUTO',
                     'subject': dst_subj,
