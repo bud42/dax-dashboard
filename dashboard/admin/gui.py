@@ -30,18 +30,20 @@ def get_content():
     admin_graph_content = get_graph_content()
 
     admin_content = [
-        dcc.Loading(id="loading-admin", children=[
-            html.Div(
-                children=admin_graph_content,
-                style={'height': '200px', 'width': '900px'},
-            )]),
+        dcc.Loading(
+            id="loading-admin",
+            children=admin_graph_content),
         dcc.Dropdown(
-            id='dropdown-admin-projects', multi=False,
+            id='dropdown-admin-projects',
+            multi=False,
             placeholder='Select Projects'),
         dcc.Dropdown(
-            id='dropdown-admin-types', multi=True,
+            id='dropdown-admin-types',
+            multi=True,
             placeholder='Select Types'),
-        html.Button('Run Selected', id='button-admin-run'),
+        html.Button(
+            'Run Selected',
+            id='button-admin-run'),
     ]
 
     return admin_content
