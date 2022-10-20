@@ -2,6 +2,9 @@ import redcap
 import os
 import pandas as pd
 import logging
+import json
+
+from dax import XnatUtils
 
 
 def make_options(values):
@@ -13,8 +16,6 @@ def make_columns(values):
 
 
 def get_json(xnat, uri):
-    import json
-
     return json.loads(xnat._exec(uri, 'GET'))
 
 
@@ -38,6 +39,7 @@ def get_user_projects(xnat, username):
     data = sorted([x.rsplit('_', 1)[0] for x in data])
 
     return data
+
 
 def get_projectkey(projectid, keyfile):
     # Load the dictionary
@@ -104,7 +106,10 @@ def download_file(project, record_id, event_id, field_id, filename, repeat_id=No
         return None
 
 
-def upload_file(project, record_id, event_id, field_id, filename, repeat_id=None):
+def upload_file(
+    project, record_id, event_id, field_id, filename, repeat_id=None
+):
+
     with open(filename, 'rb') as f:
         project.import_file(
             record=record_id,
@@ -135,3 +140,45 @@ def match_repeat(mainrc, record_id, repeat_name, match_field, match_value):
 
     # Return ids of matches
     return [x['redcap_repeat_instance'] for x in matches]
+
+
+def session_label_list(xnat, project_name):
+    _uri = f'/REST/experiments?columns=label,modality&project={project_name}'
+    _json = XnatUtils.get_json(xnat, _uri)
+    label_list = [x['label'] for x in _json['ResultSet']['Result']]
+    return label_list
+
+
+def session_vuiisid_list(xnat, projectid):
+    dcmtag = 'dcmPatientId'
+    post_uri = '/REST/projects/{0}/experiments?columns=label,xnat:imagesessiondata/{1}'
+    post_uri = post_uri.format(projectid, dcmtag)
+
+    sess_json = get_json(xnat, post_uri)
+    sess_list = sess_json['ResultSet']['Result']
+
+    vuiisid_list = [x[dcmtag].split('_')[1] for x in sess_list if '_' in x[dcmtag]]
+
+    return vuiisid_list
+
+
+def get_unmatched(params):
+    unmatched = []
+
+    with XnatUtils.InterfaceTemp(xnat_retries=0) as xnat:
+        for p in params['pimap']:
+            vuiisid_list = []
+            pi = p['pi']
+            main = p['main']
+            ignore = p['ignore']
+            label_list = session_label_list(xnat, pi)
+            label_list = [x for x in label_list if x not in ignore]
+
+            for m in main:
+                vuiisid_list += session_vuiisid_list(xnat, m)
+
+            pi_unmatched = [x for x in label_list if x not in vuiisid_list]
+
+            unmatched += [(pi+'_'+x) for x in pi_unmatched]
+
+    return unmatched

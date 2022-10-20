@@ -1,13 +1,8 @@
-import os
 from datetime import datetime
 import logging
-import argparse
-import tempfile
 
 import redcap
-import dax
 
-from utils_xnat import get_unmatched
 import utils
 
 
@@ -185,7 +180,7 @@ def audit_root(maindata, project_filter=None):
     try:
         params = {'pimap': pimap}
         logging.info('get unmatched sessions')
-        unmatched = get_unmatched(params)
+        unmatched = utils.get_unmatched(params)
         logging.info(f'unmatched count={len(unmatched)}')
 
         for u in sorted(unmatched):
