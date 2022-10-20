@@ -27,17 +27,10 @@ import utils
 
 
 def get_content():
-    admin_graph_content = get_graph_content()
+    admin_graph_content = _get_graph_content()
 
     admin_content = [
-        dcc.Loading(id='loading-admin', children=[
-            dcc.Tabs(
-                id='tabs-admin',
-                value='0',
-                children=admin_graph_content,
-                vertical=True,
-            )
-        ]),
+        dcc.Loading(id='loading-admin', children=admin_graph_content),
         dcc.Dropdown(
             id='dropdown-admin-projects',
             multi=False,
@@ -73,7 +66,7 @@ def load_log():
     return txt
 
 
-def get_graph_content():
+def _get_graph_content():
     graph_content = []
 
     txt = 'LOG\n' + load_log()
@@ -103,13 +96,14 @@ def get_graph_content():
     [
         Output('dropdown-admin-projects', 'options'),
         Output('dropdown-admin-types', 'options'),
+        Output('loading-admin', 'children'),
     ],
     [
         Input('button-admin-run', 'n_clicks'),
         Input('dropdown-admin-projects', 'value'),
         Input('dropdown-admin-types', 'value'),
     ])
-def update_all(
+def update_admin(
     n_clicks_run,
     selected_projects,
     selected_types,
@@ -145,4 +139,6 @@ def update_all(
         'Check Issues',
     ])
 
-    return [projects, types]
+    graphs = _get_graph_content()
+
+    return [projects, types, graphs]
