@@ -6,6 +6,8 @@ import json
 
 from dax import XnatUtils
 
+import shared
+
 
 def make_options(values):
     return [{'label': x, 'value': x} for x in values]
@@ -82,7 +84,23 @@ def get_projectkeybyname(projectname, keyfile):
     return get_projectkey(i, keyfile)
 
 
-def download_file(project, record_id, event_id, field_id, filename, repeat_id=None):
+def get_redcapbyid(projectid):
+    k = get_projectkey(projectid, shared.KEYFILE)
+    rc = None
+
+    if k:
+        logging.info(f'connecting to redcap:{projectid}')
+        rc = redcap.Project(shared.API_URL, k)
+    else:
+        logging.error(f'no key found for project:{projectid}')
+
+    return rc
+
+
+def download_file(
+    project, record_id, event_id, field_id, filename, repeat_id=None
+):
+
     try:
         (cont, hdr) = project.export_file(
             record=record_id,

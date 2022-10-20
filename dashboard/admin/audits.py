@@ -95,13 +95,11 @@ def audit_project(primaryrc, proj_maindata, maindata):
         # Check for alternate redcap
         if rec['scanning_altprimary'] != '':
             _id = rec['scanning_altprimary']
-            _key = utils.get_projectkey(_id, keyfile)
+            _rc = utils.get_redcapbyid(_id)
 
-            if not _key:
+            if not _rc:
                 logging.info(f'no key found for project:{_id}')
                 continue
-
-            _rc = redcap.Project(primaryrc.url, _key)
         else:
             _rc = primaryrc
 
@@ -241,12 +239,10 @@ def run_audits(mainrc, project_filter=None, function_filter=None):
             logging.info(f'no primary id found for project:{p}')
             continue
 
-        _key = utils.get_projectkey(primaryid, keyfile)
-        if not _key:
-            logging.info(f'no key found for project:{p}')
+        primaryrc = utils.get_redcapbyid(primaryid)
+        if not primaryrc:
+            logging.info(f'no key for project:{p}')
             continue
-
-        primaryrc = redcap.Project(mainrc.url, _key)
 
         try:
             issues += audit_project(primaryrc, proj_maindata, maindata)
