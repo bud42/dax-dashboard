@@ -175,7 +175,7 @@ def session_vuiisid_list(xnat, projectid):
     sess_json = get_json(xnat, post_uri)
     sess_list = sess_json['ResultSet']['Result']
 
-    vuiisid_list = [x[dcmtag].split('_')[1] for x in sess_list if '_' in x[dcmtag]]
+    vuiisid_list = [x[dcmtag].split('_', 1)[1] for x in sess_list if '_' in x[dcmtag]]
 
     return vuiisid_list
 
