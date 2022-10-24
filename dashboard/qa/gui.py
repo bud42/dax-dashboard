@@ -38,7 +38,7 @@
 # TODO: add new colors for jobs that are NEED_INPUTS, JOB_RUNNING, JOB_FAILED
 
 # highlight session rows based on whether it's:
-# "all fail"=RED, "any tbd"=YELLOW, otherwise no color?
+# "all fail"=RED, "NPUT"=YELLOW, otherwise no color?
 
 # show how long ago the data was updated using humanized time
 # and move the refresh button beside that display
@@ -269,7 +269,6 @@ def sessionsbytime_figure(df, selected_groupby):
         view = 'default'
 
         if view == "month":
-            # TBD
             pass
 
         elif view == 'all':
@@ -508,11 +507,11 @@ def get_metastatus(status):
         # at least one passed, so PASSED
         metastatus = 'PASS'
     elif 'Q' in status:
-        # any are still needs qa, then 'NEEDS_QA', or 'TBD'
-        metastatus = 'TBD'
+        # any are still needs qa, then 'NEEDS_QA'
+        metastatus = 'NQA'
     elif 'J' in status:
-        # if any jobs are still running, then 'TBD'
-        metastatus = 'TBD'
+        # if any jobs are still running, then NEEDS INPUTS?
+        metastatus = 'NPUT'
     elif 'F' in status:
         # at this point if one failed, then they all failed, so 'FAILED'
         metastatus = 'FAIL'

@@ -188,7 +188,7 @@ def load_recent_jobs(df, startdate):
     df['STATUS'] = df['PROCSTATUS'].map({
         'COMPLETE': 'COMPLETE',
         'JOB_FAILED': 'FAIL',
-        'JOB_RUNNING': 'TBD'}).fillna('UNKNOWN')
+        'JOB_RUNNING': 'NPUT'}).fillna('UNKNOWN')
 
     df['SOURCE'] = 'dax'
 

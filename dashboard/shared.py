@@ -9,8 +9,12 @@ RGB_RED = 'rgb(219,68,55)'
 RGB_PURPLE = 'rgb(160,106,255)'
 RGB_GREY = 'rgb(200,200,200)'
 RGB_PINK = 'rgb(255,182,193)'
+#RGB_LIME = 'rgb(93, 239, 168)'
+#RGB_LIME = 'rgb(88, 157, 15)'
+RGB_LIME = 'rgb(17, 180, 101)'
+#RGB_LIME = 'rgb(87, 159, 87)'
 
-# These can be used to set color of html tables via style argument
+# These are used to set color of html tables via style argument
 HEX_LBLUE = '#DAEBFF'
 HEX_LGREE = '#DCFFDA'
 HEX_LYELL = '#FFE4B3'
@@ -22,7 +26,8 @@ HEX_LPINK = '#FFB6C1'
 # Give each status a color to display
 QASTATUS2COLOR = {
     'PASS': RGB_GREEN,
-    'TBD': RGB_YELLOW,
+    'NQA':  RGB_LIME,
+    'NPUT': RGB_YELLOW,
     'FAIL': RGB_RED,
     'NONE': RGB_GREY,
     'JOBF': RGB_PINK,
@@ -40,10 +45,12 @@ STATUS2HEX = dict(zip(
     ['WAITING', 'PENDING', 'RUNNING', 'COMPLETE', 'FAILED', 'UNKNOWN', 'JOBF'],
     [HEX_LGREY, HEX_LYELL, HEX_LGREE, HEX_LBLUE, HEX_LREDD, HEX_LPURP, HEX_LPINK]))
 
+# These are used to make progress reports
 ASTATUS2COLOR = {
     'PASS': RGB_GREEN,
-    'TBD': RGB_YELLOW,
+    'NPUT': RGB_YELLOW,
     'FAIL': RGB_RED,
+    'NQA': RGB_LIME,
     'NONE': RGB_GREY,
     'COMPLETE': RGB_BLUE,
     'UNKNOWN': RGB_PURPLE}

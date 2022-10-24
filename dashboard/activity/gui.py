@@ -11,7 +11,7 @@ import dash
 from app import app
 import utils
 from shared import STATUS2HEX
-from shared import RGB_RED, RGB_GREEN, RGB_YELLOW, RGB_GREY, RGB_BLUE
+from shared import RGB_RED, RGB_GREEN, RGB_YELLOW, RGB_GREY, RGB_BLUE, RGB_LIME
 import activity.data as data
 
 
@@ -20,7 +20,8 @@ STATUS2RGB = {
     'COMPLETE': RGB_BLUE,
     'PASS': RGB_GREEN,
     'UNKNOWN': RGB_GREY,
-    'TBD': RGB_YELLOW}
+    'NQA': RGB_LIME,
+    'NPUT': RGB_YELLOW}
 
 
 def get_graph_content(df):
@@ -117,7 +118,8 @@ def get_content():
                 {'if': {'column_id': 'STATUS'}, 'textAlign': 'center'},
                 {'if': {'filter_query': '{STATUS} = "PASS"'},  'backgroundColor': STATUS2HEX['RUNNING']},
                 {'if': {'filter_query': '{STATUS} = "UNKNOWN"'},  'backgroundColor': STATUS2HEX['WAITING']},
-                {'if': {'filter_query': '{STATUS} = "TBD"'},  'backgroundColor': STATUS2HEX['PENDING']},
+                {'if': {'filter_query': '{STATUS} = "NQA"'},  'backgroundColor': STATUS2HEX['PENDING']},
+                {'if': {'filter_query': '{STATUS} = "NPUT"'},  'backgroundColor': STATUS2HEX['PENDING']},
                 {'if': {'filter_query': '{STATUS} = "UNKNOWN"'},  'backgroundColor': STATUS2HEX['UNKNOWN']},
                 {'if': {'filter_query': '{STATUS} = "FAIL"'},   'backgroundColor': STATUS2HEX['FAILED']},
                 {'if': {'filter_query': '{STATUS} = "COMPLETE"'}, 'backgroundColor': STATUS2HEX['COMPLETE']},

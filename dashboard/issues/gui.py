@@ -19,8 +19,7 @@ STATUS2RGB = {
     'FAIL': RGB_RED,
     'COMPLETE': RGB_BLUE,
     'PASS': RGB_GREEN,
-    'UNKNOWN': RGB_GREY,
-    'TBD': RGB_YELLOW}
+    'UNKNOWN': RGB_GREY}
 
 
 def _get_graph_content(df):
@@ -121,7 +120,6 @@ def get_content():
                 {'if': {'column_id': 'STATUS'}, 'textAlign': 'center'},
                 {'if': {'filter_query': '{STATUS} = "PASS"'},  'backgroundColor': STATUS2HEX['RUNNING']},
                 {'if': {'filter_query': '{STATUS} = "UNKNOWN"'},  'backgroundColor': STATUS2HEX['WAITING']},
-                {'if': {'filter_query': '{STATUS} = "TBD"'},  'backgroundColor': STATUS2HEX['PENDING']},
                 {'if': {'filter_query': '{STATUS} = "UNKNOWN"'},  'backgroundColor': STATUS2HEX['UNKNOWN']},
                 {'if': {'filter_query': '{STATUS} = "FAIL"'},   'backgroundColor': STATUS2HEX['FAILED']},
                 {'if': {'filter_query': '{STATUS} = "COMPLETE"'}, 'backgroundColor': STATUS2HEX['COMPLETE']},
