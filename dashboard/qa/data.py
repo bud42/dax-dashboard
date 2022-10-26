@@ -348,6 +348,9 @@ def load_assr_data(xnat, project_filter):
     # Handle running jobs
     dfa['STATUS'][dfa.PROCSTATUS == 'JOB_RUNNING'] = 'R'
 
+    # Handle NEED INPUTS
+    dfa['STATUS'][dfa.PROCSTATUS == 'NEED_INPUTS'] = 'N'
+
     return dfa
 
 

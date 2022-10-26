@@ -509,7 +509,7 @@ def get_metastatus(status):
     elif 'Q' in status:
         # any are still needs qa, then 'NEEDS_QA'
         metastatus = 'NQA'
-    elif 'J' in status:
+    elif 'N' in status:
         # if any jobs are still running, then NEEDS INPUTS?
         metastatus = 'NPUT'
     elif 'F' in status:

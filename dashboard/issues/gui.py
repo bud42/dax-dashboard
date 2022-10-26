@@ -7,6 +7,7 @@ import plotly.subplots
 from dash import dcc, html, dash_table as dt
 from dash.dependencies import Input, Output
 import dash
+import dash_bootstrap_components as dbc
 
 from app import app
 import utils
@@ -78,7 +79,9 @@ def get_content():
     df.reset_index(inplace=True)
     issues_data = df.to_dict('records')
 
-    issues_content = [
+    issues_content = [       
+        dbc.Alert('XNAT connection failed', color='danger', id='alert-issues-xnat', is_open=False),
+        dbc.Alert('REDCap connection failed', color='danger', id='alert-issues-redcap', is_open=False),
         dcc.Loading(id="loading-issues", children=[
             html.Div(dcc.Tabs(
                 id='tabs-issues',
@@ -86,6 +89,14 @@ def get_content():
                 children=issues_graph_content,
                 vertical=True))]),
         html.Button('Refresh Data', id='button-issues-refresh'),
+        dbc.Modal([
+            dbc.ModalHeader('HEADER'),
+            dbc.ModalBody('Body of Modal'),
+            dbc.ModalFooter(dbc.Button('Close', id='button-issues-close', className='ml-auto')),
+            ],
+            id='modal-issues',
+        ),
+        dcc.ConfirmDialogProvider(children=''),
         dcc.Dropdown(
             id='dropdown-issues-project', multi=True,
             placeholder='Select Projects'),
@@ -167,23 +178,31 @@ def was_triggered(callback_ctx, button_id):
     return result
 
 
+
 @app.callback(
-    [Output('dropdown-issues-category', 'options'),
+    [
+     Output('dropdown-issues-category', 'options'),
      Output('dropdown-issues-project', 'options'),
      Output('dropdown-issues-source', 'options'),
      Output('datatable-issues', 'data'),
      Output('datatable-issues', 'columns'),
-     Output('tabs-issues', 'children')],
-    [Input('dropdown-issues-category', 'value'),
+     Output('tabs-issues', 'children'),
+     Output('modal-issues', 'is_open'),
+     ],
+    [
+     Input('dropdown-issues-category', 'value'),
      Input('dropdown-issues-project', 'value'),
      Input('dropdown-issues-source', 'value'),
-     Input('button-issues-refresh', 'n_clicks')])
+     Input('button-issues-refresh', 'n_clicks'),
+     ],
+)
 def update_issues(
     selected_category,
     selected_project,
     selected_source,
     n_clicks
 ):
+    is_open = False
     refresh = False
 
     logging.debug('update_issues')
@@ -221,4 +240,4 @@ def update_issues(
     # Return table, figure, dropdown options
     logging.debug('update_issues:returning data')
 
-    return [categories, projects, sources, records, columns, tabs]
+    return [categories, projects, sources, records, columns, tabs, is_open]
