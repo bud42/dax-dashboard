@@ -76,15 +76,23 @@ def load_issues():
 
 def run_refresh(filename):
     proj_filter = []
+    result = False
 
-    with dax.XnatUtils.get_interface() as xnat:
-        proj_filter = utils.get_user_favorites(xnat)
-        df = get_data(xnat, proj_filter)
+    try:
+        with dax.XnatUtils.get_interface() as xnat:
+            proj_filter = utils.get_user_favorites(xnat)
+            df = get_data(xnat, proj_filter)
 
-        # If redcap doesnt work, don't save
-        if not df.empty:
-            save_data(df, filename)
+            # If redcap doesnt work, don't save
+            if not df.empty:
+                save_data(df, filename)
 
+        result = True
+    except:
+        logging.warning('xnat refresh failed')
+        pass
+
+    return result
 
 def load_field_options(fieldname):
     filename = get_filename()
