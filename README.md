@@ -44,3 +44,11 @@ The stats page will also use your XNAT favorites to filter projects.
 - select Baseline Only, Followup Only to filter which sessions are displayed in the table and graph, default is All Sessions
 - Click the table column headers to sort
 - Enter text in the cells below the table headers to filter the table
+
+# Run with python venv
+- install python3
+- python3 -m venv venv-dashboard
+- pip install -r requirements.txt
+- python index.py
+(if on mac osx with m1 chip, need to install lxml separately with conda or other method,
+pypi is currently broken)
