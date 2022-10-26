@@ -20,6 +20,9 @@ import shared
 # Now only loads the selected redcaps rather than loading them first and then
 # filtering
 
+# TODO: load_madrs_data() build event map from ccmutils redcap and dynamically
+# query primary database for each database that has madrs enabled in ccmutils
+
 
 SESS_URI = '/REST/experiments?xsiType=xnat:imagesessiondata\
 &columns=\
@@ -124,7 +127,7 @@ def get_data(projects, proctypes):
         df = df.merge(dfp[_cols], on='SESSION', how='left')
 
     logging.info('loading demographic data')
-    _df = load_demographic_data()
+    _df = load_demographic_data(projects)
     df = pd.merge(
         df,
         _df,
@@ -133,7 +136,7 @@ def get_data(projects, proctypes):
         right_index=True)
 
     logging.info('loading madrs data')
-    _df = load_madrs_data()
+    _df = load_madrs_data(projects)
     df = pd.merge(
         df,
         _df,
@@ -141,10 +144,6 @@ def get_data(projects, proctypes):
         left_on=['SUBJECT', 'SESSTYPE'],
         right_on=['SUBJECT', 'SESSTYPE'])
 
-    # Fill with blanks so we don't lose to nans
-    df['AGE'] = df['AGE'].fillna('')
-    df['SEX'] = df['SEX'].fillna('')
-    df['DEPRESS'] = df['DEPRESS'].fillna('')
     df['SESSTYPE'] = df['SESSTYPE'].fillna('UNKNOWN')
 
     return df
@@ -281,15 +280,11 @@ def filter_data(df, projects, proctypes, timeframe, sesstypes):
     return df
 
 
-def load_madrs_data():
-    logging.info('loading madrs data')
+def load_madrs_data(projects):
+    df = pd.DataFrame(columns=['SUBJECT', 'ma_tot', 'SESSTYPE'])
 
-    data = pd.DataFrame()
-
-    i = utils.get_projectid('DepMIND2 primary', shared.KEYFILE)
-    k = utils.get_projectkey(i, shared.KEYFILE)
-    if k:
-        #_cols = ['ma_tot']
+    if 'DepMIND2' in projects:
+        k = utils.get_projectkeybyname('DepMIND2 primary', shared.KEYFILE)
         _fields = ['record_id', 'ma_tot']
         _map = {
             'week_0baseline_arm_1': 'Baseline',
@@ -316,16 +311,16 @@ def load_madrs_data():
         rec = rec.drop('redcap_event_name', axis=1)
 
         # Load madrs data
-        data = _proj.export_records(
+        df = _proj.export_records(
             raw_or_label='raw',
             format_type='df',
             fields=_fields,
             events=_events)
 
         # Merge in subject_number (probably could do this with a column map)
-        data = data.reset_index()
-        data = pd.merge(
-            data,
+        df = df.reset_index()
+        df = pd.merge(
+            df,
             rec,
             how='left',
             left_on='record_id',
@@ -333,53 +328,61 @@ def load_madrs_data():
             sort=True)
 
         # Rename for consistency with other studies
-        data.rename(columns={'subject_number': 'SUBJECT'}, inplace=True)
+        df.rename(columns={'subject_number': 'SUBJECT'}, inplace=True)
 
         # Map redcap event to xnat session type
-        data['SESSTYPE'] = data['redcap_event_name'].map(_map)
-        data = data.drop('redcap_event_name', axis=1)
+        df['SESSTYPE'] = df['redcap_event_name'].map(_map)
+        df = df.drop('redcap_event_name', axis=1)
 
-        data = data.dropna()
+        # Remove missing data
+        df = df.dropna()
 
         # Force int format
-        data['ma_tot'] = data['ma_tot'].astype(int)
+        df['ma_tot'] = df['ma_tot'].astype(int)
 
-        data = data.sort_values('SUBJECT')
+        df = df.sort_values('SUBJECT')
 
-    return data
+    return df
 
 
-def load_demographic_data():
-    df = pd.DataFrame()
+def load_demographic_data(projects):
+    df = pd.DataFrame(columns=['SUBJECT', 'AGE', 'SEX', 'DEPRESS'])
 
-    _fields = [
-        'record_id',
-        'subject_number',
-        'age',
-        'sex_xcount']
-    _events = ['screening_arm_1']
-    _rename = {
-        'subject_number': 'SUBJECT',
-        'age': 'AGE',
-        'sex_xcount': 'SEX'}
+    if 'DepMIND2' in projects:
+        # Load the records from redcap
+        k = utils.get_projectkeybyname("DepMIND2 primary", shared.KEYFILE)
+        _proj = redcap.Project(shared.API_URL, k)
+        _fields = [
+            'record_id',
+            'subject_number',
+            'age',
+            'sex_xcount']
+        _events = ['screening_arm_1']
+        df = _proj.export_records(
+            raw_or_label='label',
+            format_type='df',
+            fields=_fields,
+            events=_events)
 
-    # Load the records from redcap
-    k = utils.get_projectkeybyname("DepMIND2 primary", shared.KEYFILE)
-    _proj = redcap.Project(shared.API_URL, k)
-    df = _proj.export_records(
-        raw_or_label='label',
-        format_type='df',
-        fields=_fields,
-        events=_events)
+        # All DM2 are depressed
+        df['DEPRESS'] = '1'
 
-    # Transform for dashboard data
-    df = df.rename(columns=_rename)
+        # Transform for dashboard data
+        _rename = {
+            'subject_number': 'SUBJECT',
+            'age': 'AGE',
+            'sex_xcount': 'SEX'}
+        df = df.rename(columns=_rename)
+
+    # A bit of cleanup
     df = df.dropna(subset=['SUBJECT'])
     df['SUBJECT'] = df['SUBJECT'].astype(int).astype(str)
     df = df.set_index('SUBJECT', verify_integrity=True)
 
-    # All DM2 are depressed
-    df['DEPRESS'] = '1'
+    # Fill with blanks so we don't lose to nans
+    df['AGE'] = df['AGE'].fillna('')
+    df['SEX'] = df['SEX'].fillna('')
+    df['DEPRESS'] = df['DEPRESS'].fillna('')
 
     return df
 
