@@ -236,7 +236,7 @@ def plot_activity(df, pivot_index):
 
     # Draw bar for each status, these will be displayed in order
     dfp = pd.pivot_table(
-        df, index=pivot_index, values='LABEL', columns=['STATUS'],
+        df, index=pivot_index, values='ID', columns=['STATUS'],
         aggfunc='count', fill_value=0)
 
     for status, color in status2rgb.items():
@@ -325,10 +325,6 @@ def add_stats_page(pdf, stats, proctype):
     pdf.add_page()
     pdf.set_font('helvetica', size=18)
     pdf.cell(txt=proctype)
-
-    # Limit the data to this proctype
-    stats = stats.copy()
-    stats = stats[stats.TYPE == proctype]
 
     # this returns a PIL Image object
     image = plot_stats(stats, proctype)
@@ -442,6 +438,7 @@ def add_activity_page(pdf, info):
     pdf.add_page()
     pdf.set_font('helvetica', size=16)
 
+    # Top third is QA activity
     df = info['activity'].copy()
     df = df[df.SOURCE == 'qa']
     image = plot_activity(df, 'CATEGORY')
@@ -449,6 +446,7 @@ def add_activity_page(pdf, info):
     pdf.ln(0.5)
     pdf.multi_cell(1.5, 0.3, txt='QA\n')
 
+    # Middle third is jobs
     df = info['activity'].copy()
     df = df[df.SOURCE == 'dax']
     image = plot_activity(df, 'CATEGORY')
@@ -456,12 +454,14 @@ def add_activity_page(pdf, info):
     pdf.ln(3)
     pdf.multi_cell(1.5, 0.3, txt='Jobs\n')
 
+    # Bottom third is others
     df = info['activity'].copy()
     df = df[df.SOURCE == 'ccmutils']
+    #print(df.dropna(axis=1))
     image = plot_activity(df, 'CATEGORY')
     pdf.image(image, x=1.6, y=7, h=3.3)
     pdf.ln(3)
-    pdf.multi_cell(1.5, 0.3, txt='Other\nActivity\n&\nIssues\nthis month')
+    pdf.multi_cell(1.5, 0.3, txt='Other\nActivity\nthis month')
 
     return pdf
 
@@ -676,16 +676,22 @@ def make_pdf(info, filename):
     if info['stats'].empty:
         logging.debug('no stats')
     else:
-        for stat in info['stattypes']:
-            logging.info('add stats page:{}'.format(stat))
-            add_stats_page(pdf, info['stats'], stat)
+        stats = info['stats']
+        for s in info['stattypes']:
+            # Limit the data to this proctype 
+            stat_data = stats[stats.TYPE == s]
+            if stat_data.empty:
+                logging.info(f'no stats for proctype:{s}')
+            else:
+                logging.info(f'add stats page:{s}')
+                add_stats_page(pdf, stat_data, s)
 
     # Phantom pages
     if 'phantoms' in info:
         logging.debug('adding phantom page')
         add_phantom_page(pdf, info)
 
-        # QA/Jobs/Issues counts
+    # QA/Jobs/Issues counts
     add_activity_page(pdf, info)
 
     # Save to file

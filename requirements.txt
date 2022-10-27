@@ -1,4 +1,6 @@
 dash
 dash_auth
+dash_boostrap_components
 dax
 xlsxwriter
+kaleido

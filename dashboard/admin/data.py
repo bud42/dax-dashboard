@@ -59,7 +59,7 @@ def load_activity_info(project):
 
 def load_stats(project, stattypes):
     # Load that data
-    df = stats_data.load_data([project], stattypes)
+    df = stats_data.load_data([project], stattypes, refresh=True)
     if df.empty:
         return df
 
@@ -188,9 +188,10 @@ def update_redcap_reports(project_filter):
             assrtypes = list(set((assrtypes)))
             stattypes = assrtypes
 
-            logging.debug('phantom_project', phan_project)
-            logging.debug('scantypes=', scantypes)
-            logging.debug('assrtypes=', assrtypes)
+            logging.debug(f'phantom_project={phan_project}')
+            logging.debug(scantypes)
+            logging.debug(assrtypes)
+            logging.debug(stattypes)
 
             results += make_project_report(
                 filename,
