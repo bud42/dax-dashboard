@@ -29,6 +29,6 @@ graph.add_edge(pydot.Edge('struct_preproc_v1', 'fmri_rest_v2'))
 graph.add_edge(pydot.Edge('FieldMaps', 'fmri_rest_v2'))
 graph.add_edge(pydot.Edge('fMRI_MSIT', 'fmri_msit_v2'))
 graph.add_edge(pydot.Edge('fmri_rest_v2', 'fmri_roi_v1'))
-graph.add_edge(pydot.Edge('struct_preproc_noflair_v1', 'fmri_rest_v2'))
+#graph.add_edge(pydot.Edge('struct_preproc_noflair_v1', 'fmri_rest_v2'))
 
 graph.write_png('graph.png')
