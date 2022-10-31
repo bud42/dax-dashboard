@@ -116,7 +116,7 @@ def get_content():
             style_table={
                 'overflowY': 'scroll',
                 'overflowX': 'scroll',
-                'width': '1000px',
+                'width': '900px',
             },
             style_cell={
                 'textAlign': 'left',
