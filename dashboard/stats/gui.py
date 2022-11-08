@@ -79,8 +79,9 @@ def get_graph_content(df):
             pass
 
     # Move the subtitles to bottom instead of top of each subplot
-    for i in range(len(fig.layout.annotations)):
-        fig.layout.annotations[i].update(y=-.15)
+    if len(df['SITE'].unique()) < 4:
+        for i in range(len(fig.layout.annotations)):
+            fig.layout.annotations[i].update(y=-.15)
         # , font={'size': 18})
 
     # Customize figure to hide legend and fit the graph
@@ -280,37 +281,40 @@ def update_stats(
 
     # TODO: handle multiple of same type for a subject?
     if selected_pivot == 'subj':
-        # Pivot to one row per subject
+        try:
+            # Pivot to one row per subject
 
-        _index = ['SUBJECT', 'PROJECT', 'AGE', 'SEX', 'DEPRESS', 'SITE']
+            _index = ['SUBJECT', 'PROJECT', 'AGE', 'SEX', 'DEPRESS', 'SITE']
 
-        _vars = data.get_vars()
+            _vars = data.get_vars()
 
-        _vars = [x for x in df.columns if (
-            x in _vars and not pd.isnull(df[x]).all())]
+            _vars = [x for x in df.columns if (
+                x in _vars and not pd.isnull(df[x]).all())]
 
-        _cols = []
-        if len(df.SESSTYPE.unique()) > 1:
-            # Multiple session types, need prefix to disambiguate
-            _cols += ['SESSTYPE']
-        if len(df.TYPE.unique()) > 1:
-            # Multiple processing types, need prefix to disambiguate
-            _cols += ['TYPE']
+            _cols = []
+            if len(df.SESSTYPE.unique()) > 1:
+                # Multiple session types, need prefix to disambiguate
+                _cols += ['SESSTYPE']
+            if len(df.TYPE.unique()) > 1:
+                # Multiple processing types, need prefix to disambiguate
+                _cols += ['TYPE']
 
-        # Drop any duplicates found b/c redcap sync module does not prevent
-        df = df.drop_duplicates()
+            # Drop any duplicates found b/c redcap sync module does not prevent
+            df = df.drop_duplicates()
 
-        # Make the pivot table based on _index, _cols, _vars
-        dfp = df.pivot(index=_index, columns=_cols, values=_vars)
+            # Make the pivot table based on _index, _cols, _vars
+            dfp = df.pivot(index=_index, columns=_cols, values=_vars)
 
-        # Concatenate column levels to get one level with delimiter
-        dfp.columns = ['_'.join(reversed(t)) for t in dfp.columns]
+            # Concatenate column levels to get one level with delimiter
+            dfp.columns = ['_'.join(reversed(t)) for t in dfp.columns]
 
-        # Clear the index so all columns are named
-        dfp = dfp.reset_index()
+            # Clear the index so all columns are named
+            dfp = dfp.reset_index()
 
-        columns = utils.make_columns(dfp.columns)
-        records = dfp.to_dict('records')
+            columns = utils.make_columns(dfp.columns)
+            records = dfp.to_dict('records')
+        except ValueError:
+            logging.warn('failed to pivot, duplicates')
     else:
         # Keep as to one row per assessor
 
