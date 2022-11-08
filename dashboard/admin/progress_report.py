@@ -617,8 +617,9 @@ def plot_stats(df, proctype):
             logging.debug('setting autorange')
 
     # Move the subtitles to bottom instead of top of each subplot
-    for i in range(len(fig.layout.annotations)):
-        fig.layout.annotations[i].update(y=-.15)
+    if len(df['SITE'].unique()) < 4:
+        for i in range(len(fig.layout.annotations)):
+            fig.layout.annotations[i].update(y=-.15)
 
     # Customize figure to hide legend and fit the graph
     fig.update_layout(
