@@ -23,11 +23,16 @@ VAR_LIST = [
     'rhMFG1_pctused', 'rhMFG2_pctused', 'rhMFG3_pctused', 'rhSFG1_pctused', 'rhSFG2_pctused',
     'con_minus_inc_rt_mean', 'congruent_rt_mean', 'congruent_rt_median', 'incongruent_rt_mean', 'incongruent_rt_median',
     'etiv', 'stnv', 'hpc_lh', 'hpc_rh', 'latvent_lh', 'latvent_rh', 'supflobe_lh', 'supflobe_rh',
-    'hpcwhole_lh', 'hpchead_lh', 'hpcbody_lh', 'hpctail_lh',
-    'hpcwhole_rh', 'hpchead_rh', 'hpcbody_rh', 'hpctail_rh',
+    'hpcwhole_lh', 'hpchead_lh', 'hpcbody_lh', 'hpctail_lh', # FS7HPCAMYG
+    'hpcwhole_rh', 'hpchead_rh', 'hpcbody_rh', 'hpctail_rh',  # FS7HPCAMYG
     'amgwhole_lh', 'amglatnuc_lh', 'amgbasnuc_lh', 'amgaccnuc_lh',
     'amgwhole_rh', 'amglatnuc_rh', 'amgbasnuc_rh', 'amgaccnuc_rh',
-]
+    'nucleusaccumbens_lh', 'nucleusaccumbens_rh',  # FS7sclimbic
+    'hypothalnomb_lh', 'hypothalnomb_rh',   # FS7sclimbic
+    'fornix_lh', 'fornix_rh',   # FS7sclimbic
+    'mammbody_lh', 'mammbody_rh',   # FS7sclimbic
+    'basalforebrain_lh', 'basalforebrain_rh',   # FS7sclimbic
+    'septalnuc_lh', 'septalnuc_rh']
 
 STATS_RENAME = {
     'experiment': 'SESSION',
@@ -113,7 +118,19 @@ STATS_RENAME = {
     'stats_amglatnuc_rh': 'amglatnuc_rh',
     'stats_amgbasnuc_rh': 'amgbasnuc_rh',
     'stats_amgaccnuc_rh': 'amgaccnuc_rh',
-}
+    'sclimbic_volumes_all_leftnucleusaccumbens': 'nucleusaccumbens_lh',
+    'sclimbic_volumes_all_rightnucleusaccumbens': 'nucleusaccumbens_rh',
+    'sclimbic_volumes_all_lefthypothalnomb': 'hypothalnomb_lh',
+    'sclimbic_volumes_all_righthypothalnomb': 'hypothalnomb_rh',
+    'sclimbic_volumes_all_leftfornix': 'fornix_lh',
+    'sclimbic_volumes_all_rightfornix': 'fornix_rh',
+    'sclimbic_volumes_all_leftmammillarybody': 'mammbody_lh',
+    'sclimbic_volumes_all_rightmammillarybody': 'mammbody_rh',
+    'sclimbic_volumes_all_leftbasalforebrain': 'basalforebrain_lh',
+    'sclimbic_volumes_all_rightbasalforebrain': 'basalforebrain_rh',
+    'sclimbic_volumes_all_leftseptalnuc': 'septalnuc_lh',
+    'sclimbic_volumes_all_rightseptalnuc': 'septalnuc_rh',
+    'sclimbic_volumes_all_etiv': 'etiv',}
 
 
 STATIC_COLUMNS = [
