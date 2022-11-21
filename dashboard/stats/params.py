@@ -32,7 +32,11 @@ VAR_LIST = [
     'fornix_lh', 'fornix_rh',   # FS7sclimbic
     'mammbody_lh', 'mammbody_rh',   # FS7sclimbic
     'basalforebrain_lh', 'basalforebrain_rh',   # FS7sclimbic
-    'septalnuc_lh', 'septalnuc_rh']
+    'septalnuc_lh', 'septalnuc_rh',
+    'bfc_ch4_lh_gmd', 'bfc_ch4_rh_gmd', 'bfc_ch123_lh_gmd', 'bfc_ch123_rh_gmd',
+    'bfc_ch4_lh_vol', 'bfc_ch4_rh_vol', 'bfc_ch123_lh_vol', 'bfc_ch123_rh_vol',
+    'totgm_vol', 'totwm_vol', 'totcsf_vol']
+
 
 STATS_RENAME = {
     'experiment': 'SESSION',
@@ -130,7 +134,18 @@ STATS_RENAME = {
     'sclimbic_volumes_all_rightbasalforebrain': 'basalforebrain_rh',
     'sclimbic_volumes_all_leftseptalnuc': 'septalnuc_lh',
     'sclimbic_volumes_all_rightseptalnuc': 'septalnuc_rh',
-    'sclimbic_volumes_all_etiv': 'etiv',}
+    'sclimbic_volumes_all_etiv': 'etiv',
+    'stats_ch4_l_mean': 'bfc_ch4_lh_gmd',
+    'stats_ch4_r_mean': 'bfc_ch4_rh_gmd',
+    'stats_ch123_l_mean': 'bfc_ch123_lh_gmd',
+    'stats_ch123_r_mean': 'bfc_ch123_rh_gmd',
+    'stats_ch4_l_vol': 'bfc_ch4_lh_vol',
+    'stats_ch4_r_vol': 'bfc_ch4_rh_vol',
+    'stats_ch123_l_vol': 'bfc_ch123_lh_vol',
+    'stats_ch123_r_vol': 'bfc_ch123_rh_vol',
+    'stats_totgm_vol': 'totgm_vol',
+    'stats_totwm_vol': 'totwm_vol',
+    'stats_totcsf_vol': 'totcsf_vol'}
 
 
 STATIC_COLUMNS = [
