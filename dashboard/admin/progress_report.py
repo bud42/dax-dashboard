@@ -578,6 +578,14 @@ def plot_stats(df, proctype):
     # Determine how many boxplots we're making, depends on how many vars, use
     # minimum so graph doesn't get too small
     box_count = len(var_list)
+
+    if box_count < 3:
+        box_width = 500
+        min_box_count = 2
+    elif box_count < 6:
+        box_width = 333
+        min_box_count = 3
+
     if box_count < min_box_count:
         box_count = min_box_count
 
@@ -585,6 +593,9 @@ def plot_stats(df, proctype):
 
     # Horizontal spacing cannot be greater than (1 / (cols - 1))
     hspacing = 1 / (box_count * 4)
+
+
+    print(box_count, min_box_count, graph_width, hspacing)
 
     # Make the figure with 1 row and a column for each var we are plotting
     fig = plotly.subplots.make_subplots(
