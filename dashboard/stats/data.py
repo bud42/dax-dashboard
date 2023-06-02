@@ -59,7 +59,13 @@ def get_variables():
 
 
 def get_filename():
-    return 'DATA/statsdata.pkl'
+    #return 'DATA/statsdata.pkl'
+    datadir = 'DATA'
+    if not os.path.isdir(datadir):
+        os.mkdir(datadir)
+
+    filename = f'{datadir}/statsdata.pkl'
+    return filename
 
 
 def load_data(projects, proctypes, refresh=False):

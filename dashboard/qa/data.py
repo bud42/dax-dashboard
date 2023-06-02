@@ -1,6 +1,7 @@
 import logging
 import os
 from datetime import datetime, date, timedelta
+import tempfile
 
 import pandas as pd
 import redcap
@@ -98,7 +99,12 @@ QA_COLS = [
 
 
 def get_filename():
-    return 'DATA/qadata.pkl'
+    datadir = 'DATA'
+    if not os.path.isdir(datadir):
+        os.mkdir(datadir)
+
+    filename = f'{datadir}/qadata.pkl'
+    return filename
 
 
 def run_refresh(filename, hidetypes=True):

@@ -11,7 +11,13 @@ import shared
 
 # This is where we save our cache of the data
 def get_filename():
-    return 'DATA/issuesdata.pkl'
+    #return 'DATA/issuesdata.pkl'
+    datadir = 'DATA'
+    if not os.path.isdir(datadir):
+        os.mkdir(datadir)
+
+    filename = f'{datadir}/issuesdata.pkl'
+    return filename
 
 
 def get_data(xnat, proj_filter):

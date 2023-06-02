@@ -1,5 +1,6 @@
 import logging
 from pathlib import Path
+import os
 
 import pandas as pd
 import redcap
@@ -10,7 +11,13 @@ import shared
 
 # This is where we save our cache of the data
 def get_filename():
-    return 'DATA/reportdata.pkl'
+    #return 'DATA/reportdata.pkl'
+    datadir = 'DATA'
+    if not os.path.isdir(datadir):
+        os.mkdir(datadir)
+
+    filename = f'{datadir}/reportdata.pkl'
+    return filename
 
 
 def read_data(filename):

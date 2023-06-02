@@ -41,7 +41,13 @@ ASSR_RENAME = {
 
 # This is where we save our cache of the data
 def get_filename():
-    return 'DATA/activitydata.pkl'
+    #return 'DATA/activitydata.pkl'
+    datadir = 'DATA'
+    if not os.path.isdir(datadir):
+        os.mkdir(datadir)
+
+    filename = f'{datadir}/activitydata.pkl'
+    return filename
 
 
 def load_activity_redcap():
