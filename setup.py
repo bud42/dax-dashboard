@@ -1,9 +1,9 @@
 from setuptools import setup, find_packages
 
 setup(
-    name='DaxDashboard',
-    version='1.0.0',
-    url='https://github.com/bud42/dax-dashboard.git',
+    name='daxdashboard',
+    version='2.0.0',
+    url='https://github.com/bud42/dax-dashboard',
     author='Brian D. Boyd',
     author_email='bdboyd42@gmail.com',
     description='Dashboard for DAX using plotly DASH',
@@ -12,9 +12,12 @@ setup(
     install_requires=[
         'dax',
         'dash',
-        'dash-core-components',
-        'dash-html-components',
-        'dash-renderer',
-        'dash-table',
         'pandas',
-        'pycap'])
+        'pycap',
+        'dash-bootstrap-components',
+        'dash-bootstrap-templates',
+        'flask_login',
+        'flask_caching',
+    ],
+    include_package_data=True,
+)

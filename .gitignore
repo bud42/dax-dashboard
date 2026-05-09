@@ -3,3 +3,4 @@ dashboard/secrets.py
 secrets.py
 *.pdf
 *.pkl
+/build

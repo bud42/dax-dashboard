@@ -1,0 +1,22 @@
+Metadata-Version: 2.4
+Name: daxdashboard
+Version: 2.0.0
+Summary: Dashboard for DAX using plotly DASH
+Home-page: https://github.com/bud42/dax-dashboard
+Author: Brian D. Boyd
+Author-email: bdboyd42@gmail.com
+License: MIT
+Requires-Dist: dax
+Requires-Dist: dash
+Requires-Dist: pandas
+Requires-Dist: pycap
+Requires-Dist: dash-bootstrap-components
+Requires-Dist: dash-bootstrap-templates
+Requires-Dist: flask_login
+Requires-Dist: flask_caching
+Dynamic: author
+Dynamic: author-email
+Dynamic: home-page
+Dynamic: license
+Dynamic: requires-dist
+Dynamic: summary
