@@ -4,3 +4,4 @@ secrets.py
 *.pdf
 *.pkl
 /build
+/daxdashboard.egg-info
