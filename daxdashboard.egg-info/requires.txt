@@ -1,8 +1,0 @@
-dax
-dash
-pandas
-pycap
-dash-bootstrap-components
-dash-bootstrap-templates
-flask_login
-flask_caching
