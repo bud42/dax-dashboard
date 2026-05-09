@@ -5,7 +5,6 @@ import pandas as pd
 
 from ...log import logger
 from ...extensions import cache
-from ..utils import file_age, user_dir
 from ...utils import load_scan_data, load_assr_data, load_sgp_data, load_project_names
 
 
