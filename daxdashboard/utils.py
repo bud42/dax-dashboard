@@ -6,8 +6,12 @@ from cryptography.fernet import Fernet
 from flask import session, current_app
 from flask_login import current_user
 from dax.XnatUtils import get_interface
+from redcap import Project
 
 from .log import logger
+
+
+DONE_LIST = ['COMPLETE', 'JOB_FAILED', 'DELETED']
 
 
 SCAN_URI = '/REST/experiments?xsiType=xnat:imagesessiondata\
@@ -71,6 +75,10 @@ proc:subjgenprocdata/memused,\
 proc:subjgenprocdata/jobnode,\
 last_modified'
 
+XSI2MOD = {
+    'xnat:eegSessionData': 'EEG',
+    'xnat:mrSessionData': 'MR',
+    'xnat:petSessionData': 'PET'}
 
 SCAN_RENAME = {
     'project': 'PROJECT',
@@ -126,12 +134,43 @@ SGP_RENAME = {
     'proc:subjgenprocdata/jobnode': 'JOBNODE',
 }
 
-XSI2MOD = {
-    'xnat:eegSessionData': 'EEG',
-    'xnat:mrSessionData': 'MR',
-    'xnat:petSessionData': 'PET'}
+TASKS_RENAME = {
+    'task_assessor': 'ASSESSOR',
+    'task_status': 'STATUS',
+    'task_inputlist': 'INPUTLIST',
+    'task_var2val': 'VAR2VAL',
+    'task_memreq': 'MEMREQ',
+    'task_walltime': 'WALLTIME',
+    'task_procdate': 'PROCDATE',
+    'task_timeused': 'TIMEUSED',
+    'task_memused': 'MEMUSED',
+    'task_yamlfile': 'YAMLFILE',
+    'task_userinputs': 'USERINPUTS',
+    'task_failcount': 'FAILCOUNT',
+    'task_yamlupload': 'YAMLUPLOAD',
+}
 
+ANALYSES_RENAME = {
+    'redcap_repeat_instance': 'ID',
+    'analysis_name': 'NAME',
+    'analysis_lead': 'INVESTIGATOR',
+    'analysis_include': 'SUBJECTS',
+    'analysis_processor': 'PROCESSOR',
+    'analysis_input': 'INPUT',
+    'analysis_output': 'OUTPUT',
+    'analyses_complete': 'COMPLETE',
+    'analysis_status': 'STATUS',
+    'analysis_covars': 'COVARS',
+    'analysis_notes': 'NOTES',
+}
 
+PROCESSORS_RENAME = {
+    'redcap_repeat_instance': 'ID',
+    'processor_file': 'FILE',
+    'processor_filter': 'FILTER',
+    'processor_args': 'ARGS',
+    'processing_complete': 'COMPLETE',
+}
 
 SCAN_COLUMNS = [
     'PROJECT', 'SUBJECT', 'SESSION', 'SESSTYPE', 'TRACER', 'NOTE', 'DATE', 'SITE',
@@ -150,11 +189,22 @@ SGP_COLUMNS  = [
     'INPUTS', 'DATE', 'XSITYPE', 'JOBDATE', 'TIMEUSED', 'MEMUSED', 'JOBNODE'
 ]
 
-#PROCESSING_COLUMNS = [
-#        'ID', 'PROJECT', 'TYPE', 'FILTER', 'FILE', 'CUSTOM', 'ARGS', 'YAMLUPLOAD', 'EDIT', 'COMPLETE'],
-#   'analyses': ['PROJECT', 'ID', 'NAME', 'STATUS', 'EDIT', 'NOTES', 'SUBJECTS', 'PROCESSOR', 'INVESTIGATOR', 'OUTPUT'],
-#    'processors': ['ID', 'PROJECT', 'TYPE', 'EDIT', 'FILE', 'FILTER', 'ARGS'],
+TASK_COLUMNS = [
+    'ID', 'IDLINK', 'PROJECT', 'STATUS', 'PROCTYPE', 'MEMREQ', 'WALLTIME',
+    'TIMEUSED', 'MEMUSED', 'ASSESSOR', 'PROCDATE', 'INPUTLIST', 'VAR2VAL',
+    'IMAGEDIR', 'JOBTEMPLATE', 'YAMLFILE', 'YAMLUPLOAD', 'USERINPUTS', 
+    'FAILCOUNT', 'USER'
+]
 
+ANALYSES_COLUMNS = [
+    'PROJECT', 'ID', 'NAME', 'STATUS', 'EDIT', 'NOTES', 'SUBJECTS', 
+    'PROCESSOR', 'INVESTIGATOR', 'OUTPUT'
+]
+
+PROCESSORS_COLUMNS = [
+    'ID', 'PROJECT', 'TYPE', 'EDIT', 'FILE', 'FILTER', 'ARGS',
+    'YAMLUPLOAD', 'EDIT', 'COMPLETE', 'CUSTOM'
+]
 
 #def validate_redcap_key(rchost, rckey):
 #    payload = {
@@ -213,11 +263,13 @@ def get_xnat_alias(xnat_host, xnat_user, xnat_pass):
 
 
 def load_project_names():
+    # TODO: store in cache and load
 
     if not current_user.is_authenticated:
         raise Exception('no user logged in')
 
     user_name = current_user.id
+
 
     if user_name == 'admin':
         logger.debug('loading admin projects')
@@ -321,6 +373,20 @@ def _get_result(uri):
         result = json_data['ResultSet']['Result']
 
     return result
+
+
+def _redcap():
+    if not current_user.is_authenticated:
+        raise Exception('no user logged in')
+
+    # Connect to our encryption tool
+    fernet = Fernet(current_app.config['SECRET_KEY'])
+
+    # Get redcap params from web session
+    rc_host = session['rc_host']
+    rc_key = decrypt_key(fernet, session['rc_key'])
+
+    return Project(rc_host, rc_key)
 
 
 def _scan_info(record):
@@ -429,3 +495,166 @@ def get_my_projects():
     logger.debug(f'user role column:{user_role_column}')
 
     return [x['id'] for x in result if x[user_role_column] in roles]
+
+
+def load_task_data():
+    # Load data from redcap
+    rc = _redcap()
+    def_field = rc.def_field
+
+    # Load task records
+    rec = rc.export_records(
+        #records=projects,
+        forms=['taskqueue'],
+        fields=[def_field])
+
+    # Load instance names 
+    rec2 = rc.export_records(
+        #records=projects,
+        fields=[def_field, 'gen_daxinstance'],
+        raw_or_label='label')
+
+    # Remove unwanted rows
+    rec = [x for x in rec if x['redcap_repeat_instrument'] == 'taskqueue']
+
+    # Hide done
+    rec = [x for x in rec if x['task_status'] not in DONE_LIST]
+
+    df = pd.DataFrame(rec)
+    if df.empty:
+        return pd.DataFrame(columns=TASK_COLUMNS)
+
+    # Set project namne from main record name
+    df['PROJECT'] = df[def_field]
+
+    # Set instance name for each task record
+    p2u = {x[def_field]: x['gen_daxinstance'] for x in rec2 if x['gen_daxinstance']}
+    df['USER'] = df['PROJECT'].map(p2u)
+
+    # Set task ID same as redcap record number
+    df['ID'] = df['redcap_repeat_instance'].astype(str)
+
+    # Make ID link back to redcap
+    #_url = self.redcap_url()
+    #_version = self.redcap_version()
+    #_pid = self.rcq_pid()
+    #if _url.endswith('/api/'):
+    #    _url = _url[:-5]
+
+    #df['IDLINK'] = _url + '/redcap_v' + _version + '/DataEntry/index.php?pid=' + _pid + '&page=taskqueue&id=' + df['PROJECT'] + '&instance=' + df['ID']
+    df['IDLINK'] = df['ID']
+
+    df['PROCTYPE'] = ''
+    df['IMAGEDIR'] = ''
+    df['JOBTEMPLATE'] = ''
+
+    # Rename columns to shorter names
+    df = df.rename(columns=TASKS_RENAME)
+
+    # Get subset of columns
+    df = df[TASK_COLUMNS]
+
+    return df
+
+
+def load_processors_data():
+    data = []
+    def_field = ''
+    rec = []
+    #projects = load_project_names()
+
+    # Load data from redcap
+    rc = _redcap()
+    def_field = rc.def_field
+    rec = rc.export_records(
+        #records=projects,
+        forms=['processing'],
+        fields=[def_field])
+
+    # Filter out unwanted rows
+    rec = [x for x in rec if x['redcap_repeat_instrument'] == 'processing']
+
+    # Only enabled processing
+    rec = [x for x in rec if str(x['processing_complete']) == '2']
+
+    for r in rec:
+        # Initialize record with project
+        project_id = r[def_field]
+        repeat_id = r['redcap_repeat_instance']
+        #link = get_link('processing', project_id, repeat_id)
+        link = ''
+        d = {
+            'PROJECT': project_id,
+            'EDIT': link,
+            'ID': repeat_id,
+        }
+
+        # Find the yaml file
+        if r['processor_yamlupload']:
+            filepath = r['processor_yamlupload']
+        else:
+            filepath = r['processor_file']
+
+        #if not os.path.isabs(filepath):
+        #    # Prepend lib location
+        #    filepath = os.path.join(self._yamldir, filepath)
+
+
+        # Get renamed variables
+        for k, v in PROCESSORS_RENAME.items():
+            d[v] = r.get(k, '')
+
+        d['FILE'] = filepath
+        #d['TYPE'] = self._get_proctype(d['FILE'])
+        d['TYPE'] = d['FILE']
+
+        # Finally, add to our list
+        data.append(d)
+
+    return pd.DataFrame(data, columns=PROCESSORS_COLUMNS)
+
+
+def load_analyses_data():
+    data = []
+    rec = []
+    def_field = ''
+
+    # Load data from redcap
+    rc = _redcap()
+    def_field = rc.def_field
+
+    # Load records
+    rec = rc.export_records(
+        #records=projects,
+        forms=['analyses'],
+        fields=[def_field])
+
+    # Filter out unwanted rows
+    rec = [x for x in rec if x['redcap_repeat_instrument'] == 'analyses']
+
+    # Apply hideshow
+    rec = [x for x in rec if x['analysis_hideshow'] != '1']
+
+    for r in rec:
+        # Initialize record
+        project_id = r[def_field]
+        repeat_id = r['redcap_repeat_instance']
+        #link = self.get_link('analyses', project_id, repeat_id)
+        link = ''
+        d = {
+            'PROJECT': project_id,
+            'ID': repeat_id,
+            'EDIT': link,
+        }
+
+        # Get renamed variables
+        for k, v in ANALYSES_RENAME.items():
+            d[v] = r.get(k, '')
+
+        if r['analysis_procrepo']:
+            d['PROCESSOR'] = r['analysis_procrepo']
+
+        # Finally, add to our list
+        data.append(d)
+
+    return pd.DataFrame(data, columns=ANALYSES_COLUMNS)

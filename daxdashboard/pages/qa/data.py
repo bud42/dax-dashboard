@@ -134,12 +134,16 @@ def get_data(projects):
     try:
         # Load data
         logger.debug(f'load data:{projects}')
+
         logger.debug(f'load scan data:{projects}')
         scan_df = _load_scan_data(projects)
+        
         logger.debug(f'load assr data:{projects}')
         assr_df = _load_assr_data(projects)
+        
         logger.debug(f'load sgp data:{projects}')
         subj_df = _load_sgp_data(projects)
+        
         logger.debug(f'all loaded')
     except Exception as err:
         logger.error(f'load failed:{err}')

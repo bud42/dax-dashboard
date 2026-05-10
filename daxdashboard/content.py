@@ -5,7 +5,7 @@ from dash import html
 import dash_bootstrap_components as dbc
 
 from .app import app
-from .pages import qa
+from .pages import hub, qa, queue, processors, analyses
 from .log import logger
 
 
@@ -41,12 +41,31 @@ def get_content():
 
     tabs = dbc.Tabs([
         dbc.Tab(
+            label='HOME',
+            tab_id='tab-hub',
+            children=hub.get_content(),
+        ),
+        dbc.Tab(
             label='QA',
             tab_id='tab-qa',
             children=qa.get_content(),
         ),
-        ],
-        active_tab="tab-qa",
+        dbc.Tab(
+            label='Queue',
+            tab_id='tab-queue',
+            children=queue.get_content(),
+        ),
+        dbc.Tab(
+            label='Processors',
+            tab_id='tab-processors',
+            children=processors.get_content(),
+        ),
+        dbc.Tab(
+            label='Analyses',
+            tab_id='tab-analyses',
+            children=analyses.get_content(),
+        )],
+        active_tab="tab-hub",
     )    
 
     footer_content = _footer_content()

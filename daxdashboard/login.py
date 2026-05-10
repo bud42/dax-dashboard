@@ -10,7 +10,6 @@ from dash_bootstrap_templates import load_figure_template
 from cryptography.fernet import Fernet
 
 from .extensions import cache
-from .pages import qa
 from . import content
 from .log import logger
 from .utils import encrypt_key, get_xnat_alias
