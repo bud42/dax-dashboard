@@ -40,41 +40,6 @@ def get_data():
     # Load
     df = _load_analyses_data()
 
-    # Pad with zeros
-    df['ID'] = df['ID'].astype(str).str.zfill(3)
-
-    df['OUTPUTLINK'] = 'xnat_host' + \
-        '/data/projects/' + \
-        df['PROJECT'] + \
-        '/resources/' + \
-        df['OUTPUT'] + \
-        '/files'
-
-    df['LOGLINK'] = 'xnat_host' + \
-        '/data/projects/' + \
-        df['PROJECT'] + \
-        '/resources/' + \
-        df['OUTPUT'] + \
-        '/files/' + \
-        df['OUTPUT'] + \
-        '.txt'
-
-    df['PDFLINK'] = 'xnat_host' + \
-        '/data/projects/' + \
-        df['PROJECT'] + \
-        '/resources/' + \
-        df['OUTPUT'] + \
-        '/files/report.pdf'
-
-    df['PBSLINK'] = 'xnat_host' + \
-        '/data/projects/' + \
-        df['PROJECT'] + \
-        '/resources/' + \
-        df['OUTPUT'] + \
-        '/files/' + \
-        df['OUTPUT'] + \
-        '.slurm'
-
     return df
 
 

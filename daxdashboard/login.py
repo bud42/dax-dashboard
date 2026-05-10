@@ -12,13 +12,14 @@ from cryptography.fernet import Fernet
 from .extensions import cache
 from . import content
 from .log import logger
-from .utils import encrypt_key, get_xnat_alias
+from .utils import encrypt_key, get_xnat_alias, get_redcap_info
 
 
-# Connect to an underlying flask server so we can configure it for auth
+# Load custom templates
 templates = os.path.join(os.path.dirname(__file__), 'templates')
-server = Flask(__name__, template_folder=templates)
 
+# Connect to an underlying flask server
+server = Flask(__name__, template_folder=templates)
 
 @server.before_request
 def check_login():
@@ -68,7 +69,17 @@ def login(message=""):
                         (xnat_alias, xnat_token) = get_xnat_alias(
                             xnat_host, xnat_user, _xnat_pass)
                     except Exception as err:
-                        print('xnat connection failed')
+                        print('XNAT connection failed')
+                        logger.debug(f'redirecting to home')
+                        return redirect(url)
+
+                if rc_host and rc_key:
+                    try:
+                        redcap_info = get_redcap_info(rc_host, rc_key)
+                        session['rc_version'] = redcap_info['redcap_version']
+                        session['rc_pid'] = redcap_info['redcap_pid']
+                    except Exception as err:
+                        print('REDCap connection failed')
                         logger.debug(f'redirecting to home')
                         return redirect(url)
 
@@ -84,6 +95,7 @@ def login(message=""):
                         session['rc_host'] = rc_host
                         if rc_key:
                             session['rc_key'] = encrypt_key(fernet, rc_key)
+
 
                     if session.get('url', False):
                         # redirect to original target

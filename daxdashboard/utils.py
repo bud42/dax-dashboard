@@ -206,34 +206,6 @@ PROCESSORS_COLUMNS = [
     'YAMLUPLOAD', 'EDIT', 'COMPLETE', 'CUSTOM'
 ]
 
-#def validate_redcap_key(rchost, rckey):
-#    payload = {
-#        "token": rckey,
-#        "content": "project",
-#        "format": "json",
-#    }
-
-#    try:
-#        response = requests.post(rchost, data=payload, timeout=20)
-#        return (response.status_code == 200)
-#    except Exception as err:
-#        print(f'REDCap auth failed:{rchost}:{err}')
-#        return False
-
-#def get_redcap_data():
-#    rchost = current_user.rchost
-#    rckey = decrypt_key(current_user.encrypted_rckey)
-
-#    data = {
-#        'token': api_key,
-#        'content': 'record',
-#        'format': 'json',
-#        'type': 'flat'
-#    }
-#    response = requests.post('https://yourinstitution.edu', data=data)
-
-#    return response.json()
-
 
 def decrypt_key(cipher_suite, encrypted_key):
     decrypted_text = cipher_suite.decrypt(encrypted_key.encode())
@@ -262,8 +234,22 @@ def get_xnat_alias(xnat_host, xnat_user, xnat_pass):
     return (alias, token)
 
 
+def get_redcap_info(redcap_url, redcap_key):
+    info = {}
+
+    try:
+        rc = Project(redcap_url, redcap_key)
+        info['redcap_version'] = str(rc.redcap_version)
+        info['redcap_pid'] = str(rc.export_project_info().get('project_id'))
+    except Exception as err:
+        raise Exception('failed to retrieve redcap info')
+
+    return info
+
+
 def load_project_names():
     # TODO: store in cache and load
+    print('dashboard.utils.load_project_names()')
 
     if not current_user.is_authenticated:
         raise Exception('no user logged in')
@@ -282,6 +268,7 @@ def load_project_names():
 
 
 def load_scan_data(projects):
+    xnat_host = session['xnat_host']
     scans = []
     uri = SCAN_URI + f'&project={",".join(projects)}'
 
@@ -310,11 +297,44 @@ def load_scan_data(projects):
             scans[k] = _scan_info(r)
 
     scans = list(scans.values())
-    return pd.DataFrame(scans, columns=SCAN_COLUMNS)
+    df = pd.DataFrame(scans, columns=SCAN_COLUMNS)
+
+    df['SESSIONLINK'] = xnat_host + \
+        '/data/projects/' + df['PROJECT'] + \
+        '/subjects/' + df['SUBJECT'] + \
+        '/experiments/' + df['SESSION']
+
+    df['SUBJECTLINK'] = xnat_host + \
+        '/data/projects/' + df['PROJECT'] + \
+        '/subjects/' + df['SUBJECT']
+
+    df['NIFTI'] = xnat_host + \
+        '/data/projects/' + df['PROJECT'] + \
+        '/subjects/' + df['SUBJECT'] + \
+        '/experiments/' + df['SESSION'] + \
+        '/scans/' + df['SCANID'] + \
+        '/resources/NIFTI/files?format=zip'
+
+    df['JSON'] = xnat_host + \
+        '/data/projects/' + df['PROJECT'] + \
+        '/subjects/' + df['SUBJECT'] + \
+        '/experiments/' + df['SESSION'] + \
+        '/scans/' + df['SCANID'] + \
+        '/resources/JSON/files?format=zip'
+
+    df['EDAT'] = xnat_host + \
+        '/data/projects/' + df['PROJECT'] + \
+        '/subjects/' + df['SUBJECT'] + \
+        '/experiments/' + df['SESSION'] + \
+        '/scans/' + df['SCANID'] + \
+        '/resources/EDAT/files?format=zip'
+
+    return df
 
 
 def load_assr_data(projects):
     """Get assessor info from XNAT as list of dicts."""
+    xnat_host = session['xnat_host']
     assessors = []
     uri = ASSR_URI + f'&project={",".join(projects)}'
 
@@ -335,11 +355,39 @@ def load_assr_data(projects):
     for r in result:
         assessors.append(_assessor_info(r))
 
-    return pd.DataFrame(assessors, columns=ASSR_COLUMNS)
+    df =  pd.DataFrame(assessors, columns=ASSR_COLUMNS)
+
+    df['SESSIONLINK'] = xnat_host + \
+        '/data/projects/' + df['PROJECT'] + \
+        '/subjects/' + df['SUBJECT'] + \
+        '/experiments/' + df['SESSION']
+
+    df['SUBJECTLINK'] = xnat_host + \
+        '/data/projects/' + df['PROJECT'] + \
+        '/subjects/' + df['SUBJECT']
+
+    df['PDF'] = xnat_host + \
+        '/data/projects/' + df['PROJECT'] + \
+        '/subjects/' + df['SUBJECT'] + \
+        '/experiments/' + df['SESSION'] + \
+        '/assessors/' + df['ASSR'] + \
+        '/out/resources/PDF/files/' + \
+        'report_' + df['ASSR'] + '.pdf'
+
+    df['LOG'] = xnat_host + \
+        '/data/projects/' + df['PROJECT'] + \
+        '/subjects/' + df['SUBJECT'] + \
+        '/experiments/' + df['SESSION'] + \
+        '/assessors/' + df['ASSR'] + \
+        '/out/resources/OUTLOG/files/' + \
+        df['ASSR'] + '.txt'
+
+    return df
 
 
 def load_sgp_data(projects):
     """Get assessor info from XNAT as list of dicts."""
+    xnat_host = session['xnat_host']
     assessors = []
     uri = SGP_URI + f'&project={",".join(projects)}'
 
@@ -349,7 +397,13 @@ def load_sgp_data(projects):
     for r in result:
         assessors.append(_sgp_info(r))
 
-    return pd.DataFrame(assessors, columns=SGP_COLUMNS)
+    df =  pd.DataFrame(assessors, columns=SGP_COLUMNS)
+
+    df['SUBJECTLINK'] = xnat_host + \
+        '/data/projects/' + df['PROJECT'] + \
+        '/subjects/' + df['SUBJECT']
+
+    return df
 
 
 def _get_result(uri):
@@ -535,15 +589,14 @@ def load_task_data():
     df['ID'] = df['redcap_repeat_instance'].astype(str)
 
     # Make ID link back to redcap
-    #_url = self.redcap_url()
-    #_version = self.redcap_version()
-    #_pid = self.rcq_pid()
-    #if _url.endswith('/api/'):
-    #    _url = _url[:-5]
+    _url = session['rc_host']
+    _version = session['rc_version']
+    _pid = session['rc_pid']
 
-    #df['IDLINK'] = _url + '/redcap_v' + _version + '/DataEntry/index.php?pid=' + _pid + '&page=taskqueue&id=' + df['PROJECT'] + '&instance=' + df['ID']
-    df['IDLINK'] = df['ID']
+    if _url.endswith('/api/'):
+        _url = _url[:-5]
 
+    df['IDLINK'] = _url + '/redcap_v' + _version + '/DataEntry/index.php?pid=' + _pid + '&page=taskqueue&id=' + df['PROJECT'] + '&instance=' + df['ID']
     df['PROCTYPE'] = ''
     df['IMAGEDIR'] = ''
     df['JOBTEMPLATE'] = ''
@@ -581,8 +634,7 @@ def load_processors_data():
         # Initialize record with project
         project_id = r[def_field]
         repeat_id = r['redcap_repeat_instance']
-        #link = get_link('processing', project_id, repeat_id)
-        link = ''
+        link = _get_redcap_link('processing', project_id, repeat_id)
         d = {
             'PROJECT': project_id,
             'EDIT': link,
@@ -639,8 +691,7 @@ def load_analyses_data():
         # Initialize record
         project_id = r[def_field]
         repeat_id = r['redcap_repeat_instance']
-        #link = self.get_link('analyses', project_id, repeat_id)
-        link = ''
+        link = _get_redcap_link('analyses', project_id, repeat_id)
         d = {
             'PROJECT': project_id,
             'ID': repeat_id,
@@ -657,4 +708,56 @@ def load_analyses_data():
         # Finally, add to our list
         data.append(d)
 
-    return pd.DataFrame(data, columns=ANALYSES_COLUMNS)
+    df = pd.DataFrame(data, columns=ANALYSES_COLUMNS)
+
+    # Pad with zeros
+    df['ID'] = df['ID'].astype(str).str.zfill(3)
+
+    xnat_host = session['xnat_host']
+
+    df['OUTPUTLINK'] = xnat_host + \
+        '/data/projects/' + \
+        df['PROJECT'] + \
+        '/resources/' + \
+        df['OUTPUT'] + \
+        '/files'
+
+    df['LOGLINK'] = xnat_host + \
+        '/data/projects/' + \
+        df['PROJECT'] + \
+        '/resources/' + \
+        df['OUTPUT'] + \
+        '/files/' + \
+        df['OUTPUT'] + \
+        '.txt'
+
+    df['PDFLINK'] = xnat_host + \
+        '/data/projects/' + \
+        df['PROJECT'] + \
+        '/resources/' + \
+        df['OUTPUT'] + \
+        '/files/report.pdf'
+
+    df['PBSLINK'] = xnat_host + \
+        '/data/projects/' + \
+        df['PROJECT'] + \
+        '/resources/' + \
+        df['OUTPUT'] + \
+        '/files/' + \
+        df['OUTPUT'] + \
+        '.slurm'
+
+    return df
+
+
+def _get_redcap_link(instrument, project_id, repeat_id):
+        redcap_url = session['rc_host']
+        redcap_version = session['rc_version']
+        redcap_pid = session['rc_pid']
+
+        if redcap_url.endswith('/api/'):
+            redcap_url = redcap_url[:-5]
+
+        redcap_link = f'{redcap_url}/redcap_v{redcap_version}/DataEntry/index.php?pid={redcap_pid}&page={instrument}&id={project_id}&instance={repeat_id}'
+
+        return redcap_link

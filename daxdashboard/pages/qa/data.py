@@ -202,52 +202,6 @@ def get_data(projects):
             unit='s',
             errors='coerce').dt.strftime("%-M:%S")
 
-    df['SESSIONLINK'] = 'xnat_host' + \
-        '/data/projects/' + df['PROJECT'] + \
-        '/subjects/' + df['SUBJECT'] + \
-        '/experiments/' + df['SESSION']
-
-    df['SUBJECTLINK'] = 'xnat_host' + \
-        '/data/projects/' + df['PROJECT'] + \
-        '/subjects/' + df['SUBJECT']
-
-    df['PDF'] = 'xnat_host' + \
-        '/data/projects/' + df['PROJECT'] + \
-        '/subjects/' + df['SUBJECT'] + \
-        '/experiments/' + df['SESSION'] + \
-        '/assessors/' + df['ASSR'] + \
-        '/out/resources/PDF/files/' + \
-        'report_' + df['ASSR'] + '.pdf'
-
-    df['LOG'] = 'xnat_host' + \
-        '/data/projects/' + df['PROJECT'] + \
-        '/subjects/' + df['SUBJECT'] + \
-        '/experiments/' + df['SESSION'] + \
-        '/assessors/' + df['ASSR'] + \
-        '/out/resources/OUTLOG/files/' + \
-        df['ASSR'] + '.txt'
-
-    df['NIFTI'] = 'xnat_host' + \
-        '/data/projects/' + df['PROJECT'] + \
-        '/subjects/' + df['SUBJECT'] + \
-        '/experiments/' + df['SESSION'] + \
-        '/scans/' + df['SCANID'] + \
-        '/resources/NIFTI/files?format=zip'
-
-    df['JSON'] = 'xnat_host' + \
-        '/data/projects/' + df['PROJECT'] + \
-        '/subjects/' + df['SUBJECT'] + \
-        '/experiments/' + df['SESSION'] + \
-        '/scans/' + df['SCANID'] + \
-        '/resources/JSON/files?format=zip'
-
-    df['EDAT'] = 'xnat_host' + \
-        '/data/projects/' + df['PROJECT'] + \
-        '/subjects/' + df['SUBJECT'] + \
-        '/experiments/' + df['SESSION'] + \
-        '/scans/' + df['SCANID'] + \
-        '/resources/EDAT/files?format=zip'
-
     df.loc[df.RESOURCES.str.contains('EDAT') == False, 'EDAT'] = ''
     df.loc[df.RESOURCES.str.contains('JSON') == False, 'JSON'] = ''
     df.loc[df.RESOURCES.str.contains('NIFTI') == False, 'NIFTI'] = ''
