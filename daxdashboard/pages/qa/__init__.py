@@ -290,6 +290,7 @@ def _sessionsbytime_figure(df, selected_groupby):
 def get_content():
     '''Get QA page content.'''
     columns = utils.make_columns(['SESSION', 'SUBJECT', 'PROJECT', 'DATE', 'SESSTYPE', 'SITE', 'NOTE'])
+    blank_row = {col['id']: '' for col in columns}
 
     # We use the dbc grid layout with rows and columns, rows are 12 units wide
     content = [
@@ -438,26 +439,27 @@ def get_content():
         ]),
         dt.DataTable(
             columns=columns,
-            data=[],
+            data=[blank_row],
             filter_action='native',
             page_action='none',
             sort_action='native',
             id='datatable-qa',
             style_table={
                 'overflowY': 'scroll',
-                'overflowX': 'auto',
-                'width': '90%',
+                'overflowX': 'scroll',
+                "display": "inline-block",
+                "width": "auto",
             },
             style_cell={
                 'textAlign': 'center',
                 'padding': '5px 5px 0px 5px',
                 'width': '30px',
+                'minWidth': '30px',
+                'maxWidth': '200px',
                 'overflow': 'hidden',
                 'textOverflow': 'ellipsis',
                 'height': 'auto',
-                'minWidth': '40px',
-                'width': '40px',
-                'maxWidth': '70px'
+                'whiteSpace': 'nowrap',
             },
             style_header={
                 'fontWeight': 'bold',
@@ -474,7 +476,6 @@ def get_content():
                 dict(selector="p", rule="margin: 0; text-align: center;"),
                 dict(selector="a", rule="text-decoration: none;"),
             ],
-            #fill_width=False,
             export_format='xlsx',
             export_headers='names',
             export_columns='visible'
@@ -653,7 +654,9 @@ def update_qa(
             hidetypes=selected_autofilter)
     except Exception as err:
         logger.debug(f'failed to load data:{err}')
-        return [[], [], [], [], [], [], 'No data', 'Credentials Expired', 'Refresh to Login']
+        columns = utils.make_columns(['SESSION', 'SUBJECT', 'PROJECT', 'DATE', 'SESSTYPE', 'SITE', 'NOTE'])
+        blank_row = {col['id']: '' for col in columns}
+        return [[], [], [], [], [blank_row], columns, 'No data', 'Credentials Expired', 'Refresh to Login']
 
     # Truncate NOTE
     if 'NOTE' in df:

@@ -50,18 +50,19 @@ def _processing_graph(df):
             style_table={
                 'overflowY': 'scroll',
                 'overflowX': 'auto',
-                'width': '100%',
+                'display': 'inline-block',
+                'width': 'auto',
             },
             style_cell={
                 'textAlign': 'center',
-                'width': '10px',
+                'width': '40px',
+                'minWidth': '40px',
                 'height': 'auto',
             },
             style_header={
                 'fontWeight': 'bold',
-                'padding': '1px 1px 0px 1px',
+                'padding': '2px 5px 0px 5px',
             },
-            #fill_width=False,
         ),
         ]
 
