@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 
 from ...log import logger
-from ...utils import load_scan_data, load_assr_data, load_sgp_data, load_project_names, save_data, read_data
+from ...data import load_scan_data, load_assr_data, load_sgp_data, load_project_names, save_data, read_data
 
 
 SCAN_STATUS_MAP = {

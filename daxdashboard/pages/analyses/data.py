@@ -1,7 +1,7 @@
 import pandas as pd
 
 from ...log import logger
-from ...utils import load_project_names, load_analyses_data, read_data, save_data
+from ...data import load_project_names, load_analyses_data, read_data, save_data
 
 
 def run_refresh():

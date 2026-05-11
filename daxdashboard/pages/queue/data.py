@@ -5,7 +5,7 @@ import pandas as pd
 
 from ...log import logger
 from .. import utils
-from ...utils import load_task_data, save_data, read_data
+from ...data import load_task_data, save_data, read_data
 
 
 def get_data():

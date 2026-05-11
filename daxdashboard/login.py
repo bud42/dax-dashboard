@@ -10,7 +10,7 @@ from dash_bootstrap_templates import load_figure_template
 from .extensions import cache
 from . import content
 from .log import logger
-from .utils import encrypt_key, get_xnat_alias, get_redcap_info, load_project_names
+from .data import get_xnat_alias, get_redcap_info, load_project_names, encrypt_key
 
 
 # Load custom templates, this helps app find our login.html

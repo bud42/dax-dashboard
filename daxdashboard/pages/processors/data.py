@@ -3,7 +3,7 @@ import os
 import pandas as pd
 
 from ...log import logger
-from ...utils import load_project_names, load_processors_data, save_data, read_data
+from ...data import load_project_names, load_processors_data, save_data, read_data
 
 
 def run_refresh(projects):
