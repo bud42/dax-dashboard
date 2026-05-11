@@ -3,14 +3,13 @@ import os
 import pandas as pd
 
 from ...log import logger
-from ...utils import load_project_names, load_processors_data
-from ...extensions import cache
+from ...utils import load_project_names, load_processors_data, save_data, read_data
 
 
 def run_refresh(projects):
     df = get_data(projects)
 
-    save_data(df)
+    save_data('processors', df)
 
     return df
 
@@ -23,21 +22,12 @@ def load_data(projects=None, refresh=False):
     if refresh:
         run_refresh(projects)
 
-    return read_data()
-
-
-def read_data():
-    df = cache.get('processors')
+    df =  read_data('processors')
 
     if df is None or len(df) == 0:
         df = pd.DataFrame(columns=['PROJECT', 'COMPLETE', 'TYPE'])
- 
+    
     return df
-
-
-def save_data(df):
-    # save to cache
-    cache.set('processors', df)
 
 
 def get_data(projects):
@@ -53,7 +43,6 @@ def get_data(projects):
 
 def filter_data(df):
     # TBD
-
     return df
 
 

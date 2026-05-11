@@ -4,8 +4,7 @@ import numpy as np
 import pandas as pd
 
 from ...log import logger
-from ...extensions import cache
-from ...utils import load_scan_data, load_assr_data, load_sgp_data, load_project_names
+from ...utils import load_scan_data, load_assr_data, load_sgp_data, load_project_names, save_data, read_data
 
 
 SCAN_STATUS_MAP = {
@@ -41,15 +40,15 @@ def run_refresh(projects):
     # force a requery
     df = get_data(projects)
 
-    save_data(df)
+    save_data('qa', df)
 
     return df
 
 
 def update_data(projects):
     # Load what we have now
-    df = read_data()
-
+    df = _read_data()
+ 
     # Remove projects not selected
     df = df[df.PROJECT.isin(projects)]
 
@@ -62,18 +61,26 @@ def update_data(projects):
             _newdf = pd.DataFrame.from_records([{'PROJECT': p}])
             df = pd.concat([df, _newdf], ignore_index=True)
 
-        save_data(df)
+        save_data('qa', df)
 
         # Load the new projects
         dfp = get_data(new_projects)
 
         # Merge our new data with old data
-        df = read_data()
+        df = _read_data() 
         df = df[~df.PROJECT.isin(new_projects)]
         df = pd.concat([df, dfp])
 
         # Save it for later
-        save_data(df)
+        save_data('qa', df)
+
+    return df
+
+
+def _read_data():
+    df = read_data('qa')
+    if df is None or len(df) == 0:
+        df = pd.DataFrame(columns=QA_COLS)
 
     return df
 
@@ -82,14 +89,14 @@ def load_data(projects=[], refresh=False, maxmins=60, hidetypes=True):
 
     if refresh:
         df = run_refresh(projects)
-    elif set(projects) != set(read_data().PROJECT.unique()):
+    elif set(projects) != set(_read_data().PROJECT.unique()):
         logger.debug('updating data')
 
         # Different projects selected, update
         df = update_data(projects)
     else:
-        df = read_data()
-
+        df = _read_data()
+       
     if df.empty:
         return df
 
@@ -107,20 +114,6 @@ def load_data(projects=[], refresh=False, maxmins=60, hidetypes=True):
     df = df[df.TYPE != '']
 
     return df
-
-
-def read_data():
-    df = cache.get('qadata')
-
-    if df is None or len(df) == 0:
-        df = pd.DataFrame(columns=QA_COLS)
- 
-    return df
-
-
-def save_data(df):
-    # save to cache
-    cache.set('qadata', df)
 
 
 def get_data(projects):

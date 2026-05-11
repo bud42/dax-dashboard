@@ -10,6 +10,7 @@ from dax.XnatUtils import get_interface
 from redcap import Project
 
 from .log import logger
+from .extensions import cache
 
 
 DONE_LIST = ['COMPLETE', 'JOB_FAILED', 'DELETED']
@@ -762,3 +763,24 @@ def _get_redcap_link(instrument, project_id, repeat_id):
         redcap_link = f'{redcap_url}/redcap_v{redcap_version}/DataEntry/index.php?pid={redcap_pid}&page={instrument}&id={project_id}&instance={repeat_id}'
 
         return redcap_link
+
+
+def save_data(key, df):
+    if not current_user.is_authenticated:
+        raise Exception('no user logged in')
+
+    user = current_user.id
+
+    # save to cache
+    cache.set(f'{user}-{key}', df)
+
+
+def read_data(key):
+    if not current_user.is_authenticated:
+        raise Exception('no user logged in')
+
+    user = current_user.id
+
+    df = cache.get(f'{user}-{key}')
+
+    return df

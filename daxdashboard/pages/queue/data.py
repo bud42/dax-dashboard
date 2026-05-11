@@ -5,8 +5,7 @@ import pandas as pd
 
 from ...log import logger
 from .. import utils
-from ...utils import load_task_data
-from ...extensions import cache
+from ...utils import load_task_data, save_data, read_data
 
 
 def get_data():
@@ -53,30 +52,19 @@ def _get_proctype(row):
 def run_refresh():
     df = get_data()
 
-    save_data(df)
+    save_data('queue', df)
 
     return df
-
-
-def read_data():
-    df = cache.get('queuedata')
-
-    if df is None or len(df) == 0:
-        df = pd.DataFrame(columns=['ID', 'PROJECT', 'PROCTYPE', 'USER'])
-
-    return df
-
-
-def save_data(df):
-    # save to cache
-    cache.set('queuedata', df)
 
 
 def load_data(refresh=False):
     if refresh:
         df = run_refresh()
     else:
-        df = read_data()
+        df = read_data('queue')
+
+    if df is None or len(df) == 0:
+        df = pd.DataFrame(columns=['ID', 'PROJECT', 'PROCTYPE', 'USER'])
 
     return df
 
