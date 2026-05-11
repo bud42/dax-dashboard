@@ -249,20 +249,19 @@ def get_redcap_info(redcap_url, redcap_key):
 
 
 def load_project_names():
-    # TODO: store in cache and load
-    print('dashboard.utils.load_project_names()')
-
     if not current_user.is_authenticated:
         raise Exception('no user logged in')
 
     user_name = current_user.id
 
-
-    if user_name == 'admin':
-        logger.debug('loading admin projects')
+    if 'xnat_projects' in session:
+        logger.debug('using cached project names')
+        xnat_names = session['xnat_projects']
+    elif user_name == 'admin':
+        logger.debug('loading admin project names')
         xnat_names = get_admin_projects()
     else:
-        logger.debug(f'not admin, loading user projects:{user_name}')
+        logger.debug(f'not admin, loading user project names:{user_name}')
         xnat_names = get_my_projects()
 
     return xnat_names
@@ -551,15 +550,17 @@ def load_task_data():
     rc = _redcap()
     def_field = rc.def_field
 
+    project_names = load_project_names()
+
     # Load task records
     rec = rc.export_records(
-        #records=projects,
+        records=project_names,
         forms=['taskqueue'],
         fields=[def_field])
 
     # Load instance names 
     rec2 = rc.export_records(
-        #records=projects,
+        records=project_names,
         fields=[def_field, 'gen_daxinstance'],
         raw_or_label='label')
 
@@ -609,13 +610,13 @@ def load_processors_data():
     data = []
     def_field = ''
     rec = []
-    #projects = load_project_names()
+    project_names = load_project_names()
 
     # Load data from redcap
     rc = _redcap()
     def_field = rc.def_field
     rec = rc.export_records(
-        #records=projects,
+        records=project_names,
         forms=['processing'],
         fields=[def_field])
 
@@ -659,6 +660,8 @@ def load_analyses_data():
     data = []
     rec = []
     def_field = ''
+    project_names = load_project_names()
+
 
     # Load data from redcap
     rc = _redcap()
@@ -666,7 +669,7 @@ def load_analyses_data():
 
     # Load records
     rec = rc.export_records(
-        #records=projects,
+        records=project_names,
         forms=['analyses'],
         fields=[def_field])
 

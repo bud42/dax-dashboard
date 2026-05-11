@@ -1,7 +1,4 @@
 """qa dashboard tab."""
-
-
-import logging
 import re
 import os
 import itertools
@@ -11,8 +8,7 @@ import numpy as np
 import plotly
 import plotly.graph_objs as go
 import plotly.subplots
-from dash import dcc, html, dash_table as dt
-from dash import Input, Output, callback
+from dash import dcc, html, dash_table as dt, Input, Output, callback
 import dash_bootstrap_components as dbc
 
 from ...log import logger
@@ -293,6 +289,7 @@ def _sessionsbytime_figure(df, selected_groupby):
 
 def get_content():
     '''Get QA page content.'''
+    columns = utils.make_columns(['SESSION', 'SUBJECT', 'PROJECT', 'DATE', 'SESSTYPE', 'SITE', 'NOTE'])
 
     # We use the dbc grid layout with rows and columns, rows are 12 units wide
     content = [
@@ -440,12 +437,9 @@ def get_content():
             dbc.Label('Get ready...', id='label-qa-rowcount1'),
         ]),
         dt.DataTable(
-            columns=[],
+            columns=columns,
             data=[],
             filter_action='native',
-            #page_current=0,
-            #page_size=1000,
-            #page_action='custom',
             page_action='none',
             sort_action='native',
             id='datatable-qa',
@@ -484,7 +478,6 @@ def get_content():
             export_columns='visible'
         ),
         dbc.Label('Get ready...', id='label-qa-rowcount2'),
-        #dcc.Markdown(TIPS_MARKDOWN),
         html.Div([
             html.P(
                 LEGEND1,
@@ -643,8 +636,6 @@ def update_qa(
     graph_content = []
     refresh = False
 
-    print(f'{refresh=}:{n_clicks}')
-
     # Load. This data will already be merged scans and assessors, row per
     if utils.was_triggered('button-qa-refresh'):
         # Refresh data if refresh button clicked
@@ -700,10 +691,10 @@ def update_qa(
     if not df.empty and selected_procstatus:
         df = df[df.STATUS.isin(selected_procstatus)]
 
-    if df.empty:
-        records = []
-        columns = []
-    elif selected_pivot == 'proj':
+    #if df.empty:
+    #    records = []
+    #    columns = []
+    if selected_pivot == 'proj':
         # Get the qa pivot from the filtered data
         dfp = qa_pivot(df)
 
@@ -1122,14 +1113,8 @@ def update_qa(
                 _link = r['SESSIONLINK']
                 r['SESSION'] = f'[{_sess}]({_link})'
 
-            #if r['SUBJECT'] and 'SUBJECTLINK' in r:
-            #    _subj = r['SUBJECT']
-            #    _link = r['SUBJECTLINK']
-            #    r['SUBJECT'] = f'[{_subj}]({_link})'
-
         # Format columns
         for i, c in enumerate(columns):
-            #if c['name'] in ['SESSION', 'SUBJECT']:
             if c['name'] in ['SESSION']:
                 columns[i]['type'] = 'text'
                 columns[i]['presentation'] = 'markdown'

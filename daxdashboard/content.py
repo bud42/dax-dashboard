@@ -1,5 +1,3 @@
-"""dash index page."""
-import logging
 
 from dash import html
 import dash_bootstrap_components as dbc
@@ -17,6 +15,7 @@ def _footer_content():
         html.Div([
             dbc.Row([
                 dbc.Col(
+                    html.A('REDCap', href='https://redcap.vumc.org'),
                 ),
                 dbc.Col(
                     html.A('xnat', href='https://xnat.vanderbilt.edu/xnat'),
@@ -50,22 +49,22 @@ def get_content():
             children=qa.get_content(),
         ),
         dbc.Tab(
-            label='Queue',
-            tab_id='tab-queue',
-            children=queue.get_content(),
+             label='Processors',
+             tab_id='tab-processors',
+             children=processors.get_content(),
         ),
         dbc.Tab(
-            label='Processors',
-            tab_id='tab-processors',
-            children=processors.get_content(),
+             label='Analyses',
+             tab_id='tab-analyses',
+             children=analyses.get_content(),
         ),
         dbc.Tab(
-            label='Analyses',
-            tab_id='tab-analyses',
-            children=analyses.get_content(),
+             label='Queue',
+             tab_id='tab-queue',
+             children=queue.get_content(),
         ),
         ],
-        active_tab="tab-hub",
+        active_tab="tab-qa",
     )    
 
     footer_content = _footer_content()

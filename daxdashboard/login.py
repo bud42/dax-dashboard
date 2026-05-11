@@ -10,14 +10,18 @@ from dash_bootstrap_templates import load_figure_template
 from .extensions import cache
 from . import content
 from .log import logger
-from .utils import encrypt_key, get_xnat_alias, get_redcap_info
+from .utils import encrypt_key, get_xnat_alias, get_redcap_info, load_project_names
 
 
-# Load custom templates
+# Load custom templates, this helps app find our login.html
 templates = os.path.join(os.path.dirname(__file__), 'templates')
 
 # Connect to an underlying flask server
 server = Flask(__name__, template_folder=templates)
+
+# Make a key we can use for encryption
+server.config.update(SECRET_KEY=Fernet.generate_key())
+
 
 @server.before_request
 def check_login():
@@ -67,20 +71,10 @@ def login(message=""):
                         (xnat_alias, xnat_token) = get_xnat_alias(
                             xnat_host, xnat_user, _xnat_pass)
                     except Exception as err:
-                        print('XNAT connection failed')
-                        logger.debug(f'redirecting to home')
+                        logger.debug('XNAT failed, redirecting to home')
                         return redirect(url)
 
-                if rc_host and rc_key:
-                    try:
-                        redcap_info = get_redcap_info(rc_host, rc_key)
-                        session['rc_version'] = redcap_info['redcap_version']
-                        session['rc_pid'] = redcap_info['redcap_pid']
-                    except Exception as err:
-                        print('REDCap connection failed')
-                        logger.debug(f'redirecting to home')
-                        return redirect(url)
-
+                
                 # Now we log the user into our app
                 try:
                     login_user(User(xnat_user))
@@ -90,10 +84,19 @@ def login(message=""):
                         session['xnat_host'] = xnat_host
                         session['xnat_alias'] = encrypt_key(fernet, xnat_alias)
                         session['xnat_token'] = encrypt_key(fernet, xnat_token)
-                        session['rc_host'] = rc_host
-                        if rc_key:
-                            session['rc_key'] = encrypt_key(fernet, rc_key)
 
+                        session['xnat_projects'] = load_project_names()
+
+                        if rc_host and rc_key:
+                            session['rc_host'] = rc_host
+                            session['rc_key'] = encrypt_key(fernet, rc_key)
+                            try:
+                                rc_info = get_redcap_info(rc_host, rc_key)
+                                session['rc_version'] = rc_info['redcap_version']
+                                session['rc_pid'] = rc_info['redcap_pid']
+                            except Exception as err:
+                                logger.error('REDCap failed, redirecting')
+                                return redirect(url)
 
                     if session.get('url', False):
                         # redirect to original target
@@ -134,9 +137,25 @@ def logout():
             logout_user()
     return render_template('login.html', message="you have been logged out")
 
-# Prep the configs for the app
+
+# Create the User class that sets id as xnat username
+class User(UserMixin):
+    def __init__(self, xnat_user):
+        self.id = xnat_user
+
+# Login manager object used to login / logout users
+login_manager = LoginManager()
+login_manager.init_app(server)
+login_manager.login_view = "/login"
+
+@login_manager.user_loader
+def load_user(username):
+    """This function loads the user by user id."""
+    logger.debug(f'loading user:{username}')
+    return User(username)
+
+# Configure appearance
 dbc_css = "https://cdn.jsdelivr.net/gh/AnnMarieW/dash-bootstrap-templates/dbc.min.css"
-assets_path = os.path.join(os.path.dirname(__file__), 'assets')
 stylesheets = [dbc.themes.DARKLY, dbc_css]
 load_figure_template("darkly")
 
@@ -145,36 +164,11 @@ app = dash.Dash(
     __name__,
     server=server,
     external_stylesheets=stylesheets,
-    assets_folder=assets_path,
-    #suppress_callback_exceptions=True,
+    title='dashboard',
 )
-
-# Set the title to appear on web pages
-app.title = 'dashboard'
-
-# Make a key we can use for encryption
-server.config.update(SECRET_KEY=Fernet.generate_key())
-
-# Login manager object used to login / logout users
-login_manager = LoginManager()
-login_manager.init_app(server)
-login_manager.login_view = "/login"
 
 # Make a cache to save query results
 cache.init_app(app.server)
-
-
-# Create the User class that sets id as xnat username
-class User(UserMixin):
-    def __init__(self, xnat_user):
-        self.id = xnat_user
-
-
-@login_manager.user_loader
-def load_user(username):
-    """This function loads the user by user id."""
-    logger.debug(f'loading user:{username}')
-    return User(username)
 
 # Set the main content
 app.layout = content.get_content()

@@ -9,49 +9,6 @@ from . import data
 
 #COMPLETE2EMO = {'0': '🔴', '1': '🟡', '2': '🟢'}
 
-# command line examples for interacting with analyses
-TIPS_MARKDOWN = '''
-    &nbsp;
-
-    ### Analyses Tips:
-
-    &nbsp;
-
-    To download all input files for analysis number NUM to folder INPUTS for project NAME, at command-line enter:  
-    `garjus getinputs -p NAME NUM INPUTS`
-
-    For example, to download inputs for analysis 1 from ProjectA to a local folder named INPUTS, enter:  
-    `garjus getinputs -p ProjectA 1 ./INPUTS`
-
-    &nbsp;
-
-    To download the output zip for analysis number NUM to folder OUTPUTS for project NAME, at command-line enter:  
-    `garjus getoutputs -p NAME NUM OUTPUTS`
-
-    For example, to download outputs for analysis 1 from ProjectA to a local folder named OUTPUTS, enter:  
-    `garjus getoutputs -p ProjectA 1 ./OUTPUTS`
-
-    &nbsp;
-
-    To run an analysis by downloading the inputs locally and saving the outputs locally:  
-    `garjus run -p NAME NUM OUTPUTS.zip`
-
-    For example, to run analysis 3 for project ProjectA and save outputs to zip:  
-    `garjus run -p ProjectA 3 ProjectA_3_OUTPUTS.zip`
-
-    &nbsp;
-
-    To update analyses for a project, enter:  
-    `garjus update analyses -p ProjectA`
-
-    This will update each analyses by creating the inputs if already done,
-    and if outputs does not exist, then it will run the analysis to create the outputs,
-    upload a zip to project resources on XNAT, and finally create a link in the analysis record.  
-
-    &nbsp;
-
-'''
-
 COLUMNS = [
     'PROJECT',
     'ID',
@@ -63,7 +20,6 @@ COLUMNS = [
     'LOG',
     'OUTPUT',
     'SUBJECTS',
-    #'INVESTIGATOR',
     'PROCESSOR',
     'NOTES'
 ]
@@ -149,7 +105,6 @@ def get_content():
             ],
         ),
         html.Label('0', id='label-analyses-rowcount2'),
-        #dcc.Markdown(TIPS_MARKDOWN)
     ]
 
     return content
