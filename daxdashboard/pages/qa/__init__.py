@@ -445,7 +445,8 @@ def get_content():
             id='datatable-qa',
             style_table={
                 'overflowY': 'scroll',
-                'overflowX': 'scroll',
+                'overflowX': 'auto',
+                'width': '90%',
             },
             style_cell={
                 'textAlign': 'center',
@@ -454,8 +455,9 @@ def get_content():
                 'overflow': 'hidden',
                 'textOverflow': 'ellipsis',
                 'height': 'auto',
-                'minWidth': '40',
-                'maxWidth': '70'
+                'minWidth': '40px',
+                'width': '40px',
+                'maxWidth': '70px'
             },
             style_header={
                 'fontWeight': 'bold',
@@ -472,7 +474,7 @@ def get_content():
                 dict(selector="p", rule="margin: 0; text-align: center;"),
                 dict(selector="a", rule="text-decoration: none;"),
             ],
-            fill_width=False,
+            #fill_width=False,
             export_format='xlsx',
             export_headers='names',
             export_columns='visible'

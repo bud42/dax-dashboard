@@ -58,10 +58,10 @@ def run_refresh():
 
 
 def load_data(refresh=False):
-    if refresh:
+    df = read_data('queue')
+
+    if refresh or df is None:
         df = run_refresh()
-    else:
-        df = read_data('queue')
 
     if df is None or len(df) == 0:
         df = pd.DataFrame(columns=['ID', 'PROJECT', 'PROCTYPE', 'USER'])

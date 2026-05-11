@@ -775,12 +775,17 @@ def save_data(key, df):
     cache.set(f'{user}-{key}', df)
 
 
+def _user_key(user, key):
+    return f'{user}-{key}'
+
+
 def read_data(key):
     if not current_user.is_authenticated:
         raise Exception('no user logged in')
 
     user = current_user.id
+    user_key = _user_key(user, key)
 
-    df = cache.get(f'{user}-{key}')
+    df = cache.get(user_key)
 
     return df

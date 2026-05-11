@@ -13,10 +13,10 @@ def run_refresh():
 
 
 def load_data(refresh=False):
-    if refresh:
-        run_refresh()
-
     df = read_data('analyses')
+
+    if refresh or df is None:
+        df = run_refresh()
     
     if df is None or len(df) == 0:
         df = pd.DataFrame(columns=['PROJECT', 'SUBJECTS', 'INVESTIGATOR', 'STATUS'])

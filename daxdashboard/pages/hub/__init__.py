@@ -49,7 +49,8 @@ def _processing_graph(df):
             id='datatable-hub-processing',
             style_table={
                 'overflowY': 'scroll',
-                'overflowX': 'scroll',
+                'overflowX': 'auto',
+                'width': '100%',
             },
             style_cell={
                 'textAlign': 'center',
@@ -61,7 +62,8 @@ def _processing_graph(df):
                 'padding': '1px 1px 0px 1px',
             },
             fill_width=False,
-        )]
+        ),
+        ]
 
 
 def _queue_graph(df):

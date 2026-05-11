@@ -19,10 +19,10 @@ def project_names():
 
 
 def load_data(projects=None, refresh=False):
-    if refresh:
-        run_refresh(projects)
+    df = read_data('processors')
 
-    df =  read_data('processors')
+    if df is None or refresh:
+        df = run_refresh(projects)
 
     if df is None or len(df) == 0:
         df = pd.DataFrame(columns=['PROJECT', 'COMPLETE', 'TYPE'])

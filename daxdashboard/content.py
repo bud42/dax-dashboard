@@ -64,7 +64,7 @@ def get_content():
              children=queue.get_content(),
         ),
         ],
-        active_tab="tab-qa",
+        active_tab="tab-hub",
     )    
 
     footer_content = _footer_content()
