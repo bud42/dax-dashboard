@@ -27,6 +27,8 @@ ASSR_STATUS_MAP = {
 
 QA_COLS = [
     'SESSION', 'SUBJECT', 'PROJECT', 'SCANID', 'ASSR',
+    'SESSIONLINK', 'SUBJECTLINK', 'PDFLINK', 'OUTPUTLINK', 'LOGLINK', 'PBSLINK',
+    'PDF', 'LOG', 'EDAT', 'NIFTI', 'JSON',
     'SITE', 'NOTE', 'DATE', 'TYPE', 'STATUS',
     'ARTTYPE', 'SCANTYPE', 'PROCTYPE', 'XSITYPE', 'SESSTYPE', 'MODALITY',
     'FRAMES', 'DURATION', 'TR', 'THICK', 'SENSE', 'MB', 'RESOURCES',
@@ -110,7 +112,7 @@ def read_data():
     df = cache.get('qadata')
 
     if df is None or len(df) == 0:
-        df = pd.DataFrame(columns=['PROJECT', 'SCANTYPE', 'SESSTYPE', 'PROCTYPE'])
+        df = pd.DataFrame(columns=QA_COLS)
  
     return df
 
@@ -125,7 +127,6 @@ def get_data(projects):
     scan_df = df.copy()
     assr_df = df.copy()
     subj_df = df.copy()
-    subjects = None
 
     if not projects:
         # No projects selected so we don't query
@@ -140,15 +141,14 @@ def get_data(projects):
         
         logger.debug(f'load assr data:{projects}')
         assr_df = _load_assr_data(projects)
-        
+
         logger.debug(f'load sgp data:{projects}')
         subj_df = _load_sgp_data(projects)
-        
+
         logger.debug(f'all loaded')
     except Exception as err:
         logger.error(f'load failed:{err}')
-        _cols = QA_COLS + ['DATE', 'SESSIONLINK', 'SUBJECTLINK']
-        return pd.DataFrame(columns=_cols)
+        return pd.DataFrame(columns=QA_COLS)
 
     logger.debug(f'merging data:{projects}')
 
@@ -163,35 +163,24 @@ def get_data(projects):
     for x in ['SESSION', 'SITE', 'NOTE', 'SESSTYPE', 'MODALITY']:
         subj_df[x] = 'SGP'
 
-    for x in ['SCANID', 'SCANTYPE', 'FRAMES', 'DURATION', 'TR', 'THICK', 'SENSE', 'MB']:
-        assr_df[x] = None
-        subj_df[x] = None
-
-    for x in ['JOBDATE', 'TIMEUSED', 'MEMUSED', 'JOBNODE']:
-        scan_df[x] = None
-
-    assr_df['RESOURCES'] = ''
-    subj_df['RESOURCES'] = ''
-
-    for x in ['PROCTYPE', 'ASSR']:
-        scan_df[x] = None
-
     # Concatenate the common cols to a new dataframe
-    df = pd.concat([assr_df[QA_COLS], scan_df[QA_COLS]], sort=False)
+    for c in QA_COLS:
+        if c not in assr_df.columns:
+            assr_df[c] = ''
+
+        if c not in scan_df.columns:
+            scan_df[c] = ''
+
+        if c not in subj_df.columns:
+            subj_df[c] = ''
+
+    try:
+        df = pd.concat([assr_df[QA_COLS], scan_df[QA_COLS]], sort=False)
+    except Exception as err:
+        print(f'concat failed:{err}')
+
     df = pd.concat([df[QA_COLS], subj_df[QA_COLS]], sort=False)
 
-    if subjects is None:
-        df['GROUP'] = 'UNKNOWN'
-        df['AGE'] = ''
-        df['SEX'] = ''
-    else:
-        df = pd.merge(
-            df,
-            subjects,
-            left_on=('SUBJECT', 'PROJECT'),
-            right_on=('ID', 'PROJECT'),
-            how='left'
-        )
 
     # Convert duration from string of total seconds to formatted HH:MM:SS
     if 'DURATION' in df:
@@ -205,6 +194,10 @@ def get_data(projects):
     df.loc[df.RESOURCES.str.contains('EDAT') == False, 'EDAT'] = ''
     df.loc[df.RESOURCES.str.contains('JSON') == False, 'JSON'] = ''
     df.loc[df.RESOURCES.str.contains('NIFTI') == False, 'NIFTI'] = ''
+
+    df['GROUP'] = 'UNKNOWN'
+    df['AGE'] = ''
+    df['SEX'] = ''
 
     return df
 

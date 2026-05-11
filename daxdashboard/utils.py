@@ -1,4 +1,5 @@
 
+import os
 import json
 
 import pandas as pd
@@ -470,9 +471,6 @@ def _assessor_info(record):
     for k, v in ASSR_RENAME.items():
         info[v] = record[k]
 
-    # Decode inputs into list
-    #info['INPUTS'] = utils_xnat.decode_inputs(info['INPUTS'])
-
     # Get the full path
     _p = '/projects/{0}/subjects/{1}/experiments/{2}/assessors/{3}'.format(
         info['PROJECT'],
@@ -496,9 +494,6 @@ def _sgp_info(record):
         info[v] = record[k]
 
     info['XSITYPE'] = 'proc:subjgenprocdata'
-
-    # Decode inputs into list
-    #info['INPUTS'] = utils_xnat.decode_inputs(info['INPUTS'])
 
     # Get the full path
     _p = '/projects/{0}/subjects/{1}/assessors/{2}'.format(
@@ -647,18 +642,12 @@ def load_processors_data():
         else:
             filepath = r['processor_file']
 
-        #if not os.path.isabs(filepath):
-        #    # Prepend lib location
-        #    filepath = os.path.join(self._yamldir, filepath)
-
-
         # Get renamed variables
         for k, v in PROCESSORS_RENAME.items():
             d[v] = r.get(k, '')
 
         d['FILE'] = filepath
-        #d['TYPE'] = self._get_proctype(d['FILE'])
-        d['TYPE'] = d['FILE']
+        d['TYPE'] = _get_proctype(d['FILE'])
 
         # Finally, add to our list
         data.append(d)
@@ -748,6 +737,15 @@ def load_analyses_data():
         '.slurm'
 
     return df
+
+
+def _get_proctype(procfile):
+    # Get just the filename without the directory path
+    tmp = os.path.basename(procfile)
+
+    # Split on periods and grab the 4th value from right,
+    # thus allowing periods in the main processor name
+    return tmp.rsplit('.')[-4]
 
 
 def _get_redcap_link(instrument, project_id, repeat_id):

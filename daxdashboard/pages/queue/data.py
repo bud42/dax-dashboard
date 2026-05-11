@@ -12,7 +12,6 @@ from ...extensions import cache
 def get_data():
 
     df = _load_task_data()
-    print(df)
 
     df = df[df.STATUS != 'NEED_INPUTS']
 
@@ -75,10 +74,8 @@ def save_data(df):
 
 def load_data(refresh=False):
     if refresh:
-        print('queue.data.load_data-refresh')
         df = run_refresh()
     else:
-        print('queue.data.load_data-read')
         df = read_data()
 
     return df

@@ -185,8 +185,6 @@ def load_data(refresh=False):
 def load_options(df):
     options = {}
 
-    print(df)
-
     for k in ['PROCTYPE', 'USER', 'PROJECT']:
         # Get a unique list of strings with blanks removed
         koptions = df[k].unique()
@@ -238,9 +236,7 @@ def update_queue(
         refresh = True
 
     logger.debug('loading data')
-    print('load_data')
     df = load_data(refresh=refresh)
-    print(df)
 
     # Update lists of possible options for dropdowns (could have changed)
     # make these lists before we filter what to display

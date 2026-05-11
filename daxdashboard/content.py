@@ -4,7 +4,6 @@ import logging
 from dash import html
 import dash_bootstrap_components as dbc
 
-from .app import app
 from .pages import hub, qa, queue, processors, analyses
 from .log import logger
 
@@ -64,7 +63,8 @@ def get_content():
             label='Analyses',
             tab_id='tab-analyses',
             children=analyses.get_content(),
-        )],
+        ),
+        ],
         active_tab="tab-hub",
     )    
 

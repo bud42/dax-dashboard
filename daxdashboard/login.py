@@ -2,12 +2,10 @@ import os
 
 from flask import Flask, request, redirect, session, jsonify, url_for, render_template
 from flask_login import login_user, LoginManager, UserMixin, logout_user, current_user
-from flask_caching import Cache
+from cryptography.fernet import Fernet
 import dash
-from dash import html
 import dash_bootstrap_components as dbc
 from dash_bootstrap_templates import load_figure_template
-from cryptography.fernet import Fernet
 
 from .extensions import cache
 from . import content
@@ -148,7 +146,7 @@ app = dash.Dash(
     server=server,
     external_stylesheets=stylesheets,
     assets_folder=assets_path,
-    suppress_callback_exceptions=True,
+    #suppress_callback_exceptions=True,
 )
 
 # Set the title to appear on web pages

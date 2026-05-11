@@ -643,7 +643,7 @@ def update_qa(
     graph_content = []
     refresh = False
 
-    logger.debug('update_all')
+    print(f'{refresh=}:{n_clicks}')
 
     # Load. This data will already be merged scans and assessors, row per
     if utils.was_triggered('button-qa-refresh'):
@@ -652,6 +652,7 @@ def update_qa(
         refresh = True
 
     logger.debug(f'loading data:{selected_proj}')
+
     try:
         df = load_data(
             projects=selected_proj,
