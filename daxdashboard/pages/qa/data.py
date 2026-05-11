@@ -240,11 +240,6 @@ def _load_assr_data(project_filter):
 def _load_sgp_data(project_filter):
     df = load_sgp_data(project_filter)
 
-    # Get subset of columns
-    df = df[[
-        'PROJECT', 'SUBJECT', 'DATE', 'ASSR', 'QCSTATUS', 'XSITYPE',
-        'PROCSTATUS', 'PROCTYPE', 'JOBDATE', 'TIMEUSED', 'MEMUSED', 'JOBNODE']]
-
     df.drop_duplicates(inplace=True)
 
     # Drop any rows with empty proctype
@@ -270,12 +265,6 @@ def _load_sgp_data(project_filter):
 def _load_scan_data(project_filter):
      #  Load data
      dfs = load_scan_data(project_filter)
-
-     dfs = dfs[[
-         'PROJECT', 'SESSION', 'SUBJECT', 'NOTE', 'DATE', 'SITE', 'SCANID',
-         'SCANTYPE', 'QUALITY', 'XSITYPE', 'SESSTYPE', 'MODALITY',
-         'FRAMES', 'DURATION', 'TR', 'THICK', 'SENSE', 'MB', 'RESOURCES',
-         'full_path']].copy()
 
      dfs.drop_duplicates(inplace=True)
 
