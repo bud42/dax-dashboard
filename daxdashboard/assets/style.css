@@ -1,0 +1,4 @@
+[class*="placeholder"] {
+    color: var(--bs-body-color) !important;
+    opacity: 0.6;
+}
