@@ -7,8 +7,6 @@ from .. import utils
 from . import data
 
 
-#COMPLETE2EMO = {'0': '🔴', '1': '🟡', '2': '🟢'}
-
 COLUMNS = [
     'PROJECT',
     'ID',
@@ -89,7 +87,13 @@ def get_content():
             style_cell={
                 'textAlign': 'center',
                 'height': 'auto',
-                'padding': '1px 5px 0px 5px',
+                'padding': '1px 4px 0px 4px',
+                'width': '30px',
+                'minWidth': '30px',
+                'maxWidth': '200px',
+                'overflow': 'hidden',
+                'textOverflow': 'ellipsis',
+                'whiteSpace': 'nowrap',
             },
             style_header={
                 'fontWeight': 'bold',
@@ -155,7 +159,8 @@ def update_analyses(
         df['NOTES'] = df['NOTES'].str.slice(0, 20)
 
     # Count SUBJECTS list
-    #df.loc[df['SUBJECTS'].str.len() > 0, 'SUBJECTS'] = 'n=' + df['SUBJECTS'].str.split(r'[,\n\s]+', regex=True, expand=False).agg(len).astype(str)
+    _mask = df['SUBJECTS'].notna() & (df['SUBJECTS'].str.len() > 0)
+    df.loc[_mask, 'SUBJECTS'] = (df.loc[_mask, 'SUBJECTS'].str.split(r'[,\n\s]+').apply(lambda x: f"n={len([i for i in x if i])}"))
 
     # Change blanks to asterisk
     df.loc[df['SUBJECTS'].str.len() == 0, 'SUBJECTS'] = '*'
@@ -178,8 +183,6 @@ def update_analyses(
 
     if selected_status:
         df = df[df['STATUS'].isin(selected_status)]
-
-    #df['COMPLETE'] = df['COMPLETE'].map(COMPLETE2EMO).fillna('?')
 
     # Get the table data as one row per assessor
     records = df.reset_index().to_dict('records')
