@@ -40,6 +40,10 @@ def get_content():
             id='datatable-processors',
             style_cell={
                 'textAlign': 'center',
+                'maxWidth': '200px',
+                'overflow': 'hidden',
+                'textOverflow': 'ellipsis',
+                'whiteSpace': 'nowrap',
             },
             style_header={
                 'fontWeight': 'bold',

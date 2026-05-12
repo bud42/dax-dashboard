@@ -705,6 +705,8 @@ def load_analyses_data():
     # Pad with zeros
     df['ID'] = df['ID'].astype(str).str.zfill(3)
 
+    df['ID'] = df['PROJECT'] + '_' + df['ID']
+
     xnat_host = session['xnat_host']
 
     df['OUTPUTLINK'] = xnat_host + \

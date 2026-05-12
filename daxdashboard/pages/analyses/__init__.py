@@ -8,10 +8,8 @@ from . import data
 
 
 COLUMNS = [
-    'PROJECT',
     'ID',
     'NAME',
-    'EDIT',
     'STATUS',
     'PBS',
     'PDF',
@@ -28,7 +26,7 @@ def get_content():
 
     # Format columns with links as markdown text
     for i, c in enumerate(columns):
-        if c['name'] in ['OUTPUT', 'EDIT', 'INPUT', 'DATA', 'PROCESSOR', 'LOG', 'PDF', 'PBS']:
+        if c['name'] in ['OUTPUT', 'EDIT', 'INPUT', 'DATA', 'PROCESSOR', 'LOG', 'PDF', 'PBS', 'ID']:
             columns[i]['type'] = 'text'
             columns[i]['presentation'] = 'markdown'
 
@@ -84,13 +82,19 @@ def get_content():
             page_action='none',
             sort_action='native',
             id='datatable-analyses',
+            style_table={
+                'overflowY': 'scroll',
+                'overflowX': 'scroll',
+                "display": "inline-block",
+                "width": "auto",
+            },
             style_cell={
                 'textAlign': 'center',
                 'height': 'auto',
                 'padding': '1px 4px 0px 4px',
                 'width': '30px',
                 'minWidth': '30px',
-                'maxWidth': '200px',
+                'maxWidth': '250px',
                 'overflow': 'hidden',
                 'textOverflow': 'ellipsis',
                 'whiteSpace': 'nowrap',
@@ -194,6 +198,9 @@ def update_analyses(
         _text = 'edit'
         r['EDIT'] = f'[{_text}]({_link})'
 
+        _id = r['ID']
+        r['ID'] = f'[{_id}]({_link})'
+
          # Make log a link
         _link = r['LOGLINK']
         r['LOG'] = f'[📄]({_link})'
@@ -215,12 +222,14 @@ def update_analyses(
             pass
         elif r['OUTPUTLINK']:
             _link = r['OUTPUTLINK']
-            _text = r['OUTPUT']
-            r['OUTPUT'] = f'[{_text}]({_link})'
+            #_text = r['OUTPUT']
+            #r['OUTPUT'] = f'[{_text}]({_link})'
+            r['OUTPUT'] = f'[📁]({_link})'
         elif '/' in r['OUTPUT']:
             _link = r['OUTPUT']
-            _text = r['OUTPUT'].rsplit('/', 2)[1]
-            r['OUTPUT'] = f'[{_text}]({_link})'
+            #_text = r['OUTPUT'].rsplit('/', 2)[1]
+            #r['OUTPUT'] = f'[{_text}]({_link})'
+            r['OUTPUT'] = f'[📁]({_link})'
 
         # Make a link
         if not r['PROCESSOR']:
@@ -236,11 +245,14 @@ def update_analyses(
                     _link = f'https://github.com/{p}'
 
                 _text = r['PROCESSOR']
-                r['PROCESSOR'] = f'[{_text}]({_link})'
+                #r['PROCESSOR'] = f'[{_text}]({_link})'
+                r['PROCESSOR'] = f'[⚙️]({_link})'
             except Exception as err:
                 logger.error(f'failed to parse processor:{r["PROCESSOR"]}')
 
-
+        r['STATUS'] = r['STATUS'].str.replace('READY', '🟩')
+        r['STATUS'] = r['STATUS'].str.replace('JOB_FAILED', '🩷')
+        r['STATUS'] = r['STATUS'].str.replace('DEVEL', '🟡')
 
     # Count how many rows are in the table
     rowcount = '{} rows'.format(len(records))

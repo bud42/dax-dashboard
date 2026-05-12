@@ -19,7 +19,7 @@ def load_data(refresh=False):
         df = run_refresh()
     
     if df is None or len(df) == 0:
-        df = pd.DataFrame(columns=['PROJECT', 'SUBJECTS', 'INVESTIGATOR', 'STATUS'])
+        df = pd.DataFrame(columns=['PROJECT', 'ID', 'SUBJECTS', 'INVESTIGATOR', 'STATUS'])
 
     return df
 
