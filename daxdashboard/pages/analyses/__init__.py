@@ -15,8 +15,8 @@ COLUMNS = [
     'PDF',
     'LOG',
     'OUTPUT',
-    'SUBJECTS',
     'PROCESSOR',
+    'SUBJECTS',
     'NOTES'
 ]
 
@@ -170,7 +170,7 @@ def update_analyses(
     df.loc[df['SUBJECTS'].str.len() == 0, 'SUBJECTS'] = '*'
 
     # Get options
-    proj_options = data.project_names()
+    proj_options = df.PROJECT.unique()
     lead_options = sorted(df['INVESTIGATOR'].unique())
     status_options = sorted(df['STATUS'].unique())
     logger.debug(f'loaded options:{proj_options}:{lead_options}')
@@ -180,7 +180,7 @@ def update_analyses(
     status = utils.make_options(status_options)
 
     # Filter data based on dropdown values
-    df = data.filter_data(df)
+    df = data.filter_data(df, selected_proj)
 
     if selected_lead:
         df = df[df['INVESTIGATOR'].isin(selected_lead)]
@@ -250,9 +250,7 @@ def update_analyses(
             except Exception as err:
                 logger.error(f'failed to parse processor:{r["PROCESSOR"]}')
 
-        r['STATUS'] = r['STATUS'].str.replace('READY', '🟩')
-        r['STATUS'] = r['STATUS'].str.replace('JOB_FAILED', '🩷')
-        r['STATUS'] = r['STATUS'].str.replace('DEVEL', '🟡')
+        r['STATUS'] = r['STATUS'].replace('READY', '🟩').replace('JOB_FAILED', '🩷').replace('DEVEL', '🟡')
 
     # Count how many rows are in the table
     rowcount = '{} rows'.format(len(records))

@@ -1,7 +1,7 @@
 import pandas as pd
 
 from ...log import logger
-from ...data import load_project_names, load_analyses_data, read_data, save_data
+from ...data import load_project_names, load_analyses, read_data, save_data
 
 
 def run_refresh():
@@ -26,20 +26,26 @@ def load_data(refresh=False):
 
 def get_data():
     # Load
-    df = _load_analyses_data()
+    df = _load_analyses()
 
     return df
 
 
-def _load_analyses_data(projects=None):
+def _load_analyses(projects=None):
     """List of analyses records."""
 
-    df = load_analyses_data()
+    df = load_analyses()
 
     return df
 
 
-def filter_data(df, time=None):
+def filter_data(df, projects=None, time=None):
+     # Filter by project
+    if projects:
+        logger.debug('filtering by project:')
+        logger.debug(projects)
+        df = df[df['PROJECT'].isin(projects)]
+
     # Filter
     if time:
         pass

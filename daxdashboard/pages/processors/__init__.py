@@ -21,6 +21,17 @@ def get_content():
     content = [
         dbc.Row(
             dbc.Col(
+                dbc.Button(
+                    'Refresh Data',
+                    id='button-processors-refresh',
+                    outline=True,
+                    color='primary',
+                    size='sm',
+                ),
+            ),
+        ),
+        dbc.Row(
+            dbc.Col(
                 dcc.Dropdown(
                     id='dropdown-processors-proj',
                     multi=True,
@@ -60,12 +71,8 @@ def get_content():
     return content
 
 
-def load_processors(projects=[]):
-
-    if projects is None:
-        projects = []
-
-    return data.load_data(projects, refresh=True)
+def load_processors(refresh=False):
+    return data.load_data(refresh=refresh)
 
 
 @callback(
@@ -76,27 +83,35 @@ def load_processors(projects=[]):
      Output('label-processors-rowcount2', 'children'),
     ],
     [
+     Input('button-processors-refresh', 'n_clicks'),
      Input('dropdown-processors-proj', 'value'),
     ])
 def update_processors(
+    n_clicks,
     selected_proj,
 ):
+    refresh = False
+
     logger.debug('update_all')
 
     # Load selected data with refresh if requested
-    df = load_processors(selected_proj)
+    if utils.was_triggered('button-processors-refresh'):
+        logger.debug(f'processors refresh:clicks={n_clicks}')
+        refresh = True
 
-    # Get options based on selected projects, only show proc for those projects
-    proj_options = data.project_names()
+    # Load all processors
+    df = load_processors(refresh=refresh)
+
+    proj_options = df.PROJECT.unique()
 
     logger.debug(f'loaded options:{proj_options}')
 
     proj = utils.make_options(proj_options)
 
     # Filter data based on dropdown values
-    df = data.filter_data(df)
+    df = data.filter_data(df, selected_proj)
 
-    # Get the table data as one row per assessor
+    # Get the table data as list of records
     records = df.reset_index().to_dict('records')
 
     # Format records

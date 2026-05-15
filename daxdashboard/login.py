@@ -1,4 +1,5 @@
 import os
+import hashlib
 
 from flask import Flask, request, redirect, session, jsonify, url_for, render_template
 from flask_login import login_user, LoginManager, UserMixin, logout_user, current_user
@@ -10,7 +11,7 @@ from dash_bootstrap_templates import load_figure_template
 from .extensions import cache
 from . import content
 from .log import logger
-from .data import get_xnat_alias, get_redcap_info, load_project_names, encrypt_key
+from .data import get_xnat_alias, get_redcap_info, encrypt_key, init_data
 
 
 # Load custom templates, this helps app find our login.html
@@ -53,51 +54,77 @@ def is_authenticated():
 
 @server.route('/login', methods=['POST', 'GET'])
 def login(message=""):
+    xnat_enabled = False
+    rc_enabled = False
+
     try:
         if request.method == 'POST':
             if request.form:
+                # Get an encrypter
+                fernet = Fernet(server.config['SECRET_KEY'])
+
+                # Load credentials from form
                 rc_host = request.form['rchost']
                 rc_key = request.form['rckey']
                 xnat_host = request.form['xnathost']
                 xnat_user = request.form['xnatuser']
                 _xnat_pass = request.form['xnatpass']
+                session['xnat_host'] = xnat_host
+                session['rc_host'] = rc_host
 
-                # get xnat alias
-                if xnat_user == 'demo':
-                    xnat_alias = 'demo'
-                    xnat_token = 'demo'
-                else:
+                # get xnat connection params
+                if xnat_host and xnat_user and _xnat_pass:
+                    print(f'logging into xnat:{xnat_host=}:{xnat_user=}')
+
                     try:
                         (xnat_alias, xnat_token) = get_xnat_alias(
                             xnat_host, xnat_user, _xnat_pass)
+                        xnat_enabled = True
                     except Exception as err:
                         logger.debug('XNAT failed, redirecting to home')
-                        return redirect(url)
+                        return redirect('/')
 
-                
-                # Now we log the user into our app
+                # get redcap connection params
+                if rc_host and rc_key:
+                    print(f'logging into redcap:{rc_host=}')
+
+                    try:
+                        session['rc_key'] = encrypt_key(fernet, rc_key)
+
+                        rc_info = get_redcap_info(rc_host, rc_key)
+                        session['rc_version'] = rc_info['redcap_version']
+                        session['rc_pid'] = rc_info['redcap_pid']
+                        rc_enabled = True
+                    except Exception as err:
+                        logger.error('REDCap failed, redirecting to home')
+                        return redirect('/')
+
+                print(f'{xnat_enabled=}:{rc_enabled=}')
+
+                # Now we log the user into our app based on what is connected
                 try:
-                    login_user(User(xnat_user))
-
-                    if xnat_alias and xnat_token:
-                        fernet = Fernet(server.config['SECRET_KEY'])
-                        session['xnat_host'] = xnat_host
+                    if xnat_enabled:
+                        # Login in with xnat username and projects
+                        print(f'logging in with xnat_user:{xnat_user}')
+                        login_user(User(xnat_user))
                         session['xnat_alias'] = encrypt_key(fernet, xnat_alias)
                         session['xnat_token'] = encrypt_key(fernet, xnat_token)
+                    elif rc_enabled:
+                        # Make up redcap user 
+                        rc_user = hashlib.sha256(rc_key.encode()).hexdigest()
+                        rc_user = f"rc:{rc_user}"
 
-                        session['xnat_projects'] = load_project_names()
+                        # Log in with made up name
+                        print(f'logging in with rc_user:{rc_user}')
+                        login_user(User(rc_user))
+                        session['rc_user'] = rc_user
+                    else:
+                        print('neither logged in, raising exception')
+                        raise Exception('cannot log in to XNAT or REDCap')
 
-                        if rc_host and rc_key:
-                            session['rc_host'] = rc_host
-                            session['rc_key'] = encrypt_key(fernet, rc_key)
-                            try:
-                                rc_info = get_redcap_info(rc_host, rc_key)
-                                session['rc_version'] = rc_info['redcap_version']
-                                session['rc_pid'] = rc_info['redcap_pid']
-                            except Exception as err:
-                                logger.error('REDCap failed, redirecting')
-                                return redirect(url)
+                    init_data()
 
+                    # We are logged in now so handle request
                     if session.get('url', False):
                         # redirect to original target
                         url = session['url']

@@ -12,8 +12,6 @@ from .log import logger
 from .extensions import cache
 
 
-DONE_LIST = ['COMPLETE', 'JOB_FAILED', 'DELETED']
-
 
 SCAN_URI = '/REST/experiments?xsiType=xnat:imagesessiondata\
 &columns=\
@@ -173,6 +171,12 @@ PROCESSORS_RENAME = {
     'processing_complete': 'COMPLETE',
 }
 
+TASK_FILTER = '[task_status] <> "COMPLETE" AND [task_status] <> "JOB_FAILED" AND [task_status] <> "DELETED" AND [task_status] <> "NEED_INPUTS"'
+
+PROJECT_COMPLETE = 'general_complete'
+
+PROJECT_FILTER = '[general_complete] = "2"'
+
 SCAN_COLUMNS = [
     'PROJECT', 'SUBJECT', 'SESSION', 'SESSTYPE', 'TRACER', 'NOTE', 'DATE', 'SITE',
     'DURATION', 'FRAMES', 'TR', 'THICK', 'SENSE', 'MB',
@@ -206,6 +210,17 @@ PROCESSORS_COLUMNS = [
     'ID', 'PROJECT', 'TYPE', 'EDIT', 'FILE', 'FILTER', 'ARGS',
     'YAMLUPLOAD', 'EDIT', 'COMPLETE', 'CUSTOM'
 ]
+
+
+def init_data():
+    try:
+        logger.debug('Init project names')
+        load_project_names()
+
+        logger.debug('Init processors')
+        save_data('processors', load_processors())
+    except Exception as err:
+        logger.error(f'failed to init data:{err}')
 
 
 def decrypt_key(cipher_suite, encrypted_key):
@@ -252,19 +267,49 @@ def load_project_names():
     if not current_user.is_authenticated:
         raise Exception('no user logged in')
 
-    user_name = current_user.id
-
+    # Look for cached list
     if 'xnat_projects' in session:
         logger.debug('using cached project names')
-        xnat_names = session['xnat_projects']
-    elif user_name == 'admin':
-        logger.debug('loading admin project names')
-        xnat_names = get_admin_projects()
-    else:
-        logger.debug(f'not admin, loading user project names:{user_name}')
-        xnat_names = get_my_projects()
+        return session['xnat_projects']
+    elif 'rc_projects' in session:
+        return session['rc_projects']
 
-    return xnat_names
+    # Load from external
+    if 'xnat_user' in session:
+        # Load list from XNAT
+
+        user_name = current_user.id
+
+        if user_name == 'admin':
+            logger.debug('loading admin project names')
+            xnat_projects = get_admin_projects()
+        else:
+            logger.debug(f'not admin, loading user project names:{user_name}')
+            xnat_projects = get_my_projects()
+
+        session['xnat_projects'] = xnat_projects
+        return xnat_projects
+    elif 'rc_user' in session:
+        # Load list from REDCap
+        session['rc_projects'] = _load_redcap_projects()
+        return session['rc_projects']
+    else:
+        raise Exception('no user logged in')
+
+
+def _load_redcap_projects():
+    try:
+        rc = _redcap()
+        rec = rc.export_records(
+            fields=[rc.def_field, PROJECT_COMPLETE],
+            filter_logic=PROJECT_FILTER
+        )
+    except Exception as err:
+        raise Exception('failed to retrieve redcap projects')
+
+    projects = [x[rc.def_field] for x in rec]
+
+    return projects
 
 
 def load_scan_data(projects):
@@ -546,36 +591,41 @@ def get_my_projects():
 
 
 def load_task_data():
+    project_names = load_project_names()
+    return _load_task_data(project_names)
+
+
+def _load_task_data(project_names):
     # Load data from redcap
     rc = _redcap()
     def_field = rc.def_field
-
-    project_names = load_project_names()
 
     # Load task records
     rec = rc.export_records(
         records=project_names,
         forms=['taskqueue'],
-        fields=[def_field])
-
-    # Load instance names 
-    rec2 = rc.export_records(
-        records=project_names,
-        fields=[def_field, 'gen_daxinstance'],
-        raw_or_label='label')
+        fields=[def_field],
+        filter_logic=TASK_FILTER,
+    )
 
     # Remove unwanted rows
     rec = [x for x in rec if x['redcap_repeat_instrument'] == 'taskqueue']
 
-    # Hide done
-    rec = [x for x in rec if x['task_status'] not in DONE_LIST]
+    logger.debug(f'loaded {len(rec)} task records')
 
     df = pd.DataFrame(rec)
     if df.empty:
         return pd.DataFrame(columns=TASK_COLUMNS)
 
-    # Set project namne from main record name
+    # Set project name from main record name
     df['PROJECT'] = df[def_field]
+
+    # Load instance names
+    rec2 = rc.export_records(
+        records=list(df.PROJECT.unique()),
+        fields=[def_field, 'gen_daxinstance'],
+        raw_or_label='label'
+    )
 
     # Set instance name for each task record
     p2u = {x[def_field]: x['gen_daxinstance'] for x in rec2 if x['gen_daxinstance']}
@@ -606,11 +656,20 @@ def load_task_data():
     return df
 
 
-def load_processors_data():
+def load_processors():
+    projects = load_project_names()
+    return _load_processors_data(projects)
+
+
+def load_analyses():
+    projects = load_project_names()
+    return _load_analyses_data(projects)
+
+
+def _load_processors_data(project_names):
     data = []
     def_field = ''
     rec = []
-    project_names = load_project_names()
 
     # Load data from redcap
     rc = _redcap()
@@ -653,15 +712,18 @@ def load_processors_data():
         # Finally, add to our list
         data.append(d)
 
-    return pd.DataFrame(data, columns=PROCESSORS_COLUMNS)
+    df = pd.DataFrame(data, columns=PROCESSORS_COLUMNS)
+
+    df['FILE'] = df['FILE'].apply(os.path.basename)
+    df = df.sort_values(['PROJECT', 'FILE'])
+
+    return df
 
 
-def load_analyses_data():
+def _load_analyses_data(project_names):
     data = []
     rec = []
     def_field = ''
-    project_names = load_project_names()
-
 
     # Load data from redcap
     rc = _redcap()

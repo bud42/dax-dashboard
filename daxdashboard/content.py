@@ -36,7 +36,7 @@ def get_content():
     tabs = ''
     content = ''
     footer_content = ''
-
+   
     tabs = dbc.Tabs([
         dbc.Tab(
             label='HOME',
@@ -65,7 +65,7 @@ def get_content():
         ),
         ],
         active_tab="tab-hub",
-    )    
+        )
 
     footer_content = _footer_content()
 
@@ -78,3 +78,24 @@ def get_content():
     ])
 
     return content
+
+
+def get_content_xnatonoly():
+    tabs = dbc.Tabs([
+        dbc.Tab(
+            label='QA',
+            tab_id='tab-qa',
+            children=qa.get_content(),
+        ),
+        ],
+        active_tab="tab-qa",
+    )
+
+    content = html.Div(
+    className='dbc',
+    style={'marginLeft': '20px', 'marginRight': '20px'},
+    children=[
+        html.Div(id='report-content', children=[tabs]),
+    ])
+
+    return content    
