@@ -152,11 +152,8 @@ def update_analyses(
         logger.debug(f'analyses refresh:clicks={n_clicks}')
         refresh = True
 
+    # Load all analyses
     df = load_analyses(refresh=refresh)
-
-    print(f'{selected_proj=}')
-    if selected_proj:
-        df = df[df.PROJECT.isin(selected_proj)]
 
     # Truncate NOTES
     if 'NOTES' in df:
@@ -169,25 +166,26 @@ def update_analyses(
     # Change blanks to asterisk
     df.loc[df['SUBJECTS'].str.len() == 0, 'SUBJECTS'] = '*'
 
-    # Get options
+    # Get project options
     proj_options = df.PROJECT.unique()
+
+    # Filter by project before loading inv and status options
+    df = data.filter_data(df, projects=selected_proj)
+
     lead_options = sorted(df['INVESTIGATOR'].unique())
     status_options = sorted(df['STATUS'].unique())
-    logger.debug(f'loaded options:{proj_options}:{lead_options}')
-
     proj = utils.make_options(proj_options)
     lead = utils.make_options(lead_options)
     status = utils.make_options(status_options)
 
+    logger.debug(f'loaded options:{proj_options}:{lead_options}')
+
     # Filter data based on dropdown values
-    df = data.filter_data(df, selected_proj)
-
-    if selected_lead:
-        df = df[df['INVESTIGATOR'].isin(selected_lead)]
-
-    if selected_status:
-        df = df[df['STATUS'].isin(selected_status)]
-
+    df = data.filter_data(
+        df,
+        leads=selected_lead, 
+        statuses=selected_status)
+ 
     # Get the table data as one row per assessor
     records = df.reset_index().to_dict('records')
 

@@ -115,7 +115,7 @@ def login(message=""):
                         rc_user = f"rc:{rc_user}"
 
                         # Log in with made up name
-                        print(f'logging in with rc_user:{rc_user}')
+                        print(f'logging in with rc_user')
                         login_user(User(rc_user))
                         session['rc_user'] = rc_user
                     else:

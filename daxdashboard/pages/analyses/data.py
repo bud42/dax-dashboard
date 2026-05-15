@@ -39,12 +39,20 @@ def _load_analyses(projects=None):
     return df
 
 
-def filter_data(df, projects=None, time=None):
+def filter_data(df, projects=None, leads=None, statuses=None, time=None):
      # Filter by project
     if projects:
         logger.debug('filtering by project:')
         logger.debug(projects)
         df = df[df['PROJECT'].isin(projects)]
+
+    # Then by leads
+    if leads:
+        df = df[df['INVESTIGATOR'].isin(leads)]
+
+    # finally by status
+    if statuses:
+        df = df[df['STATUS'].isin(statuses)]
 
     # Filter
     if time:
