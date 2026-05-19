@@ -11,7 +11,7 @@ from dash_bootstrap_templates import load_figure_template
 from .extensions import cache
 from . import content
 from .log import logger
-from .data import get_xnat_alias, get_redcap_info, encrypt_key, init_data
+from .data import get_xnat_alias, get_redcap_info, encrypt_key
 
 
 # Load custom templates, this helps app find our login.html
@@ -121,8 +121,6 @@ def login(message=""):
                     else:
                         print('neither logged in, raising exception')
                         raise Exception('cannot log in to XNAT or REDCap')
-
-                    init_data()
 
                     # We are logged in now so handle request
                     if session.get('url', False):
