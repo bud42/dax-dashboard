@@ -10,7 +10,7 @@ def setup_logging(app_name='daxdashboard'):
     log_file = log_dir / "app.log"
 
     logging.basicConfig(
-        level=logging.DEBUG,
+        level=logging.INFO,
         format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
         handlers=[
             logging.FileHandler(log_file),
@@ -18,9 +18,10 @@ def setup_logging(app_name='daxdashboard'):
         ]
     )
 
-    logging.info("Application started")
+    logging.info('DAXdashboard app started')
+
+    return logging.getLogger('daxdashboard')
 
 
-setup_logging('daxdashboard')
-
-logger = logging.getLogger('daxdashboard')
+# Run setup and get the logger to use elsewhere
+logger = setup_logging('daxdashboard')
