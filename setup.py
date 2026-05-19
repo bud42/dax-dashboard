@@ -18,6 +18,8 @@ setup(
         'dash-bootstrap-templates',
         'flask_login',
         'flask_caching',
+        'pywebview',
+        'pyinstaller', 
     ],
     include_package_data=True,
 )

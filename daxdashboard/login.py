@@ -202,5 +202,10 @@ app.layout = content.get_content()
 
 logger.debug(f'{app.layout}')
 
-if __name__ == "__main__":
+
+def run_dev():
     app.run(debug=True)
+
+
+if __name__ == "__main__":
+    run_dev()

@@ -1,0 +1,44 @@
+import sys
+import socket
+import logging
+
+import webview
+
+from daxdashboard.login import app
+from daxdashboard.serv import ServerThread
+
+
+def get_free_port():
+    s = socket.socket()
+    s.bind(('', 0))
+    port = s.getsockname()[1]
+    s.close()
+    return port
+
+
+def main():
+    port = get_free_port()
+    flask_app = app.server
+
+    server = ServerThread(flask_app, port)
+    server.daemon = True
+    server.start()
+
+    url = f"http://127.0.0.1:{port}"
+
+    webview.create_window(
+        'daxdashboard',
+        url,
+        width=1400,
+        height=900
+    )
+
+    webview.start()
+
+
+if __name__ == "__main__":
+    try:
+        main()
+    except Exception:
+        logging.exception("Fatal crash")
+        sys.exit(1)
