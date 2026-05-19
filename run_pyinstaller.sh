@@ -4,4 +4,5 @@ pyinstaller \
   --windowed \
   --onedir \
   --collect-all dash_bootstrap_templates \
-  --collect-all daxdashboard
+  --collect-all daxdashboard \
+  --icon=dax.ico
