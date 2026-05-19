@@ -9,3 +9,4 @@ secrets.py
 /daxdashboard/dist
 daxdashboard/daxdashboard.spec
 daxdashboard/launcher.spec
+/dist
