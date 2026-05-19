@@ -5,3 +5,7 @@ secrets.py
 *.pkl
 /build
 /daxdashboard.egg-info
+/daxdashboard/build
+/daxdashboard/dist
+daxdashboard/daxdashboard.spec
+daxdashboard/launcher.spec
