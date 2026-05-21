@@ -16,9 +16,16 @@ jobs:
         run: |
           pip install .
           pip install pyinstaller
-      - name: Build EXE
-        run: |
-          pyinstaller launcher.py --name DAXdashboard -D --windowed --collect-all dash_bootstrap_templates --collect-all daxdashboard --icon=dax.ico --hidden-import webview --add-data "launcher.py;."
+      - name: Build exe
+        run: >-
+          pyinstaller launcher.py
+          --name DAXdashboard
+          -D --windowed
+          --collect-all dash_bootstrap_templates
+          --collect-all daxdashboard
+          --hidden-import webview
+          --add-data "launcher.py;."
+          --icon=dax.ico
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
