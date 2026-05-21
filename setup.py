@@ -19,6 +19,7 @@ setup(
         'flask_login',
         'flask_caching',
         'pywebview',
+        'cryptography'
     ],
     include_package_data=True,
 )
