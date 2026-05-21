@@ -31,12 +31,15 @@ def main():
 
     url = f"http://127.0.0.1:{port}"
 
-    webview.create_window(
-        'daxdashboard',
-        url,
-        width=1400,
-        height=900
-    )
+    print(f'{url=}')
+
+    #webview.create_window(
+    #    'daxdashboard',
+    #    url,
+    #    width=1400,
+    #    height=900
+    #
+    webview.create_window('daxdashboard', url, icon=None)
 
     webview.start()
 
