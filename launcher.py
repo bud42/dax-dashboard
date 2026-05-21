@@ -8,6 +8,7 @@ from daxdashboard.login import app
 from daxdashboard.serv import ServerThread
 
 
+print("START")
 print(sys.executable)
 print(sys.frozen if hasattr(sys, "frozen") else "not frozen")
 

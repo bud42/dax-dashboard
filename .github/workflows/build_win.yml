@@ -11,7 +11,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: '3.12'
       - name: Install dependencies
         run: |
           pip install .
@@ -22,9 +22,8 @@ jobs:
       - name: Build exe
         run: >-
           pyinstaller launcher.py
-          --name DAXdashboard
+          --console
           --onedir
-          --windowed
           --collect-all dash_bootstrap_templates
           --collect-all daxdashboard
           --icon=dax.ico
