@@ -25,6 +25,7 @@ jobs:
           --collect-all dash_bootstrap_templates
           --collect-all daxdashboard
           --collect-all pywebview
+          --collect-all flask
           --icon=dax.ico
       - name: Upload artifact
         uses: actions/upload-artifact@v4

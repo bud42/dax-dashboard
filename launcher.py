@@ -2,10 +2,11 @@ import sys
 import socket
 import logging
 
+import webview
+
 from daxdashboard.login import app
 from daxdashboard.serv import ServerThread
 
-import webview
 
 
 def get_free_port():
