@@ -23,7 +23,6 @@ jobs:
         run: >-
           pyinstaller launcher.py
           --console
-          --windowed
           --onedir
           --collect-all dash_bootstrap_templates
           --collect-all daxdashboard
