@@ -42,7 +42,10 @@ def main():
 
 if __name__ == "__main__":
     try:
+        print('calling main')
         main()
-    except Exception:
+        print('main finished')
+    except Exception as err:
+        print(err)
         logging.exception("Fatal crash")
         sys.exit(1)
