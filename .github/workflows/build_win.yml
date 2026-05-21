@@ -1,6 +1,8 @@
 name: Build Windows exe
 on:
-  workflow_dispatch:
+  push:
+    branches:
+      - v2
 jobs:
   build:
     runs-on: windows-latest
