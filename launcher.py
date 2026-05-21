@@ -33,13 +33,7 @@ def main():
 
     print(f'{url=}')
 
-    #webview.create_window(
-    #    'daxdashboard',
-    #    url,
-    #    width=1400,
-    #    height=900
-    #
-    webview.create_window('daxdashboard', url, icon=None)
+    webview.create_window('daxdashboard', url)
 
     webview.start()
 
