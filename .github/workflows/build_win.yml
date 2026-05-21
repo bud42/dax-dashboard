@@ -16,6 +16,8 @@ jobs:
         run: |
           pip install .
           pip install pyinstaller
+      - name: Verify pywebview
+        run: python -c "import webview; print(webview.__file__)"
       - name: Build exe
         run: >-
           pyinstaller launcher.py

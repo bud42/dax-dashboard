@@ -8,6 +8,9 @@ from daxdashboard.login import app
 from daxdashboard.serv import ServerThread
 
 
+print(sys.executable)
+print(sys.frozen if hasattr(sys, "frozen") else "not frozen")
+
 
 def get_free_port():
     s = socket.socket()
