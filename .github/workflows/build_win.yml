@@ -20,11 +20,11 @@ jobs:
         run: >-
           pyinstaller launcher.py
           --name DAXdashboard
-          -D --windowed
+          --onedir
+          --windowed
           --collect-all dash_bootstrap_templates
           --collect-all daxdashboard
-          --hidden-import webview
-          --add-data "launcher.py;."
+          --collect-all pywebview
           --icon=dax.ico
       - name: Upload artifact
         uses: actions/upload-artifact@v4
