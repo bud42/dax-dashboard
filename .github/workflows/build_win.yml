@@ -19,10 +19,7 @@ jobs:
       - name: Build EXE
         run: |
           pyinstaller \
-          launcher.py \
-          --name DAXdashboard \
-          --onedir \
-          --windowed \
+          launcher.py --name DAXdashboard -D --windowed \
           --collect-all dash_bootstrap_templates \
           --collect-all daxdashboard \
           --icon=dax.ico
