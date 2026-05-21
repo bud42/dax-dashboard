@@ -15,7 +15,7 @@ jobs:
       - name: Install dependencies
         run: |
           pip install .
-          pip uninstall pathlib
+          pip uninstall pathlib -y
           pip install pyinstaller
       - name: Verify pywebview
         run: python -c "import webview; print(webview.__file__)"
