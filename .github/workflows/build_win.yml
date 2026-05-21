@@ -14,10 +14,9 @@ jobs:
           python-version: '3.11'
       - name: Install dependencies
         run: |
-          pip uninstall pathlib
           pip install .
+          pip uninstall pathlib
           pip install pyinstaller
-          pip install pywebview
       - name: Verify pywebview
         run: python -c "import webview; print(webview.__file__)"
       - name: Build exe
