@@ -22,7 +22,7 @@ jobs:
       - name: Build exe
         run: >-
           pyinstaller launcher.py
-          --noconsole
+          --console
           --windowed
           --onedir
           --collect-all dash_bootstrap_templates
