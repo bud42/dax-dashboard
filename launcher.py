@@ -35,7 +35,7 @@ def main():
 
     webview.create_window('daxdashboard', url)
 
-    webview.start()
+    webview.start(gui='edgechromium')
 
 
 if __name__ == "__main__":
