@@ -33,6 +33,9 @@ def main():
 
     print(f'{url=}')
 
+    print('sleeping to wait for server...')
+    time.sleep(15)
+
     webview.create_window('daxdashboard', url)
 
     webview.start(gui='edgechromium')
