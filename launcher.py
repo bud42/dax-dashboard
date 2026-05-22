@@ -29,11 +29,12 @@ def main():
     server = ServerThread(flask_app, port)
     server.daemon = True
     server.start()
-    
-    #url = f"http://127.0.0.1:{port}"
-    url = f"http://localhost:{port}"
 
-    print(f'{url=}')
+
+    import webview.platforms.edgechromium as edge
+    edge._state['debug'] = False
+    webview.settings['ALLOW_DOWNLOADS'] = True
+
 
     print('sleeping to wait for server...')
     time.sleep(15)
@@ -41,13 +42,18 @@ def main():
 
 
     url = "https://www.google.com"
-
-
-    webview.create_window('daxdashboard', url)
-
+    webview.create_window('google', url)
     print("WINDOW CREATED", url)
 
+
+
+    
+    url = f"http://localhost:{port}"
+    print(f'{url=}')
+
+
     webview.start(gui="edgechromium", debug=True)
+
     print("WEBVIEW STARTED", url)
 
     print('waiting...')
