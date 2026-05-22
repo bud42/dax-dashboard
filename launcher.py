@@ -3,7 +3,7 @@ import socket
 import logging
 import time
 
-import webview
+#import webview
 
 from daxdashboard.login import app
 from daxdashboard.serv import ServerThread
@@ -30,33 +30,25 @@ def main():
     server.daemon = True
     server.start()
 
-
-    import webview.platforms.edgechromium as edge
-    edge._state['debug'] = False
-    webview.settings['ALLOW_DOWNLOADS'] = True
+    import webbrowser
+    #import webview.platforms.edgechromium as edge
+    #edge._state['debug'] = False
+    #webview.settings['ALLOW_DOWNLOADS'] = True
 
 
     print('sleeping to wait for server...')
     time.sleep(15)
 
 
-
     url = "https://www.google.com"
-    webview.create_window('google', url)
-    print("WINDOW CREATED", url)
-
-
+    webbrowser.open_new_tab(url)
 
     
     url = f"http://localhost:{port}"
     print(f'{url=}')
 
-
-    webview.start(gui="edgechromium", debug=True)
-
-    print("WEBVIEW STARTED", url)
-
-    print('waiting...')
+    #webview.start(gui="edgechromium", debug=True)
+    webbrowser.open_new_tab(url)
 
 
 if __name__ == "__main__":
