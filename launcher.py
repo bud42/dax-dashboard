@@ -29,17 +29,28 @@ def main():
     server = ServerThread(flask_app, port)
     server.daemon = True
     server.start()
-
-    url = f"http://127.0.0.1:{port}"
+    
+    #url = f"http://127.0.0.1:{port}"
+    url = f"http://localhost:{port}"
 
     print(f'{url=}')
 
     print('sleeping to wait for server...')
     time.sleep(15)
 
+
+
+    url = "https://www.google.com"
+
+
     webview.create_window('daxdashboard', url)
 
-    webview.start(gui='edgechromium')
+    print("WINDOW CREATED", url)
+
+    webview.start(gui="edgechromium", debug=True)
+    print("WEBVIEW STARTED", url)
+
+    print('waiting...')
 
 
 if __name__ == "__main__":
