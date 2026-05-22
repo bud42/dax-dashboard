@@ -41,14 +41,17 @@ def main():
 
 
     url = "https://www.google.com"
-    webbrowser.open_new_tab(url)
+    #webbrowser.open_new_tab(url)
+    #os.system(f'rundll32.exe url.dll,FileProtocolHandler {url}')
+    os.system(f'start {url}')
 
     
     url = f"http://localhost:{port}"
     print(f'{url=}')
-
     #webview.start(gui="edgechromium", debug=True)
-    webbrowser.open_new_tab(url)
+    #webbrowser.open_new_tab(url)
+    #os.system(f'rundll32.exe url.dll,FileProtocolHandler {url}')
+    os.system(f'start {url}')
 
 
 if __name__ == "__main__":
