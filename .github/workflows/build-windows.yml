@@ -1,6 +1,8 @@
 name: Build Windows exe
 on:
-  workflow_dispatch:
+  push:
+    branches:
+      - v2
 jobs:
   build:
     runs-on: windows-latest
@@ -13,16 +15,17 @@ jobs:
       - name: Install dependencies
         run: |
           pip install .
+          pip uninstall pathlib -y
           pip install pyinstaller
-      - name: Build EXE
-        run: |
-          pyinstaller launcher.py ^
-            --onefile ^
-            --noconsole ^
-            --name DAXdashboard ^
-            --windowed ^
-            --collect-all dash_bootstrap_templates ^
-            --collect-all daxdashboard ^
+      - name: Verify pywebview
+        run: python -c "import webview; print(webview.__file__)"
+      - name: Build exe
+        run: >-
+          pyinstaller launcher.py
+          --console
+          --onedir
+          --collect-all dash_bootstrap_templates
+          --collect-all daxdashboard
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
