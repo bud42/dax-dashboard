@@ -1,6 +1,7 @@
 import pandas as pd
-from dash import dcc, html, dash_table as dt, Input, Output, callback
+from dash import dcc, html, dash_table as dt, Input, Output, callback, State
 import dash_bootstrap_components as dbc
+from dash.exceptions import PreventUpdate
 
 from ...log import logger
 from .. import utils
@@ -16,6 +17,7 @@ COLUMNS = [
     'LOG',
     'OUTPUT',
     'PROCESSOR',
+    'COVARS',
     'SUBJECTS',
     'NOTES'
 ]
@@ -26,7 +28,7 @@ def get_content():
 
     # Format columns with links as markdown text
     for i, c in enumerate(columns):
-        if c['name'] in ['OUTPUT', 'EDIT', 'INPUT', 'DATA', 'PROCESSOR', 'LOG', 'PDF', 'PBS', 'ID']:
+        if c['name'] in ['OUTPUT', 'EDIT', 'INPUT', 'DATA', 'PROCESSOR', 'LOG', 'PDF', 'PBS', 'COVARS', 'ID']:
             columns[i]['type'] = 'text'
             columns[i]['presentation'] = 'markdown'
 
@@ -112,6 +114,7 @@ def get_content():
                 dict(selector="a", rule="text-decoration: none;"),
             ],
         ),
+        dcc.Download(id="download-covars"),
         html.Label('0', id='label-analyses-rowcount2'),
     ]
 
@@ -229,6 +232,15 @@ def update_analyses(
             #r['OUTPUT'] = f'[{_text}]({_link})'
             r['OUTPUT'] = f'[📁]({_link})'
 
+        # Make covars a link
+        if not r['COVARS']:
+            pass
+        else:
+            #_link = r['COVARS']
+            #_text = r['COVARS']
+            #r['COVARS'] = f'[📗]({_link})'
+            r['COVARS'] = '📗'
+
         # Make a link
         if not r['PROCESSOR']:
             pass
@@ -254,3 +266,36 @@ def update_analyses(
     rowcount = '{} rows'.format(len(records))
 
     return [proj, lead, status, records, rowcount, rowcount]
+
+
+@callback(
+    Output("download-covars", "data"),
+    Input("datatable-analyses", "active_cell"),
+    Input("datatable-analyses", "data"),
+    )
+def get_file(active_cell, rows):
+    if not active_cell:
+        raise PreventUpdate
+
+    if active_cell['column_id'] not in ['COVARS']:
+        raise PreventUpdate
+
+    row_id = active_cell['row']
+    project_id = rows[row_id]['PROJECT']
+    repeat_id = rows[row_id]['REPEATID']
+
+    if active_cell['column_id'] == 'COVARS':
+        content, headers = data.export_covar_file(project_id, repeat_id)
+    elif active_cell['column_id'] == 'COVARS':
+        content, headers = data.export_pdf_file(project_id, repeat_id)
+    else:
+        raise Exception('invalid click')
+
+    filename = headers.get('name', 'covariates.csv')
+    filename = f'{project_id}_{repeat_id}-{filename}'
+
+    return dcc.send_bytes(content, filename)
+
+
+if __name__ == "__main__":
+    app.run(debug=True)

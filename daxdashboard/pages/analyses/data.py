@@ -1,7 +1,7 @@
 import pandas as pd
 
 from ...log import logger
-from ...data import load_project_names, load_analyses, read_data, save_data
+from ...data import load_project_names, load_analyses, read_data, save_data, export_file
 
 
 def run_refresh():
@@ -63,3 +63,7 @@ def filter_data(df, projects=None, leads=None, statuses=None, time=None):
 
 def project_names():
     return load_project_names()
+
+
+def export_covar_file(project_id, repeat_id):
+    return export_file(project_id, repeat_id, 'analysis_covarfile')

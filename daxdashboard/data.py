@@ -159,11 +159,11 @@ ANALYSES_RENAME = {
     'analysis_output': 'OUTPUT',
     'analyses_complete': 'COMPLETE',
     'analysis_status': 'STATUS',
-    'analysis_covars': 'COVARS',
+    'analysis_covarfile': 'COVARS',
     'analysis_notes': 'NOTES',
 }
 
-PROCESSORS_RENAME = {
+PROCESSORS_RENAME = { 
     'redcap_repeat_instance': 'ID',
     'processor_file': 'FILE',
     'processor_filter': 'FILTER',
@@ -203,7 +203,7 @@ TASK_COLUMNS = [
 
 ANALYSES_COLUMNS = [
     'PROJECT', 'ID', 'NAME', 'STATUS', 'EDIT', 'NOTES', 'SUBJECTS', 
-    'PROCESSOR', 'INVESTIGATOR', 'OUTPUT'
+    'PROCESSOR', 'INVESTIGATOR', 'OUTPUT', 'COVARS', 'REPEATID'
 ]
 
 PROCESSORS_COLUMNS = [
@@ -764,6 +764,8 @@ def _load_analyses_data(project_names):
 
     df = pd.DataFrame(data, columns=ANALYSES_COLUMNS)
 
+    df['REPEATID'] = df['ID']
+
     # Pad with zeros
     df['ID'] = df['ID'].astype(str).str.zfill(3)
 
@@ -852,3 +854,12 @@ def read_data(key):
     df = cache.get(user_key)
 
     return df
+
+
+def export_file(record_id, repeat_id, field_name):
+    print(record_id, repeat_id, field_name)
+    return _redcap().export_file(
+        record=record_id,
+        repeat_instance=repeat_id,
+        field=field_name,
+    )
