@@ -260,7 +260,7 @@ def update_analyses(
             except Exception as err:
                 logger.error(f'failed to parse processor:{r["PROCESSOR"]}')
 
-        r['STATUS'] = r['STATUS'].replace('READY', '🟩').replace('JOB_FAILED', '🩷').replace('DEVEL', '🟡')
+        r['STATUS'] = r['STATUS'].replace('READY', '🟩').replace('JOB_FAILED', '🩷').replace('DEVEL', '🟡').replace('RUNNING', '🟩')
 
     # Count how many rows are in the table
     rowcount = '{} rows'.format(len(records))
