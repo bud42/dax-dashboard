@@ -31,7 +31,7 @@ STATUS2EMO = {
     'COMPLETED': '🔷',
     'JOB_FAILED': '🩷',
     'DEVEL': '🟡',
-    'RUNNING': '🟩',
+    'RUNNING': '🔷',
 }
 
 
@@ -200,6 +200,9 @@ def update_analyses(
         df,
         leads=selected_lead, 
         statuses=selected_status)
+
+    # Map statuses to emoji
+    df['STATUS'] = df['STATUS'].map(STATUS2EMO).fillna('?')
  
     # Get the table data as one row per assessor
     records = df.reset_index().to_dict('records')
@@ -271,9 +274,6 @@ def update_analyses(
                 r['PROCESSOR'] = f'[⚙️]({_link})'
             except Exception as err:
                 logger.error(f'failed to parse processor:{r["PROCESSOR"]}')
-
-        # Map statuses to emoji
-        r['STATUS'] = r['STATUS'].map(STATUS2EMO).fillna('?')
 
     # Count how many rows are in the table
     rowcount = '{} rows'.format(len(records))
