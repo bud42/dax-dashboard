@@ -22,7 +22,9 @@ jobs:
       - name: Build app
         run: >-
           pyinstaller launcher.py
-          --console
+          --name DAXdashboard
+          --noconsole
+          --windowed
           --onedir
           --collect-all dash_bootstrap_templates
           --collect-all daxdashboard
