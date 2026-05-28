@@ -23,6 +23,18 @@ COLUMNS = [
 ]
 
 
+STATUS2EMO = {
+    'READY': '🟩',
+    'Q': '🔷',
+    'QUEUED': '🔷',
+    'COMPLETE': '🔷',
+    'COMPLETED': '🔷',
+    'JOB_FAILED': '🩷',
+    'DEVEL': '🟡',
+    'RUNNING': '🟩',
+}
+
+
 def get_content():
     columns = utils.make_columns(COLUMNS)
 
@@ -260,7 +272,8 @@ def update_analyses(
             except Exception as err:
                 logger.error(f'failed to parse processor:{r["PROCESSOR"]}')
 
-        r['STATUS'] = r['STATUS'].replace('READY', '🟩').replace('JOB_FAILED', '🩷').replace('DEVEL', '🟡').replace('RUNNING', '🟩')
+        # Map statuses to emoji
+        r['STATUS'] = r['STATUS'].map(STATUS2EMO).fillna('?')
 
     # Count how many rows are in the table
     rowcount = '{} rows'.format(len(records))
