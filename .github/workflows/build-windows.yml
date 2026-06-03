@@ -24,6 +24,7 @@ jobs:
           pyinstaller launcher.py
           --console
           --onedir
+          --windowed
           --collect-all dash_bootstrap_templates
           --collect-all daxdashboard
       - name: Upload artifact

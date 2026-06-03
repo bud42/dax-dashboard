@@ -28,6 +28,7 @@ jobs:
           --onedir
           --collect-all dash_bootstrap_templates
           --collect-all daxdashboard
+          --icon=icons/dax.ico
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
