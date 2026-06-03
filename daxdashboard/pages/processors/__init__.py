@@ -1,5 +1,6 @@
 from dash import dcc, html, dash_table as dt, Input, Output, callback
 import dash_bootstrap_components as dbc
+import dash_ag_grid as dag
 
 from ...log import logger
 from .. import utils
@@ -11,12 +12,27 @@ COLUMNS = ['ID', 'PROJECT', 'TYPE', 'EDIT', 'FILE', 'FILTER', 'ARGS']
 
 def get_content():
     columns = utils.make_columns(COLUMNS)
+    columnDefs = [{'headerName': x, 'field': x} for x in COLUMNS]
 
     # Format columns with links as markdown text
     for i, c in enumerate(columns):
         if c['name'] == 'EDIT':
             columns[i]['type'] = 'text'
             columns[i]['presentation'] = 'markdown'
+
+    # Format columns
+    for c in columnDefs:
+        if c['field'] == 'EDIT':
+            c['cellRenderer'] = 'markdown'
+    
+        if c['field'] in ['NOTES', 'ARGS']:
+            # Make column fill extra space
+            c["flex"] = 1
+
+        if c['field'] in ['ID', 'EDIT']:
+            c['maxWidth'] = 100
+            #c["cellStyle"] = {"display": "flex", 'textAlign': 'center'}
+
 
     content = [
         dbc.Row(
@@ -66,6 +82,22 @@ def get_content():
             # Aligns the markdown in OUTPUT, both vertical and horizontal
             css=[dict(selector="p", rule="margin: 0; text-align: center")],
         ),
+        dag.AgGrid(
+            id='ag-processors',
+            columnDefs=columnDefs,
+            columnSize='responsiveSizeToFit',
+            rowData=[],
+            dashGridOptions={
+                "theme": {"function": "themeAlpine.withPart(agGrid.colorSchemeDark)"},
+            },
+            defaultColDef={
+                "sortable": True,
+                "filter": True,
+                "floatingFilter": True,
+                "resizable": True,
+                "headerClass": "ag-header-cell-center",
+            },
+        ),
         html.Label('0', id='label-processors-rowcount2')]
 
     return content
@@ -81,6 +113,7 @@ def load_processors(refresh=False):
      Output('datatable-processors', 'data'),
      Output('label-processors-rowcount1', 'children'),
      Output('label-processors-rowcount2', 'children'),
+     Output('ag-processors', 'rowData'),
     ],
     [
      Input('button-processors-refresh', 'n_clicks'),
@@ -128,4 +161,4 @@ def update_processors(
     # Count how many rows are in the table
     rowcount = '{} rows'.format(len(records))
 
-    return [proj, records, rowcount, rowcount]
+    return [proj, records, rowcount, rowcount, records]

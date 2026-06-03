@@ -5,6 +5,7 @@ import plotly.graph_objs as go
 import plotly.subplots
 from dash import Input, Output, callback, dcc, html, dash_table as dt
 import dash_bootstrap_components as dbc
+import dash_ag_grid as dag
 
 from ...log import logger
 from .. import utils
@@ -13,7 +14,10 @@ from . import data
 from .. import queue
 
 
-# Project table with Processing, Automations, Reports
+# For more on ag grid cell borders:
+# https://dash.plotly.com/dash-ag-grid/styling-borders
+# https://www.ag-grid.com/archive/35.2.0/javascript-data-grid/theming-borders/
+
 
 # Bar graph of Queue
 # Bar graph of Issues
@@ -38,6 +42,19 @@ def _processing_graph(df):
     dfp = dfp.reset_index()
     columns = dfp.columns
     records = dfp.to_dict('records')
+
+    columnDefs = [{
+        'headerName': x,
+        'field': x, 
+        "headerClass": 'hub-header',
+        'width': 40,
+        } for x in columns]
+
+    for c in columnDefs:
+        if c['field'] == 'TYPE':
+            c['headerClass'] = 'hub-header-first'
+            c['minWidth'] = 200
+            c['cellStyle'] = {"textAlign": "left"}
 
     return [
         dt.DataTable(
@@ -64,7 +81,29 @@ def _processing_graph(df):
                 'padding': '2px 5px 0px 5px',
             },
         ),
-        ]
+        dag.AgGrid(
+            id='ag-hub-processing',
+            columnDefs=columnDefs,
+            columnSize='sizeToFit',
+            rowData=records,
+            dashGridOptions={
+                "theme": {"function": 'themeAlpine.withPart(agGrid.colorSchemeDark).withParams({columnBorder: true, rowBorder: true, wrapperBorder: true})'},
+                "headerHeight": 200,
+                "rowHeight": 40,
+            },
+            # themeAlpine, themeQuartz, themeBalham
+            defaultColDef={
+                "wrapHeaderText": True,
+                "wrapText": True,
+                "sortable": False,
+                "filter": False,
+                "floatingFilter": False,
+                "resizable": True,
+                'cellStyle': {"textAlign": "center"},  
+            },
+            className="no-padding-grid",
+        ),
+    ]
 
 
 def _queue_graph(df):

@@ -2,6 +2,7 @@ import pandas as pd
 from dash import dcc, html, dash_table as dt, Input, Output, callback, State
 import dash_bootstrap_components as dbc
 from dash.exceptions import PreventUpdate
+import dash_ag_grid as dag
 
 from ...log import logger
 from .. import utils
@@ -37,12 +38,28 @@ STATUS2EMO = {
 
 def get_content():
     columns = utils.make_columns(COLUMNS)
+    columnDefs = [{'headerName': x, 'field': x} for x in COLUMNS]
 
     # Format columns with links as markdown text
     for i, c in enumerate(columns):
         if c['name'] in ['OUTPUT', 'EDIT', 'INPUT', 'DATA', 'PROCESSOR', 'LOG', 'PDF', 'PBS', 'COVARS', 'ID']:
             columns[i]['type'] = 'text'
             columns[i]['presentation'] = 'markdown'
+
+    for i, c in enumerate(columnDefs):
+        if c['field'] in ['OUTPUT', 'EDIT', 'INPUT', 'DATA', 'PROCESSOR', 'LOG', 'PDF', 'PBS', 'COVARS', 'ID']:
+            #columns[i]['type'] = 'text'
+            columnDefs[i]['cellRenderer'] = 'markdown'
+
+        # Make NOTES column fill extra space
+        if c['field'] == 'NOTES':
+            c["flex"] = 1
+
+        # TODO: fix centering, not quite working
+        if c['field'] in ['STATUS', 'OUTPUT', 'COVARS', 'PBS', 'LOG', 'PDF', 'PROCESSOR']:
+            c['maxWidth'] = 100
+            c["cellStyle"] = {"display": "flex", "justifyContent": "center", 'textAlign': 'center'}
+
 
     content = [
         dbc.Row([
@@ -127,6 +144,24 @@ def get_content():
             ],
         ),
         dcc.Download(id="download-covars"),
+        dag.AgGrid(
+            id='ag-analyses',
+            columnDefs=columnDefs,
+            columnSize='responsiveSizeToFit',
+            rowData=[],
+            dashGridOptions={
+                "theme": {"function": "themeAlpine.withPart(agGrid.colorSchemeDark)"},
+                #"skipHeaderOnAutoSize": True,
+            },
+            # themeAlpine, themeQuartz, themeBalham
+            defaultColDef={
+                "sortable": True,
+                "filter": True,
+                "floatingFilter": True,
+                "resizable": True,
+                "headerClass": "ag-header-cell-center",
+            },
+        ),
         html.Label('0', id='label-analyses-rowcount2'),
     ]
 
@@ -145,6 +180,7 @@ def load_analyses(refresh=False):
      Output('datatable-analyses', 'data'),
      Output('label-analyses-rowcount1', 'children'),
      Output('label-analyses-rowcount2', 'children'),
+     Output('ag-analyses', 'rowData'),
     ],
     [
      Input('button-analyses-refresh', 'n_clicks'),
@@ -278,7 +314,7 @@ def update_analyses(
     # Count how many rows are in the table
     rowcount = '{} rows'.format(len(records))
 
-    return [proj, lead, status, records, rowcount, rowcount]
+    return [proj, lead, status, records, rowcount, rowcount, records]
 
 
 @callback(

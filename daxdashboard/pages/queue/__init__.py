@@ -6,14 +6,12 @@ import plotly.graph_objs as go
 import plotly.subplots
 from dash import Input, Output, callback, dcc, html, dash_table as dt
 import dash_bootstrap_components as dbc
+import dash_ag_grid as dag
 
 from ...log import logger
 from .. import utils
 from ..shared import STATUS2RGB
 from . import data
-
-
-# STATUS2EMO???
 
 
 STATUSES = [
@@ -27,6 +25,16 @@ STATUSES = [
     'QUEUED',
     'UNKNOWN',
 ]
+
+
+STATUS2EMO = {
+    'QUEUED': '🔷',
+    'COMPLETE': '🔷',
+    'COMPLETED': '🔷',
+    'FAILED': '🩷',
+    'WAITING': '🟡',
+    'RUNNING': '🔷',
+}
 
 
 def get_graph_content(df):
@@ -82,11 +90,17 @@ def get_content():
 
     columns = utils.make_columns(COLUMNS)
 
+    columnDefs = [{'headerName': x, 'field': x} for x in COLUMNS]
+
     # Format columns with links as markdown text
     for i, c in enumerate(columns):
         if c['name'] in ['ID']:
             columns[i]['type'] = 'text'
             columns[i]['presentation'] = 'markdown'
+
+    for c in columnDefs:
+        if c['field'] in ['ID']:
+            c['cellRenderer'] = 'markdown'
 
     content = [
         dbc.Row([
@@ -172,6 +186,22 @@ def get_content():
             export_headers='names',
             export_columns='visible',
         ),
+        dag.AgGrid(
+            id='ag-queue',
+            columnDefs=columnDefs,
+            columnSize='responsiveSizeToFit',
+            rowData=[],
+            dashGridOptions={
+                "theme": {"function": "themeAlpine.withPart(agGrid.colorSchemeDark)"},
+            },
+            defaultColDef={
+                "sortable": True,
+                "filter": True,
+                "floatingFilter": True,
+                "resizable": True,
+                "headerClass": "ag-header-cell-center",
+            },
+        ),
         dbc.Label('Get ready...', id='label-queue-rowcount2'),
     ]
 
@@ -208,6 +238,7 @@ def filter_data(df, selected_proj, selected_proc, selected_user):
      Output('container-queue-graph', 'children'),
      Output('label-queue-rowcount1', 'children'),
      Output('label-queue-rowcount2', 'children'),
+     Output('ag-queue', 'rowData'),
     ],
     [
      Input('dropdown-queue-proc', 'value'),
@@ -271,4 +302,4 @@ def update_queue(
     else:
         rowcount = ''
 
-    return [proc, proj, user, records, graph_content, rowcount, rowcount]
+    return [proc, proj, user, records, graph_content, rowcount, rowcount, records]
