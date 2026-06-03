@@ -27,6 +27,7 @@ jobs:
           --windowed
           --collect-all dash_bootstrap_templates
           --collect-all daxdashboard
+          --collect-all dash_ag_grid
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
