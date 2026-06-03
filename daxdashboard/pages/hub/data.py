@@ -5,7 +5,7 @@ from datetime import datetime
 import pandas as pd
 
 from ...log import logger
-from .. import queue, processors
+from .. import queue, processors, analyses
 
 
 def get_processors_data(refresh=False):
@@ -15,6 +15,11 @@ def get_processors_data(refresh=False):
 
 def get_queue_data(refresh=False):
     df = queue.data.load_data(refresh=refresh)
+    return df
+
+
+def get_analyses_data(refresh=False):
+    df = analyses.data.load_data(refresh=refresh)
     return df
 
 
