@@ -3,7 +3,7 @@ import pandas as pd
 import plotly
 import plotly.graph_objs as go
 import plotly.subplots
-from dash import Input, Output, callback, dcc, html, dash_table as dt
+from dash import Input, Output, callback, dcc, html
 import dash_bootstrap_components as dbc
 import dash_ag_grid as dag
 
@@ -57,30 +57,6 @@ def _processing_graph(df):
             c['cellStyle'] = {"textAlign": "left"}
 
     return [
-        dt.DataTable(
-            columns=utils.make_columns(columns),
-            data=records,
-            filter_action='none',
-            page_action='none',
-            sort_action='none',
-            id='datatable-hub-processing',
-            style_table={
-                'overflowY': 'scroll',
-                'overflowX': 'auto',
-                'display': 'inline-block',
-                'width': 'auto',
-            },
-            style_cell={
-                'textAlign': 'center',
-                'width': '40px',
-                'minWidth': '40px',
-                'height': 'auto',
-            },
-            style_header={
-                'fontWeight': 'bold',
-                'padding': '2px 5px 0px 5px',
-            },
-        ),
         dag.AgGrid(
             id='ag-hub-processing',
             columnDefs=columnDefs,
@@ -91,7 +67,6 @@ def _processing_graph(df):
                 "headerHeight": 200,
                 "rowHeight": 40,
             },
-            # themeAlpine, themeQuartz, themeBalham
             defaultColDef={
                 "wrapHeaderText": True,
                 "wrapText": True,

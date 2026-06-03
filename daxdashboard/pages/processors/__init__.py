@@ -1,4 +1,4 @@
-from dash import dcc, html, dash_table as dt, Input, Output, callback
+from dash import dcc, html, Input, Output, callback
 import dash_bootstrap_components as dbc
 import dash_ag_grid as dag
 
@@ -11,14 +11,7 @@ COLUMNS = ['ID', 'PROJECT', 'TYPE', 'EDIT', 'FILE', 'FILTER', 'ARGS']
 
 
 def get_content():
-    columns = utils.make_columns(COLUMNS)
     columnDefs = [{'headerName': x, 'field': x} for x in COLUMNS]
-
-    # Format columns with links as markdown text
-    for i, c in enumerate(columns):
-        if c['name'] == 'EDIT':
-            columns[i]['type'] = 'text'
-            columns[i]['presentation'] = 'markdown'
 
     # Format columns
     for c in columnDefs:
@@ -32,7 +25,6 @@ def get_content():
         if c['field'] in ['ID', 'EDIT']:
             c['maxWidth'] = 100
             #c["cellStyle"] = {"display": "flex", 'textAlign': 'center'}
-
 
     content = [
         dbc.Row(
@@ -59,29 +51,6 @@ def get_content():
         dbc.Spinner(id="loading-processors-table", children=[
             dbc.Label('Loading...', id='label-processors-rowcount1'),
         ]),
-        dt.DataTable(
-            columns=columns,
-            data=[],
-            page_action='none',
-            sort_action='native',
-            id='datatable-processors',
-            style_cell={
-                'textAlign': 'center',
-                'maxWidth': '200px',
-                'overflow': 'hidden',
-                'textOverflow': 'ellipsis',
-                'whiteSpace': 'nowrap',
-            },
-            style_header={
-                'fontWeight': 'bold',
-            },
-            style_cell_conditional=[
-                {'if': {'column_id': 'ARGS'}, 'textAlign': 'left'},
-                {'if': {'column_id': 'FILTER'}, 'textAlign': 'left'},
-            ],
-            # Aligns the markdown in OUTPUT, both vertical and horizontal
-            css=[dict(selector="p", rule="margin: 0; text-align: center")],
-        ),
         dag.AgGrid(
             id='ag-processors',
             columnDefs=columnDefs,
@@ -110,7 +79,6 @@ def load_processors(refresh=False):
 @callback(
     [
      Output('dropdown-processors-proj', 'options'),
-     Output('datatable-processors', 'data'),
      Output('label-processors-rowcount1', 'children'),
      Output('label-processors-rowcount2', 'children'),
      Output('ag-processors', 'rowData'),
@@ -161,4 +129,4 @@ def update_processors(
     # Count how many rows are in the table
     rowcount = '{} rows'.format(len(records))
 
-    return [proj, records, rowcount, rowcount, records]
+    return [proj, rowcount, rowcount, records]

@@ -8,8 +8,9 @@ import numpy as np
 import plotly
 import plotly.graph_objs as go
 import plotly.subplots
-from dash import dcc, html, dash_table as dt, Input, Output, callback
+from dash import dcc, html, Input, Output, callback
 import dash_bootstrap_components as dbc
+import dash_ag_grid as dag
 
 from ...log import logger
 from .. import utils
@@ -289,8 +290,9 @@ def _sessionsbytime_figure(df, selected_groupby):
 
 def get_content():
     '''Get QA page content.'''
-    columns = utils.make_columns(['SESSION', 'SUBJECT', 'PROJECT', 'DATE', 'SESSTYPE', 'SITE', 'NOTE'])
-    blank_row = {col['id']: '' for col in columns}
+    COLUMNS = ['SESSION', 'SUBJECT', 'PROJECT', 'DATE', 'SESSTYPE', 'SITE', 'NOTE']
+    #blank_row = {col['id']: '' for col in columns}
+    columnDefs = [{'headerName': x, 'field': x} for x in COLUMNS]
 
     # We use the dbc grid layout with rows and columns, rows are 12 units wide
     content = [
@@ -437,48 +439,19 @@ def get_content():
         dbc.Spinner(id="loading-qa-table", children=[
             dbc.Label('Get ready...', id='label-qa-rowcount1'),
         ]),
-        dt.DataTable(
-            columns=columns,
-            data=[blank_row],
-            filter_action='native',
-            page_action='none',
-            sort_action='native',
-            id='datatable-qa',
-            style_table={
-                'overflowY': 'scroll',
-                'overflowX': 'scroll',
-                "display": "inline-block",
-                "width": "auto",
+        dag.AgGrid(
+            id='ag-qa',
+            columnDefs=columnDefs,
+            rowData=[],
+            dashGridOptions={
+                "theme": {"function": "themeAlpine.withPart(agGrid.colorSchemeDark)"},
             },
-            style_cell={
-                'textAlign': 'center',
-                'padding': '5px 5px 0px 5px',
-                'width': '30px',
-                'minWidth': '30px',
-                'maxWidth': '200px',
-                'overflow': 'hidden',
-                'textOverflow': 'ellipsis',
-                'height': 'auto',
-                'whiteSpace': 'nowrap',
+            defaultColDef={
+                "sortable": True,
+                "filter": True,
+                "floatingFilter": True,
+                "resizable": True,
             },
-            style_header={
-                'fontWeight': 'bold',
-                'padding': '5px 15px 0px 10px',
-            },
-            style_cell_conditional=[
-                {'if': {'column_id': 'NOTE'}, 'textAlign': 'left'},
-                {'if': {'column_id': 'SESSIONS'}, 'textAlign': 'left'},
-                {'if': {'column_id': 'ASSR'}, 'textAlign': 'left'},
-                {'if': {'column_id': 'DURATION'}, 'textAlign': 'right'},
-                {'if': {'column_id': 'SESSION'}, 'textAlign': 'center'},
-            ],
-            css=[
-                dict(selector="p", rule="margin: 0; text-align: center;"),
-                dict(selector="a", rule="text-decoration: none;"),
-            ],
-            export_format='xlsx',
-            export_headers='names',
-            export_columns='visible'
         ),
         dbc.Label('Get ready...', id='label-qa-rowcount2'),
         html.Div([
@@ -602,8 +575,8 @@ def load_options(df):
      Output('dropdown-qa-scan', 'options'),
      Output('dropdown-qa-sess', 'options'),
      Output('dropdown-qa-proj', 'options'),
-     Output('datatable-qa', 'data'),
-     Output('datatable-qa', 'columns'),
+     Output('ag-qa', 'rowData'),
+     Output('ag-qa', 'columnDefs'),
      Output('div-qa-graph', 'children'),
      Output('label-qa-rowcount1', 'children'),
      Output('label-qa-rowcount2', 'children'),
@@ -1108,7 +1081,7 @@ def update_qa(
         selected_cols.append('NOTE')
 
         # Format as column names and record dictionaries for dash table
-        columns = utils.make_columns(selected_cols)
+        columnDefs = [{'headerName': x, 'field': x} for x in selected_cols]
         records = dfp.reset_index().to_dict('records')
 
         # Format records
@@ -1118,11 +1091,9 @@ def update_qa(
                 _link = r['SESSIONLINK']
                 r['SESSION'] = f'[{_sess}]({_link})'
 
-        # Format columns
-        for i, c in enumerate(columns):
-            if c['name'] in ['SESSION']:
-                columns[i]['type'] = 'text'
-                columns[i]['presentation'] = 'markdown'
+        for c in columnDefs:
+            if['field'] in ['SESSION']:
+                c['cellRenderer'] = 'markdown'
 
     # Count how many rows are in the table
     _count = len(records)
@@ -1134,4 +1105,4 @@ def update_qa(
     # Return table, figure, dropdown options
     logger.debug('update_qa:returning data')
 
-    return [proc, scan, sess, proj, records, columns, graph_content, rowcount, rowcount]
+    return [proc, scan, sess, proj, records, columnDefs, graph_content, rowcount, rowcount]

@@ -1,5 +1,5 @@
 import pandas as pd
-from dash import dcc, html, dash_table as dt, Input, Output, callback, State
+from dash import dcc, html, Input, Output, callback, State
 import dash_bootstrap_components as dbc
 from dash.exceptions import PreventUpdate
 import dash_ag_grid as dag
@@ -37,14 +37,7 @@ STATUS2EMO = {
 
 
 def get_content():
-    columns = utils.make_columns(COLUMNS)
     columnDefs = [{'headerName': x, 'field': x} for x in COLUMNS]
-
-    # Format columns with links as markdown text
-    for i, c in enumerate(columns):
-        if c['name'] in ['OUTPUT', 'EDIT', 'INPUT', 'DATA', 'PROCESSOR', 'LOG', 'PDF', 'PBS', 'COVARS', 'ID']:
-            columns[i]['type'] = 'text'
-            columns[i]['presentation'] = 'markdown'
 
     for i, c in enumerate(columnDefs):
         if c['field'] in ['OUTPUT', 'EDIT', 'INPUT', 'DATA', 'PROCESSOR', 'LOG', 'PDF', 'PBS', 'COVARS', 'ID']:
@@ -106,43 +99,6 @@ def get_content():
         dbc.Spinner(id="loading-analyses-table", children=[
             dbc.Label('Loading...', id='label-analyses-rowcount1'),
         ]),
-        dt.DataTable(
-            columns=columns,
-            data=[],
-            filter_action='native',
-            page_action='none',
-            sort_action='native',
-            id='datatable-analyses',
-            style_table={
-                'overflowY': 'scroll',
-                'overflowX': 'scroll',
-                "display": "inline-block",
-                "width": "auto",
-            },
-            style_cell={
-                'textAlign': 'center',
-                'height': 'auto',
-                'padding': '1px 4px 0px 4px',
-                'width': '30px',
-                'minWidth': '30px',
-                'maxWidth': '250px',
-                'overflow': 'hidden',
-                'textOverflow': 'ellipsis',
-                'whiteSpace': 'nowrap',
-            },
-            style_header={
-                'fontWeight': 'bold',
-            },
-            style_cell_conditional=[
-                {'if': {'column_id': 'NAME'}, 'textAlign': 'left'},
-            ],
-            # Aligns the markdown cells, both vertical and horizontal, and 
-            # prevent extra underlines around links
-            css=[
-                dict(selector="p", rule="margin: 0; text-align: center"),
-                dict(selector="a", rule="text-decoration: none;"),
-            ],
-        ),
         dcc.Download(id="download-covars"),
         dag.AgGrid(
             id='ag-analyses',
@@ -151,9 +107,7 @@ def get_content():
             rowData=[],
             dashGridOptions={
                 "theme": {"function": "themeAlpine.withPart(agGrid.colorSchemeDark)"},
-                #"skipHeaderOnAutoSize": True,
             },
-            # themeAlpine, themeQuartz, themeBalham
             defaultColDef={
                 "sortable": True,
                 "filter": True,
@@ -177,7 +131,6 @@ def load_analyses(refresh=False):
      Output('dropdown-analyses-proj', 'options'),
      Output('dropdown-analyses-lead', 'options'),
      Output('dropdown-analyses-status', 'options'),
-     Output('datatable-analyses', 'data'),
      Output('label-analyses-rowcount1', 'children'),
      Output('label-analyses-rowcount2', 'children'),
      Output('ag-analyses', 'rowData'),
@@ -314,7 +267,7 @@ def update_analyses(
     # Count how many rows are in the table
     rowcount = '{} rows'.format(len(records))
 
-    return [proj, lead, status, records, rowcount, rowcount, records]
+    return [proj, lead, status, rowcount, rowcount, records]
 
 
 @callback(

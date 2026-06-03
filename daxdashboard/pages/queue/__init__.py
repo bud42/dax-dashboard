@@ -4,7 +4,7 @@ import pandas as pd
 import plotly
 import plotly.graph_objs as go
 import plotly.subplots
-from dash import Input, Output, callback, dcc, html, dash_table as dt
+from dash import Input, Output, callback, dcc, html
 import dash_bootstrap_components as dbc
 import dash_ag_grid as dag
 
@@ -88,15 +88,7 @@ def get_content():
         'USER',
     ]
 
-    columns = utils.make_columns(COLUMNS)
-
     columnDefs = [{'headerName': x, 'field': x} for x in COLUMNS]
-
-    # Format columns with links as markdown text
-    for i, c in enumerate(columns):
-        if c['name'] in ['ID']:
-            columns[i]['type'] = 'text'
-            columns[i]['presentation'] = 'markdown'
 
     for c in columnDefs:
         if c['field'] in ['ID']:
@@ -150,42 +142,6 @@ def get_content():
         dbc.Spinner(id="loading-queue-table", children=[
             dbc.Label('Loading...', id='label-queue-rowcount1'),
         ]),
-        dt.DataTable(
-            cell_selectable=False,
-            columns=columns,
-            data=[],
-            page_action='none',
-            sort_action='native',
-            id='datatable-queue',
-            style_cell={
-                'textAlign': 'center',
-                'padding': '5px 5px 0px 5px',
-            #    'width': '30px',
-            #    'overflow': 'hidden',
-            #    'textOverflow': 'ellipsis',
-            #    'height': 'auto',
-            #    'minWidth': '40',
-            #    'maxWidth': '60'
-            },
-            style_data_conditional=[
-                {'if': {'column_id': 'LABEL'}, 'textAlign': 'left'},
-            #    {'if': {'filter_query': '{STATUS} = "QUEUED"'},  'backgroundColor': STATUS2HEX['WAITING']},
-            #    {'if': {'filter_query': '{STATUS} = "RUNNING"'},  'backgroundColor': STATUS2HEX['RUNNING']},
-            #    {'if': {'filter_query': '{STATUS} = "WAITING"'},  'backgroundColor': STATUS2HEX['WAITING']},
-            #    {'if': {'filter_query': '{STATUS} = "PENDING"'},  'backgroundColor': STATUS2HEX['PENDING']},
-            #    {'if': {'filter_query': '{STATUS} = "UNKNOWN"'},  'backgroundColor': STATUS2HEX['UNKNOWN']},
-            #    {'if': {'filter_query': '{STATUS} = "FAILED"'},   'backgroundColor': STATUS2HEX['FAILED']},
-            #    {'if': {'filter_query': '{STATUS} = "COMPLETE"'}, 'backgroundColor': STATUS2HEX['COMPLETE']},
-            #    {'if': {'column_id': 'STATUS', 'filter_query': '{STATUS} = ""'}, 'backgroundColor': 'white'}
-            ],
-            style_header={
-                'fontWeight': 'bold',
-                'padding': '5px 15px 0px 10px',
-            },
-            export_format='xlsx',
-            export_headers='names',
-            export_columns='visible',
-        ),
         dag.AgGrid(
             id='ag-queue',
             columnDefs=columnDefs,
@@ -234,7 +190,6 @@ def filter_data(df, selected_proj, selected_proc, selected_user):
     [Output('dropdown-queue-proc', 'options'),
      Output('dropdown-queue-proj', 'options'),
      Output('dropdown-queue-user', 'options'),
-     Output('datatable-queue', 'data'),
      Output('container-queue-graph', 'children'),
      Output('label-queue-rowcount1', 'children'),
      Output('label-queue-rowcount2', 'children'),
@@ -302,4 +257,4 @@ def update_queue(
     else:
         rowcount = ''
 
-    return [proc, proj, user, records, graph_content, rowcount, rowcount, records]
+    return [proc, proj, user, graph_content, rowcount, rowcount, records]
