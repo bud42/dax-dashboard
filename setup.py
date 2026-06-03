@@ -12,14 +12,15 @@ setup(
     install_requires=[
         'dax',
         'dash',
-        'pandas',
-        'pycap',
+        'dash_ag_grid',
         'dash-bootstrap-components',
         'dash-bootstrap-templates',
+        'pandas',
+        'pycap',
         'flask_login',
         'flask_caching',
         'pywebview',
-        'cryptography'
+        'cryptography',
     ],
     include_package_data=True,
 )
