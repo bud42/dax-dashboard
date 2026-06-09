@@ -67,3 +67,15 @@ def project_names():
 
 def export_covar_file(project_id, repeat_id):
     return export_file(project_id, repeat_id, 'analysis_covarfile')
+
+def export_report_file(project_id, repeat_id):
+    return export_file(project_id, repeat_id, 'analysis_reportfile')
+
+def export_log_file(project_id, repeat_id):
+    return export_file(project_id, repeat_id, 'analysis_logfile')
+
+def export_stats_file(project_id, repeat_id):
+    return export_file(project_id, repeat_id, 'analysis_statsfile')
+
+def export_batch_file(project_id, repeat_id):
+    return export_file(project_id, repeat_id, 'analysis_batchfile')

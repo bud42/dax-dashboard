@@ -6,33 +6,37 @@ import dash_ag_grid as dag
 
 from ...log import logger
 from .. import utils
-from . import data
+from .data  import load_data, filter_data
+from .data  import export_report_file, export_covar_file, export_batch_file, export_stats_file, export_log_file
 
 
 COLUMNS = [
     'ID',
     'NAME',
     'STATUS',
-    'PBS',
-    'PDF',
-    'LOG',
+    'BATCH',
+    'REPORT',
+    'LOGFILE',
+    'COVARS',
     'OUTPUT',
     'PROCESSOR',
-    'COVARS',
     'SUBJECTS',
     'NOTES'
 ]
 
 
 STATUS2EMO = {
-    'READY': '🟩',
+    'READY': '✅',
     'Q': '🔷',
     'QUEUED': '🔷',
     'COMPLETE': '🔷',
     'COMPLETED': '🔷',
+    'FAILED': '🩷',
     'JOB_FAILED': '🩷',
-    'DEVEL': '🟡',
+    'JOB_CANCELLED': '❌',
+    'DEVEL': '⚠️',
     'RUNNING': '🔷',
+    'DEV': '⚠️',
 }
 
 
@@ -40,19 +44,27 @@ def get_content():
     columnDefs = [{'headerName': x, 'field': x} for x in COLUMNS]
 
     for i, c in enumerate(columnDefs):
-        if c['field'] in ['OUTPUT', 'EDIT', 'INPUT', 'DATA', 'PROCESSOR', 'LOG', 'PDF', 'PBS', 'COVARS', 'ID']:
+        if c['field'] in ['EDIT', 'INPUT', 'DATA', 'PROCESSOR', 'LOGFILE', 'REPORT', 'BATCH', 'COVARS', 'ID', 'NAME']:
             #columns[i]['type'] = 'text'
             columnDefs[i]['cellRenderer'] = 'markdown'
+            columnDefs[i]["linkTarget"] = "_blank"
 
         # Make NOTES column fill extra space
         if c['field'] == 'NOTES':
             c["flex"] = 1
 
-        # TODO: fix centering, not quite working
-        if c['field'] in ['STATUS', 'OUTPUT', 'COVARS', 'PBS', 'LOG', 'PDF', 'PROCESSOR']:
-            c['maxWidth'] = 100
+        if c['field'] in ['STATUS', 'COVARS', 'BATCH', 'LOGFILE', 'REPORT', 'PROCESSOR']:
+            c['maxWidth'] = 40
             c["cellStyle"] = {"display": "flex", "justifyContent": "center", 'textAlign': 'center'}
+            c["headerClass"] = 'emo-header'
+            c["sortable"] = False
+            c["filter"] = False
 
+        if c['field'] in ['SUBJECTS']:
+            c["cellStyle"] = {"display": "flex", "justifyContent": "center", 'textAlign': 'center'}
+            c["sortable"] = False
+            c["filter"] = False
+            c["headerClass"] = "emo-header-not-center"
 
     content = [
         dbc.Row([
@@ -99,22 +111,26 @@ def get_content():
         dbc.Spinner(id="loading-analyses-table", children=[
             dbc.Label('Loading...', id='label-analyses-rowcount1'),
         ]),
-        dcc.Download(id="download-covars"),
+        dcc.Download(id="download-file"),
         dag.AgGrid(
             id='ag-analyses',
             columnDefs=columnDefs,
             columnSize='responsiveSizeToFit',
             rowData=[],
             dashGridOptions={
-                "theme": {"function": "themeAlpine.withPart(agGrid.colorSchemeDark)"},
+                "headerHeight": 90,
+                "floatingFiltersHeight": 40,
+                "rowHeight": 40,
+                "theme": {"function": 'themeAlpine.withPart(agGrid.colorSchemeDark).withParams({columnBorder: true, rowBorder: true, wrapperBorder: true})'},
             },
             defaultColDef={
                 "sortable": True,
                 "filter": True,
                 "floatingFilter": True,
                 "resizable": True,
-                "headerClass": "ag-header-cell-center",
+                "headerClass": "emo-header-not ag-header-cell-center",
             },
+            className="no-padding-grid",
         ),
         html.Label('0', id='label-analyses-rowcount2'),
     ]
@@ -123,7 +139,7 @@ def get_content():
 
 
 def load_analyses(refresh=False):
-    return data.load_data(refresh=refresh)
+    return load_data(refresh=refresh)
 
 
 @callback(
@@ -160,8 +176,8 @@ def update_analyses(
     df = load_analyses(refresh=refresh)
 
     # Truncate NOTES
-    if 'NOTES' in df:
-        df['NOTES'] = df['NOTES'].str.slice(0, 20)
+    #if 'NOTES' in df:
+    #    df['NOTES'] = df['NOTES'].str.slice(0, 20)
 
     # Count SUBJECTS list
     _mask = df['SUBJECTS'].notna() & (df['SUBJECTS'].str.len() > 0)
@@ -174,7 +190,7 @@ def update_analyses(
     proj_options = df.PROJECT.unique()
 
     # Filter by project before loading inv and status options
-    df = data.filter_data(df, projects=selected_proj)
+    df = filter_data(df, projects=selected_proj)
 
     lead_options = sorted(df['INVESTIGATOR'].unique())
     status_options = sorted(df['STATUS'].unique())
@@ -185,7 +201,7 @@ def update_analyses(
     logger.debug(f'loaded options:{proj_options}:{lead_options}')
 
     # Filter data based on dropdown values
-    df = data.filter_data(
+    df = filter_data(
         df,
         leads=selected_lead, 
         statuses=selected_status)
@@ -198,52 +214,35 @@ def update_analyses(
 
     # Format records
     for r in records:
-        # Make edit a link
         _link = r['EDIT']
-        _text = 'edit'
-        r['EDIT'] = f'[{_text}]({_link})'
 
         _id = r['ID']
         r['ID'] = f'[{_id}]({_link})'
 
-         # Make log a link
-        _link = r['LOGLINK']
-        r['LOG'] = f'[📄]({_link})'
+        _name = r['NAME']
+        r['NAME'] = f'[{_name}]({_link})'
 
-        if r['STATUS'] == 'READY':
-             # Make pdf a link
-            _link = r['PDFLINK']
-            r['PDF'] = f'[📊]({_link})'
+        if r['REPORT']:
+            r['REPORT'] = '📊'
 
-            # Make pbs a link
-            _link = r['PBSLINK']
-            r['PBS'] = f'[📋]({_link})'
-        else:
-            r['PDF'] = ''
-            r['PBS'] = ''
+        if r['BATCH']:
+            r['BATCH'] = '📋'
+
+        if r['LOGFILE']:
+            r['LOGFILE'] = '📄'
+
+        if r['COVARS']:
+            r['COVARS'] = '📗'
 
         # Make a link
-        if not r['OUTPUT']:
-            pass
-        elif r['OUTPUTLINK']:
-            _link = r['OUTPUTLINK']
-            #_text = r['OUTPUT']
-            #r['OUTPUT'] = f'[{_text}]({_link})'
-            r['OUTPUT'] = f'[📁]({_link})'
-        elif '/' in r['OUTPUT']:
-            _link = r['OUTPUT']
-            #_text = r['OUTPUT'].rsplit('/', 2)[1]
-            #r['OUTPUT'] = f'[{_text}]({_link})'
-            r['OUTPUT'] = f'[📁]({_link})'
-
-        # Make covars a link
-        if not r['COVARS']:
-            pass
-        else:
-            #_link = r['COVARS']
-            #_text = r['COVARS']
-            #r['COVARS'] = f'[📗]({_link})'
-            r['COVARS'] = '📗'
+        #if not r['OUTPUTS']:
+        #    pass
+        #elif r['OUTPUTLINK']:
+        #    _link = r['OUTPUTLINK']
+        #    r['OUTPUTS'] = f'[📁]({_link})'
+        #elif '/' in r['OUTPUTS']:
+        #    _link = r['OUTPUTS']
+        #    r['OUTPUT'] = f'[📁]({_link})'
 
         # Make a link
         if not r['PROCESSOR']:
@@ -271,30 +270,49 @@ def update_analyses(
 
 
 @callback(
-    Output("download-covars", "data"),
-    Input("datatable-analyses", "active_cell"),
-    Input("datatable-analyses", "data"),
+    Output("download-file", "data"),
+    Input("ag-analyses", "cellClicked"),
+    Input("ag-analyses", "rowData"),
     )
 def get_file(active_cell, rows):
+
     if not active_cell:
         raise PreventUpdate
 
-    if active_cell['column_id'] not in ['COVARS']:
+    print(active_cell)
+
+    col_id = active_cell['colId']
+  
+    if col_id not in ['COVARS', 'REPORT', 'LOGFILE', 'BATCH']:
         raise PreventUpdate
 
-    row_id = active_cell['row']
+    row_id = active_cell['rowIndex']
     project_id = rows[row_id]['PROJECT']
     repeat_id = rows[row_id]['REPEATID']
+    output_id = rows[row_id]['OUTPUT']
 
-    if active_cell['column_id'] == 'COVARS':
-        content, headers = data.export_covar_file(project_id, repeat_id)
-    elif active_cell['column_id'] == 'COVARS':
-        content, headers = data.export_pdf_file(project_id, repeat_id)
+    print(col_id, row_id, project_id, repeat_id)
+
+    if col_id == 'COVARS':
+        content, headers = export_covar_file(project_id, repeat_id)
+        filename = headers.get('name', 'covariates.csv')
+    elif col_id == 'REPORT':
+        content, headers = export_report_file(project_id, repeat_id)
+        filename = headers.get('name', 'report.pdf')
+    elif col_id == 'BATCH':
+        content, headers = export_batch_file(project_id, repeat_id)
+        filename = headers.get('name', 'batch.slurm')
+    elif col_id == 'LOGFILE':
+        content, headers = export_log_file(project_id, repeat_id)
+        filename = headers.get('name', 'log.txt')
+    elif col_id == 'STATS':
+        content, headers = export_stat_file(project_id, repeat_id)
+        filename = headers.get('name', 'stats.csv')
     else:
         raise Exception('invalid click')
 
-    filename = headers.get('name', 'covariates.csv')
-    filename = f'{project_id}_{repeat_id}-{filename}'
+    #filename = f'{project_id}_{repeat_id}-{filename}'
+    filename = f'{output_id}-{filename}'
 
     return dcc.send_bytes(content, filename)
 

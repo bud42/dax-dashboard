@@ -160,6 +160,10 @@ ANALYSES_RENAME = {
     'analyses_complete': 'COMPLETE',
     'analysis_status': 'STATUS',
     'analysis_covarfile': 'COVARS',
+    'analysis_reportfile': 'REPORT',
+    'analysis_logfile': 'LOGFILE',
+    'analysis_batchfile': 'BATCH',
+    'analysis_statsfile': 'STATS',
     'analysis_notes': 'NOTES',
 }
 
@@ -202,8 +206,9 @@ TASK_COLUMNS = [
 ]
 
 ANALYSES_COLUMNS = [
-    'PROJECT', 'ID', 'NAME', 'STATUS', 'EDIT', 'NOTES', 'SUBJECTS', 
-    'PROCESSOR', 'INVESTIGATOR', 'OUTPUT', 'COVARS', 'REPEATID'
+    'PROJECT', 'ID', 'NAME', 'STATUS', 'NOTES', 'SUBJECTS', 'INVESTIGATOR',
+    'PROCESSOR',  'OUTPUT', 'COVARS', 'REPORT', 'BATCH', 'LOGFILE', 'STATS',
+    'REPEATID', 'EDIT',
 ]
 
 PROCESSORS_COLUMNS = [

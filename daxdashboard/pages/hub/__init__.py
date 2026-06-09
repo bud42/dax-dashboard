@@ -87,7 +87,7 @@ def _queue_graph(df):
 
     dfp = pd.pivot_table(
         df,
-        index=['PROJECT', 'PROCTYPE'],
+        index=['PROCTYPE'],
         values='LABEL',
         columns=['STATUS'],
         aggfunc='count',

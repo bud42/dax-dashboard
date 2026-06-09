@@ -38,3 +38,26 @@
 }
 
 
+.emo-header .ag-header-cell-label {
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: flex-end;
+}
+
+.emo-header .ag-header-cell-label .ag-header-cell-text {
+    writing-mode: vertical-lr;
+    transform: rotate(180deg);
+}
+
+.emo-header-not .ag-header-cell-label {
+    display: flex;
+    justify-content: left;
+    align-items: flex-end;
+}
+
+.emo-header-not-center .ag-header-cell-label {
+    display: flex;
+    justify-content: center;
+    align-items: flex-end;
+}
